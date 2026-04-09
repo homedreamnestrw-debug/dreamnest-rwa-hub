@@ -35,6 +35,7 @@ import Invoices from "./pages/admin/Invoices";
 import Expenses from "./pages/admin/Expenses";
 import PurchaseOrders from "./pages/admin/PurchaseOrders";
 import Settings from "./pages/admin/Settings";
+import POS from "./pages/admin/POS";
 
 const queryClient = new QueryClient();
 
@@ -86,6 +87,7 @@ const App = () => (
               <Route path="invoices" element={<Invoices />} />
               <Route path="expenses" element={<Expenses />} />
               <Route path="settings" element={<Settings />} />
+              <Route path="pos" element={<POS />} />
             </Route>
 
             {/* Catch-all */}
