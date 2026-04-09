@@ -27,7 +27,10 @@ import Customers from "./pages/admin/Customers";
 import Categories from "./pages/admin/Categories";
 import Analytics from "./pages/admin/Analytics";
 import StockManagement from "./pages/admin/StockManagement";
-import Placeholder from "./pages/admin/Placeholder";
+import Suppliers from "./pages/admin/Suppliers";
+import Invoices from "./pages/admin/Invoices";
+import Expenses from "./pages/admin/Expenses";
+import Settings from "./pages/admin/Settings";
 
 const queryClient = new QueryClient();
 
@@ -69,10 +72,10 @@ const App = () => (
               <Route path="categories" element={<Categories />} />
               <Route path="analytics" element={<Analytics />} />
               <Route path="stock" element={<StockManagement />} />
-              <Route path="suppliers" element={<Placeholder title="Suppliers" />} />
-              <Route path="invoices" element={<Placeholder title="Invoices" />} />
-              <Route path="expenses" element={<Placeholder title="Expenses" />} />
-              <Route path="settings" element={<Placeholder title="Settings" />} />
+              <Route path="suppliers" element={<Suppliers />} />
+              <Route path="invoices" element={<Invoices />} />
+              <Route path="expenses" element={<Expenses />} />
+              <Route path="settings" element={<Settings />} />
             </Route>
 
             {/* Catch-all */}

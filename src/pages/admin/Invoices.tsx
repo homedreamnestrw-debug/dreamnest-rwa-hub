@@ -1,0 +1,254 @@
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Search, Eye } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+import type { Tables, TablesInsert } from "@/integrations/supabase/types";
+import { Constants } from "@/integrations/supabase/types";
+
+type Invoice = Tables<"invoices">;
+
+const docTypes = Constants.public.Enums.document_type;
+const docStatuses = Constants.public.Enums.document_status;
+
+const statusColors: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+  draft: "secondary",
+  sent: "outline",
+  paid: "default",
+  overdue: "destructive",
+  cancelled: "secondary",
+  accepted: "default",
+  declined: "destructive",
+  expired: "secondary",
+};
+
+const formatRWF = (n: number) =>
+  new Intl.NumberFormat("en-RW", { style: "currency", currency: "RWF", minimumFractionDigits: 0 }).format(n);
+
+export default function Invoices() {
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [search, setSearch] = useState("");
+  const [filterType, setFilterType] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [viewing, setViewing] = useState<Invoice | null>(null);
+
+  const [form, setForm] = useState({
+    document_type: "invoice" as Invoice["document_type"],
+    status: "draft" as Invoice["status"],
+    subtotal: 0,
+    tax_rate: 18,
+    tax_amount: 0,
+    discount: 0,
+    total: 0,
+    due_date: "",
+    notes: "",
+  });
+
+  const fetchData = async () => {
+    const { data } = await supabase.from("invoices").select("*").order("created_at", { ascending: false });
+    setInvoices(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchData(); }, []);
+
+  const recalculate = (subtotal: number, taxRate: number, discount: number) => {
+    const taxAmount = Math.round(subtotal * taxRate / 100);
+    const total = subtotal + taxAmount - discount;
+    return { tax_amount: taxAmount, total };
+  };
+
+  const updateForm = (patch: Partial<typeof form>) => {
+    const next = { ...form, ...patch };
+    const calc = recalculate(next.subtotal, next.tax_rate, next.discount);
+    setForm({ ...next, ...calc });
+  };
+
+  const resetForm = () => {
+    setForm({ document_type: "invoice", status: "draft", subtotal: 0, tax_rate: 18, tax_amount: 0, discount: 0, total: 0, due_date: "", notes: "" });
+  };
+
+  const handleCreate = async () => {
+    const payload: TablesInsert<"invoices"> = {
+      document_number: "TEMP",
+      document_type: form.document_type,
+      status: form.status,
+      subtotal: form.subtotal,
+      tax_rate: form.tax_rate,
+      tax_amount: form.tax_amount,
+      discount: form.discount,
+      total: form.total,
+      due_date: form.due_date || null,
+      notes: form.notes || null,
+    };
+    const { error } = await supabase.from("invoices").insert(payload);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Document created" });
+    setDialogOpen(false);
+    resetForm();
+    fetchData();
+  };
+
+  const updateStatus = async (id: string, status: Invoice["status"]) => {
+    const update: any = { status };
+    if (status === "paid") update.paid_at = new Date().toISOString();
+    const { error } = await supabase.from("invoices").update(update).eq("id", id);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    toast({ title: `Status updated to ${status}` });
+    fetchData();
+  };
+
+  const filtered = invoices.filter((inv) => {
+    if (filterType !== "all" && inv.document_type !== filterType) return false;
+    if (filterStatus !== "all" && inv.status !== filterStatus) return false;
+    if (search && !inv.document_number.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="font-serif text-2xl font-semibold">Invoices & Documents</h1>
+        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
+          <DialogTrigger asChild>
+            <Button><Plus className="h-4 w-4 mr-2" /> New Document</Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Create Document</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Document Type</Label>
+                <Select value={form.document_type} onValueChange={(v: any) => updateForm({ document_type: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {docTypes.map((t) => <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div><Label>Subtotal (RWF)</Label><Input type="number" value={form.subtotal} onChange={(e) => updateForm({ subtotal: +e.target.value })} /></div>
+                <div><Label>Tax Rate (%)</Label><Input type="number" value={form.tax_rate} onChange={(e) => updateForm({ tax_rate: +e.target.value })} /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div><Label>Discount (RWF)</Label><Input type="number" value={form.discount} onChange={(e) => updateForm({ discount: +e.target.value })} /></div>
+                <div><Label>Total</Label><Input value={formatRWF(form.total)} disabled /></div>
+              </div>
+              <div><Label>Due Date</Label><Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
+              <div><Label>Notes</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+              <Button onClick={handleCreate} className="w-full">Create Document</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="flex flex-wrap gap-3">
+        <div className="relative max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Search by number..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+        </div>
+        <Select value={filterType} onValueChange={setFilterType}>
+          <SelectTrigger className="w-[140px]"><SelectValue placeholder="Type" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Types</SelectItem>
+            {docTypes.map((t) => <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-[140px]"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            {docStatuses.map((s) => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Number</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Total</TableHead>
+              <TableHead>Due Date</TableHead>
+              <TableHead>Created</TableHead>
+              <TableHead className="w-32">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
+            ) : filtered.length === 0 ? (
+              <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No documents found</TableCell></TableRow>
+            ) : filtered.map((inv) => (
+              <TableRow key={inv.id}>
+                <TableCell className="font-medium font-mono">{inv.document_number}</TableCell>
+                <TableCell className="capitalize">{inv.document_type}</TableCell>
+                <TableCell>
+                  <Badge variant={statusColors[inv.status] || "secondary"} className="capitalize">{inv.status}</Badge>
+                </TableCell>
+                <TableCell>{formatRWF(inv.total)}</TableCell>
+                <TableCell>{inv.due_date ? format(new Date(inv.due_date), "MMM d, yyyy") : "—"}</TableCell>
+                <TableCell>{format(new Date(inv.created_at), "MMM d, yyyy")}</TableCell>
+                <TableCell>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="icon" onClick={() => setViewing(inv)}><Eye className="h-4 w-4" /></Button>
+                    {inv.status === "draft" && (
+                      <Button variant="ghost" size="sm" onClick={() => updateStatus(inv.id, "sent")}>Send</Button>
+                    )}
+                    {(inv.status === "sent" || inv.status === "overdue") && (
+                      <Button variant="ghost" size="sm" onClick={() => updateStatus(inv.id, "paid")}>Mark Paid</Button>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Detail Dialog */}
+      <Dialog open={!!viewing} onOpenChange={(o) => { if (!o) setViewing(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Document Details</DialogTitle></DialogHeader>
+          {viewing && (
+            <div className="space-y-3 text-sm">
+              <div className="grid grid-cols-2 gap-2">
+                <div><span className="text-muted-foreground">Number:</span> <span className="font-mono font-medium">{viewing.document_number}</span></div>
+                <div><span className="text-muted-foreground">Type:</span> <span className="capitalize">{viewing.document_type}</span></div>
+                <div><span className="text-muted-foreground">Status:</span> <Badge variant={statusColors[viewing.status] || "secondary"} className="capitalize">{viewing.status}</Badge></div>
+                <div><span className="text-muted-foreground">Tax Rate:</span> {viewing.tax_rate}%</div>
+                <div><span className="text-muted-foreground">Subtotal:</span> {formatRWF(viewing.subtotal)}</div>
+                <div><span className="text-muted-foreground">Tax:</span> {formatRWF(viewing.tax_amount)}</div>
+                <div><span className="text-muted-foreground">Discount:</span> {formatRWF(viewing.discount)}</div>
+                <div><span className="text-muted-foreground font-semibold">Total:</span> <span className="font-semibold">{formatRWF(viewing.total)}</span></div>
+              </div>
+              {viewing.due_date && <p><span className="text-muted-foreground">Due:</span> {format(new Date(viewing.due_date), "MMM d, yyyy")}</p>}
+              {viewing.paid_at && <p><span className="text-muted-foreground">Paid:</span> {format(new Date(viewing.paid_at), "MMM d, yyyy")}</p>}
+              {viewing.notes && <p><span className="text-muted-foreground">Notes:</span> {viewing.notes}</p>}
+              <div className="flex gap-2 pt-2">
+                {viewing.status === "draft" && <Button size="sm" onClick={() => { updateStatus(viewing.id, "sent"); setViewing(null); }}>Mark as Sent</Button>}
+                {(viewing.status === "sent" || viewing.status === "overdue") && <Button size="sm" onClick={() => { updateStatus(viewing.id, "paid"); setViewing(null); }}>Mark as Paid</Button>}
+                {viewing.status !== "cancelled" && viewing.status !== "paid" && (
+                  <Button size="sm" variant="destructive" onClick={() => { updateStatus(viewing.id, "cancelled"); setViewing(null); }}>Cancel</Button>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
