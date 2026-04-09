@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, Search } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { ProductImageUpload } from "@/components/admin/ProductImageUpload";
 import type { Tables, TablesInsert } from "@/integrations/supabase/types";
 
 type Product = Tables<"products">;
@@ -37,6 +38,7 @@ export default function Products() {
     tax_enabled: true,
     is_active: true,
     featured: false,
+    images: [] as string[],
   });
 
   const fetchData = async () => {
@@ -52,7 +54,7 @@ export default function Products() {
   useEffect(() => { fetchData(); }, []);
 
   const resetForm = () => {
-    setForm({ name: "", slug: "", description: "", price: 0, cost_price: 0, sku: "", stock_quantity: 0, low_stock_threshold: 5, category_id: "", tax_enabled: true, is_active: true, featured: false });
+    setForm({ name: "", slug: "", description: "", price: 0, cost_price: 0, sku: "", stock_quantity: 0, low_stock_threshold: 5, category_id: "", tax_enabled: true, is_active: true, featured: false, images: [] });
     setEditing(null);
   };
 
@@ -71,13 +73,15 @@ export default function Products() {
       tax_enabled: p.tax_enabled,
       is_active: p.is_active,
       featured: p.featured,
+      images: p.images || [],
     });
     setDialogOpen(true);
   };
 
   const handleSave = async () => {
     const slug = form.slug || form.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-    const payload: TablesInsert<"products"> = { ...form, slug, category_id: form.category_id || null };
+    const { images, ...rest } = form;
+    const payload: TablesInsert<"products"> = { ...rest, slug, category_id: form.category_id || null, images: images.length > 0 ? images : null };
 
     if (editing) {
       const { error } = await supabase.from("products").update(payload).eq("id", editing.id);
@@ -148,6 +152,10 @@ export default function Products() {
                 <div className="flex items-center gap-2"><Switch checked={form.is_active} onCheckedChange={(v) => setForm({ ...form, is_active: v })} /><Label>Active</Label></div>
                 <div className="flex items-center gap-2"><Switch checked={form.featured} onCheckedChange={(v) => setForm({ ...form, featured: v })} /><Label>Featured</Label></div>
                 <div className="flex items-center gap-2"><Switch checked={form.tax_enabled} onCheckedChange={(v) => setForm({ ...form, tax_enabled: v })} /><Label>Tax</Label></div>
+              </div>
+              <div>
+                <Label>Images</Label>
+                <ProductImageUpload images={form.images} onChange={(imgs) => setForm({ ...form, images: imgs })} />
               </div>
               <Button onClick={handleSave} className="w-full">{editing ? "Update" : "Create"} Product</Button>
             </div>
