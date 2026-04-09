@@ -4,6 +4,7 @@ import { PublicLayout } from "@/components/layout/PublicLayout";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowRight, Star, Truck, Shield, Leaf } from "lucide-react";
+import heroBedroom from "@/assets/hero-bedroom.jpg";
 
 export default function Home() {
   const { data: featuredProducts } = useQuery({
@@ -34,8 +35,16 @@ export default function Home() {
   return (
     <PublicLayout>
       {/* Hero */}
-      <section className="relative bg-secondary py-20 lg:py-32 overflow-hidden">
-        <div className="container mx-auto px-4">
+      <section className="relative min-h-[70vh] lg:min-h-[80vh] flex items-center overflow-hidden">
+        <img
+          src={heroBedroom}
+          alt="Luxurious bedroom with premium bedding"
+          width={1920}
+          height={1080}
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/70 to-transparent" />
+        <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-2xl space-y-6 animate-fade-in">
             <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground font-medium">Premium Bedding & Home Decor</p>
             <h1 className="text-4xl lg:text-6xl font-serif text-foreground leading-tight">
