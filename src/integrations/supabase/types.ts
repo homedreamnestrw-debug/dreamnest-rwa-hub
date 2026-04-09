@@ -1063,68 +1063,31 @@ export type Database = {
       }
     }
     Views: {
-      business_settings_public: {
-        Row: {
-          address: string | null
-          business_name: string | null
-          city: string | null
-          country: string | null
-          created_at: string | null
-          currency: string | null
-          email: string | null
-          id: string | null
-          logo_url: string | null
-          loyalty_points_rate: number | null
-          loyalty_redemption_rate: number | null
-          loyalty_tiers: Json | null
-          phone: string | null
-          tagline: string | null
-          updated_at: string | null
-          vat_percentage: number | null
-          whatsapp_number: string | null
-        }
-        Insert: {
-          address?: string | null
-          business_name?: string | null
-          city?: string | null
-          country?: string | null
-          created_at?: string | null
-          currency?: string | null
-          email?: string | null
-          id?: string | null
-          logo_url?: string | null
-          loyalty_points_rate?: number | null
-          loyalty_redemption_rate?: number | null
-          loyalty_tiers?: Json | null
-          phone?: string | null
-          tagline?: string | null
-          updated_at?: string | null
-          vat_percentage?: number | null
-          whatsapp_number?: string | null
-        }
-        Update: {
-          address?: string | null
-          business_name?: string | null
-          city?: string | null
-          country?: string | null
-          created_at?: string | null
-          currency?: string | null
-          email?: string | null
-          id?: string | null
-          logo_url?: string | null
-          loyalty_points_rate?: number | null
-          loyalty_redemption_rate?: number | null
-          loyalty_tiers?: Json | null
-          phone?: string | null
-          tagline?: string | null
-          updated_at?: string | null
-          vat_percentage?: number | null
-          whatsapp_number?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
+      get_public_business_settings: {
+        Args: never
+        Returns: {
+          address: string
+          business_name: string
+          city: string
+          country: string
+          created_at: string
+          currency: string
+          email: string
+          id: string
+          logo_url: string
+          loyalty_points_rate: number
+          loyalty_redemption_rate: number
+          loyalty_tiers: Json
+          phone: string
+          tagline: string
+          updated_at: string
+          vat_percentage: number
+          whatsapp_number: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
