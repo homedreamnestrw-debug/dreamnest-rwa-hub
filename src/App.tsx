@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { AdminLayout } from "@/components/admin/AdminLayout";
 
 import Home from "./pages/Home";
 import Shop from "./pages/Shop";
@@ -17,6 +18,16 @@ import Signup from "./pages/auth/Signup";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 import NotFound from "./pages/NotFound";
+
+// Admin pages
+import Dashboard from "./pages/admin/Dashboard";
+import Products from "./pages/admin/Products";
+import Orders from "./pages/admin/Orders";
+import Customers from "./pages/admin/Customers";
+import Categories from "./pages/admin/Categories";
+import Analytics from "./pages/admin/Analytics";
+import StockManagement from "./pages/admin/StockManagement";
+import Placeholder from "./pages/admin/Placeholder";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +52,28 @@ const App = () => (
             <Route path="/auth/signup" element={<Signup />} />
             <Route path="/auth/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+
+            {/* Admin */}
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute requiredRole="staff">
+                  <AdminLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<Dashboard />} />
+              <Route path="products" element={<Products />} />
+              <Route path="orders" element={<Orders />} />
+              <Route path="customers" element={<Customers />} />
+              <Route path="categories" element={<Categories />} />
+              <Route path="analytics" element={<Analytics />} />
+              <Route path="stock" element={<StockManagement />} />
+              <Route path="suppliers" element={<Placeholder title="Suppliers" />} />
+              <Route path="invoices" element={<Placeholder title="Invoices" />} />
+              <Route path="expenses" element={<Placeholder title="Expenses" />} />
+              <Route path="settings" element={<Placeholder title="Settings" />} />
+            </Route>
 
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
