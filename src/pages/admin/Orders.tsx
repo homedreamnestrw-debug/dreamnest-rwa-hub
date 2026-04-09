@@ -43,7 +43,7 @@ export default function Orders() {
   };
 
   const filtered = orders.filter((o) => {
-    const matchSearch = o.order_number?.toString().includes(search) || (o.profiles?.full_name || "").toLowerCase().includes(search.toLowerCase());
+    const matchSearch = o.order_number?.toString().includes(search);
     const matchStatus = statusFilter === "all" || o.status === statusFilter;
     return matchSearch && matchStatus;
   });
@@ -87,7 +87,7 @@ export default function Orders() {
             ) : filtered.map((o) => (
               <TableRow key={o.id}>
                 <TableCell className="font-medium">#{o.order_number}</TableCell>
-                <TableCell>{o.profiles?.full_name || "Guest"}</TableCell>
+                <TableCell className="text-muted-foreground text-sm">—</TableCell>
                 <TableCell>{formatRWF(o.total)}</TableCell>
                 <TableCell><Badge variant="outline" className="capitalize">{o.payment_status}</Badge></TableCell>
                 <TableCell>
