@@ -491,11 +491,16 @@ export type Database = {
           created_at: string
           customer_id: string | null
           discount_amount: number
+          guest_email: string | null
+          guest_name: string | null
+          guest_phone: string | null
           id: string
+          location_id: string | null
           notes: string | null
           order_number: number
           payment_method: Database["public"]["Enums"]["payment_method"] | null
           payment_status: Database["public"]["Enums"]["payment_status"]
+          served_by: string | null
           shipping_address: string | null
           shipping_city: string | null
           status: Database["public"]["Enums"]["order_status"]
@@ -509,11 +514,16 @@ export type Database = {
           created_at?: string
           customer_id?: string | null
           discount_amount?: number
+          guest_email?: string | null
+          guest_name?: string | null
+          guest_phone?: string | null
           id?: string
+          location_id?: string | null
           notes?: string | null
           order_number?: number
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
+          served_by?: string | null
           shipping_address?: string | null
           shipping_city?: string | null
           status?: Database["public"]["Enums"]["order_status"]
@@ -527,11 +537,16 @@ export type Database = {
           created_at?: string
           customer_id?: string | null
           discount_amount?: number
+          guest_email?: string | null
+          guest_name?: string | null
+          guest_phone?: string | null
           id?: string
+          location_id?: string | null
           notes?: string | null
           order_number?: number
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
+          served_by?: string | null
           shipping_address?: string | null
           shipping_city?: string | null
           status?: Database["public"]["Enums"]["order_status"]
@@ -540,7 +555,15 @@ export type Database = {
           total?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "orders_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "stock_locations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       product_variants: {
         Row: {
