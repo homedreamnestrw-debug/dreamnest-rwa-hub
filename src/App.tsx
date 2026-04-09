@@ -59,6 +59,10 @@ const App = () => (
             <Route path="/auth/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
 
+            {/* Checkout */}
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/order-confirmation/:orderNumber" element={<OrderConfirmation />} />
+
             {/* Admin */}
             <Route
               path="/admin"
