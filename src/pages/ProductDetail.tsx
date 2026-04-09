@@ -7,12 +7,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Heart, Minus, Plus, ShoppingCart, Star } from "lucide-react";
+import { ReviewForm } from "@/components/product/ReviewForm";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function ProductDetail() {
   const { slug } = useParams<{ slug: string }>();
   const { user } = useAuth();
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
+  const queryClient = useQueryClient();
 
   const { data: product, isLoading } = useQuery({
     queryKey: ["product", slug],
@@ -245,6 +248,28 @@ export default function ProductDetail() {
                   {review.comment && <p className="text-muted-foreground text-sm">{review.comment}</p>}
                 </div>
               ))}
+            </div>
+
+            {user && product && (
+              <ReviewForm
+                productId={product.id}
+                userId={user.id}
+                onSubmitted={() => queryClient.invalidateQueries({ queryKey: ["reviews", product.id] })}
+              />
+            )}
+          </section>
+        )}
+
+        {/* Review form when no reviews yet */}
+        {user && product && (!reviews || reviews.length === 0) && (
+          <section className="mt-20">
+            <h2 className="text-2xl font-serif mb-8">Be the First to Review</h2>
+            <div className="max-w-2xl">
+              <ReviewForm
+                productId={product.id}
+                userId={user.id}
+                onSubmitted={() => queryClient.invalidateQueries({ queryKey: ["reviews", product.id] })}
+              />
             </div>
           </section>
         )}
