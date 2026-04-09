@@ -4,6 +4,7 @@ import { PublicLayout } from "@/components/layout/PublicLayout";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowRight, Star, Truck, Shield, Leaf } from "lucide-react";
+import heroBedroom from "@/assets/hero-bedroom.jpg";
 
 export default function Home() {
   const { data: featuredProducts } = useQuery({
