@@ -17,7 +17,7 @@ import type { Tables as DbTables } from "@/integrations/supabase/types";
 
 type PurchaseOrder = DbTables<"purchase_orders">;
 type Supplier = DbTables<"suppliers">;
-type Product = DbTables<"products">;
+type Product = Pick<DbTables<"products">, "id" | "name" | "sku" | "cost_price">;
 
 interface POItem {
   product_id: string;
