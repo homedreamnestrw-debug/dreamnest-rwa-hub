@@ -33,7 +33,7 @@ export default function Dashboard() {
         supabase.from("products").select("id", { count: "exact", head: true }),
         supabase.from("profiles").select("id", { count: "exact", head: true }),
         supabase.from("products").select("id", { count: "exact", head: true }).lt("stock_quantity", 5),
-        supabase.from("orders").select("*, profiles!orders_customer_id_fkey(full_name)").order("created_at", { ascending: false }).limit(5),
+        supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(5),
       ]);
 
       const orders = ordersRes.data || [];

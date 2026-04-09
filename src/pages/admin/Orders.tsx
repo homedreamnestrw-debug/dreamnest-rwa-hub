@@ -17,7 +17,7 @@ export default function Orders() {
   const fetchOrders = async () => {
     const { data } = await supabase
       .from("orders")
-      .select("*, profiles!orders_customer_id_fkey(full_name)")
+      .select("*")
       .order("created_at", { ascending: false });
     setOrders(data || []);
     setLoading(false);
