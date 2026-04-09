@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import logo from "@/assets/logo.png";
 
 export function Footer() {
   return (
@@ -7,7 +8,7 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
           {/* Brand */}
           <div className="md:col-span-1 space-y-4">
-            <h3 className="font-serif text-2xl">DreamNest</h3>
+            <img src={logo} alt="DreamNest" className="h-14 w-auto brightness-0 invert" />
             <p className="text-primary-foreground/70 text-sm leading-relaxed">
               Premium bedding & home decor, crafted with care in Kigali, Rwanda.
             </p>
@@ -38,7 +39,7 @@ export function Footer() {
             <h4 className="font-serif text-lg">Get in Touch</h4>
             <div className="flex flex-col gap-2 text-sm text-primary-foreground/70">
               <span>KG 123 Street, Kigali</span>
-              <span>+250 788 000 000</span>
+              <span>+250 788 742 122</span>
               <span>sales@dreamnestrw.com</span>
             </div>
           </div>
