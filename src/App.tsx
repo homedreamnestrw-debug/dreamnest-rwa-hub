@@ -18,6 +18,8 @@ import Signup from "./pages/auth/Signup";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 import NotFound from "./pages/NotFound";
+import Checkout from "./pages/Checkout";
+import OrderConfirmation from "./pages/OrderConfirmation";
 
 // Admin pages
 import Dashboard from "./pages/admin/Dashboard";
@@ -56,6 +58,10 @@ const App = () => (
             <Route path="/auth/signup" element={<Signup />} />
             <Route path="/auth/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+
+            {/* Checkout */}
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/order-confirmation/:orderNumber" element={<OrderConfirmation />} />
 
             {/* Admin */}
             <Route
