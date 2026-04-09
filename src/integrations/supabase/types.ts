@@ -1063,7 +1063,66 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      business_settings_public: {
+        Row: {
+          address: string | null
+          business_name: string | null
+          city: string | null
+          country: string | null
+          created_at: string | null
+          currency: string | null
+          email: string | null
+          id: string | null
+          logo_url: string | null
+          loyalty_points_rate: number | null
+          loyalty_redemption_rate: number | null
+          loyalty_tiers: Json | null
+          phone: string | null
+          tagline: string | null
+          updated_at: string | null
+          vat_percentage: number | null
+          whatsapp_number: string | null
+        }
+        Insert: {
+          address?: string | null
+          business_name?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          currency?: string | null
+          email?: string | null
+          id?: string | null
+          logo_url?: string | null
+          loyalty_points_rate?: number | null
+          loyalty_redemption_rate?: number | null
+          loyalty_tiers?: Json | null
+          phone?: string | null
+          tagline?: string | null
+          updated_at?: string | null
+          vat_percentage?: number | null
+          whatsapp_number?: string | null
+        }
+        Update: {
+          address?: string | null
+          business_name?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          currency?: string | null
+          email?: string | null
+          id?: string | null
+          logo_url?: string | null
+          loyalty_points_rate?: number | null
+          loyalty_redemption_rate?: number | null
+          loyalty_tiers?: Json | null
+          phone?: string | null
+          tagline?: string | null
+          updated_at?: string | null
+          vat_percentage?: number | null
+          whatsapp_number?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
