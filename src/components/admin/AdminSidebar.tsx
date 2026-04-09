@@ -38,6 +38,7 @@ const mainItems = [
   { title: "Products", url: "/admin/products", icon: Package },
   { title: "Categories", url: "/admin/categories", icon: FolderTree },
   { title: "Customers", url: "/admin/customers", icon: Users },
+  { title: "Staff", url: "/admin/staff", icon: Users },
 ];
 
 const inventoryItems = [
