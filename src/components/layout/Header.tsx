@@ -15,16 +15,16 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16 lg:h-20">
-          <Link to="/" className="flex items-center gap-2">
-            <img src={logo} alt="DreamNest" className="h-12 lg:h-16 w-auto" />
+        <div className="flex items-center justify-between h-20 lg:h-24">
+          <Link to="/" className="flex items-center">
+            <img src={logo} alt="DreamNest" className="h-16 lg:h-20 w-auto -my-2" />
           </Link>
 
           <nav className="hidden md:flex items-center gap-8">
-            <Link to="/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Home</Link>
-            <Link to="/shop" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Shop</Link>
-            <Link to="/about" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">About</Link>
-            <Link to="/contact" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Contact</Link>
+            <Link to="/" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">Home</Link>
+            <Link to="/shop" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">Shop</Link>
+            <Link to="/about" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">About</Link>
+            <Link to="/contact" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">Contact</Link>
           </nav>
 
           <div className="flex items-center gap-2">
