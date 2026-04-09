@@ -30,6 +30,7 @@ import StockManagement from "./pages/admin/StockManagement";
 import Suppliers from "./pages/admin/Suppliers";
 import Invoices from "./pages/admin/Invoices";
 import Expenses from "./pages/admin/Expenses";
+import PurchaseOrders from "./pages/admin/PurchaseOrders";
 import Settings from "./pages/admin/Settings";
 
 const queryClient = new QueryClient();
@@ -73,6 +74,7 @@ const App = () => (
               <Route path="analytics" element={<Analytics />} />
               <Route path="stock" element={<StockManagement />} />
               <Route path="suppliers" element={<Suppliers />} />
+              <Route path="purchase-orders" element={<PurchaseOrders />} />
               <Route path="invoices" element={<Invoices />} />
               <Route path="expenses" element={<Expenses />} />
               <Route path="settings" element={<Settings />} />

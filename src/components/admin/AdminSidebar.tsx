@@ -40,6 +40,7 @@ const mainItems = [
 const inventoryItems = [
   { title: "Stock", url: "/admin/stock", icon: Warehouse },
   { title: "Suppliers", url: "/admin/suppliers", icon: Truck },
+  { title: "Purchase Orders", url: "/admin/purchase-orders", icon: FileText },
 ];
 
 const financeItems = [
