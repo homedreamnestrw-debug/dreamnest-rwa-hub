@@ -63,6 +63,7 @@ const App = () => (
             {/* Checkout */}
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/order-confirmation/:orderNumber" element={<OrderConfirmation />} />
+            <Route path="/account" element={<Account />} />
 
             {/* Admin */}
             <Route
