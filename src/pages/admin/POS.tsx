@@ -516,8 +516,14 @@ export default function POS() {
               <div className="text-sm space-y-1">
                 <div className="flex justify-between"><span className="text-muted-foreground">Receipt #</span><span className="font-mono">{receiptOrder.order_number}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Date</span><span>{format(new Date(receiptOrder.created_at), "MMM d, yyyy h:mm a")}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Payment</span><span className="capitalize">{receiptOrder.payment_status === "unpaid" ? "Credit (Unpaid)" : receiptOrder.payment_method.replace("_", " ")}</span></div>
-                {receiptOrder.payment_status === "unpaid" && (
+                {receiptOrder.customer_name && (
+                  <div className="flex justify-between"><span className="text-muted-foreground">Customer</span><span>{receiptOrder.customer_name}</span></div>
+                )}
+                {receiptOrder.customer_phone && (
+                  <div className="flex justify-between"><span className="text-muted-foreground">Phone</span><span>{receiptOrder.customer_phone}</span></div>
+                )}
+                <div className="flex justify-between"><span className="text-muted-foreground">Payment</span><span className="capitalize">{receiptOrder.payment_status === "unpaid" ? "Credit (Unpaid)" : receiptOrder.payment_status === "partial" ? "Partial Payment" : receiptOrder.payment_method.replace("_", " ")}</span></div>
+                {(receiptOrder.payment_status === "unpaid" || receiptOrder.payment_status === "partial") && (
                   <Badge variant="secondary" className="mt-1">CREDIT SALE</Badge>
                 )}
               </div>
@@ -537,8 +543,11 @@ export default function POS() {
                 <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{formatPrice(receiptOrder.subtotal)}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">VAT</span><span>{formatPrice(receiptOrder.tax)}</span></div>
                 <div className="flex justify-between font-medium text-base pt-1"><span>Total</span><span className="font-serif">{formatPrice(receiptOrder.total)}</span></div>
-                {receiptOrder.payment_status === "unpaid" && (
-                  <div className="flex justify-between text-destructive font-medium"><span>Balance Due</span><span>{formatPrice(receiptOrder.total)}</span></div>
+                {receiptOrder.amount_paid && receiptOrder.amount_paid > 0 && (
+                  <div className="flex justify-between text-green-600 font-medium"><span>Amount Paid</span><span>{formatPrice(receiptOrder.amount_paid)}</span></div>
+                )}
+                {(receiptOrder.payment_status === "unpaid" || receiptOrder.payment_status === "partial") && (
+                  <div className="flex justify-between text-destructive font-medium"><span>Balance Due</span><span>{formatPrice(receiptOrder.total - (receiptOrder.amount_paid || 0))}</span></div>
                 )}
               </div>
 
