@@ -264,6 +264,45 @@ export default function POS() {
         });
       }
 
+      // Auto-create receipt in invoices
+      const receiptPayload = {
+        document_number: "TEMP",
+        document_type: "receipt" as const,
+        order_id: order.id,
+        customer_id: selectedCustomer?.user_id || null,
+        subtotal,
+        tax_rate: Math.round(vatRate * 100),
+        tax_amount: taxAmount,
+        discount: discountAmount,
+        total,
+        status: (paymentStatus === "paid" ? "paid" : "sent") as any,
+        paid_at: paymentStatus === "paid" ? new Date().toISOString() : null,
+        notes: customerNote || null,
+      };
+      await supabase.from("invoices").insert(receiptPayload);
+
+      // Auto-create invoice items for the receipt
+      const { data: createdReceipt } = await supabase
+        .from("invoices")
+        .select("id")
+        .eq("order_id", order.id)
+        .eq("document_type", "receipt")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (createdReceipt) {
+        const invoiceItems = cart.map((i) => ({
+          invoice_id: createdReceipt.id,
+          description: i.name,
+          quantity: i.quantity,
+          unit_price: i.price,
+          tax: Math.round(i.price * i.quantity * vatRate),
+          total: i.price * i.quantity,
+        }));
+        await supabase.from("invoice_items").insert(invoiceItems);
+      }
+
       setReceiptOrder({
         order_number: order.order_number,
         items: [...cart],
