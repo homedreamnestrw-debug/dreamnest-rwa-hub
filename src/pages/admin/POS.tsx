@@ -473,9 +473,9 @@ export default function POS() {
 
   return (
     <>
-      <div className="flex flex-col lg:flex-row gap-4 h-[calc(100vh-8rem)] print:hidden">
+      <div className="flex min-h-0 flex-col gap-4 print:hidden lg:h-[calc(100dvh-8rem)] lg:flex-row">
         {/* Left: Product search + grid */}
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex min-h-0 flex-1 flex-col min-w-0">
           <div className="flex gap-3 mb-4">
             {locations && locations.length > 0 && (
               <Select value={selectedLocation} onValueChange={setSelectedLocation}>
@@ -539,7 +539,7 @@ export default function POS() {
         </div>
 
         {/* Right: Cart + Checkout */}
-        <Card className="lg:w-[380px] flex flex-col min-w-0 overflow-hidden">
+        <Card className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden lg:w-[380px]">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="font-serif text-lg">Current Sale</CardTitle>
@@ -551,165 +551,164 @@ export default function POS() {
             </div>
           </CardHeader>
 
-          <CardContent className="flex-1 flex flex-col p-4 pt-0">
-            <ScrollArea className="flex-1 min-h-0">
-              {cart.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground text-sm">
-                  <Receipt className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                  <p>No items in sale</p>
-                  <p className="text-xs mt-1">Search or click products to add</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {cart.map((item) => (
-                    <div key={item.product_id} className="flex items-center gap-2 p-2 rounded-md bg-muted/50 min-w-0">
-                      <div className="flex-1 min-w-0 overflow-hidden">
-                        <p className="text-sm font-medium truncate">{item.name}</p>
-                        <p className="text-xs text-muted-foreground">{formatPrice(item.price)} each</p>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQty(item.product_id, -1)}><Minus className="h-3 w-3" /></Button>
-                        <span className="w-6 text-center text-sm font-medium">{item.quantity}</span>
-                        <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQty(item.product_id, 1)}><Plus className="h-3 w-3" /></Button>
-                      </div>
-                      <span className="text-sm font-medium shrink-0 text-right">{formatPrice(item.price * item.quantity)}</span>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-destructive" onClick={() => removeFromCart(item.product_id)}><Trash2 className="h-3.5 w-3.5" /></Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </ScrollArea>
-
-            {cart.length > 0 && (
-              <div className="mt-4 space-y-4">
-                {/* Customer info */}
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground">Customer</p>
-                  <div className="relative">
-                    <Input
-                      ref={customerSearchRef}
-                      placeholder="Phone number *"
-                      value={customerPhone}
-                      onChange={(e) => searchCustomer(e.target.value)}
-                      onFocus={() => customerSearchResults.length > 0 && setShowCustomerDropdown(true)}
-                      onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
-                      className="h-9 text-sm"
-                    />
-                    {showCustomerDropdown && (
-                      <div className="absolute z-50 top-full mt-1 w-full bg-popover border rounded-md shadow-lg">
-                        {customerSearchResults.map((c: any) => (
-                          <button
-                            key={c.id}
-                            className="w-full text-left px-3 py-2 hover:bg-muted text-sm"
-                            onMouseDown={() => selectCustomer(c)}
-                          >
-                            <span className="text-muted-foreground">{c.phone}</span>
-                            {c.full_name && <span className="font-medium ml-2">{c.full_name}</span>}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    {selectedCustomer && (
-                      <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6" onClick={clearCustomer}><X className="h-3 w-3" /></Button>
-                    )}
+          <CardContent className="min-h-0 flex-1 overflow-hidden px-4 pb-4 pt-0">
+            <ScrollArea className="h-full min-h-0">
+              <div className="space-y-4 pr-3">
+                {cart.length === 0 ? (
+                  <div className="py-12 text-center text-sm text-muted-foreground">
+                    <Receipt className="mx-auto mb-3 h-10 w-10 opacity-50" />
+                    <p>No items in sale</p>
+                    <p className="mt-1 text-xs">Search or click products to add</p>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Input placeholder="Name (optional)" value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="h-9 text-sm" disabled={!!selectedCustomer} />
-                    <Input placeholder="Address (optional)" value={customerAddress} onChange={(e) => setCustomerAddress(e.target.value)} className="h-9 text-sm" disabled={!!selectedCustomer} />
-                  </div>
-                  {selectedCustomer && <p className="text-xs text-green-600">✓ Existing customer</p>}
-                  {!selectedCustomer && customerPhone.length >= 6 && <p className="text-xs text-muted-foreground">New customer — will be saved automatically</p>}
-                </div>
-
-                <Textarea placeholder="Sale note (optional)..." className="h-16 text-sm" value={customerNote} onChange={(e) => setCustomerNote(e.target.value)} />
-
-                {/* Discount */}
-                <div className="p-3 rounded-md border bg-muted/30 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Percent className="h-4 w-4 text-muted-foreground" />
-                    <p className="text-sm font-medium">Discount</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Select value={discountType} onValueChange={(v) => { setDiscountType(v as any); setDiscountValue(""); }}>
-                      <SelectTrigger className="h-9 text-sm w-28">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        <SelectItem value="percent">%</SelectItem>
-                        <SelectItem value="amount">Amount</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {discountType !== "none" && (
-                      <Input
-                        type="number"
-                        placeholder={discountType === "percent" ? "e.g. 10" : "e.g. 5000"}
-                        value={discountValue}
-                        onChange={(e) => setDiscountValue(e.target.value)}
-                        className="h-9 text-sm flex-1"
-                        min={0}
-                        max={discountType === "percent" ? 100 : subtotal}
-                      />
-                    )}
-                  </div>
-                  {discountAmount > 0 && (
-                    <p className="text-xs text-red-600">-{formatPrice(discountAmount)} discount applied</p>
-                  )}
-                </div>
-
-                {/* Credit toggle */}
-                <div className="flex items-center justify-between p-3 rounded-md border bg-muted/30">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm font-medium">Sell on Credit</p>
-                      <p className="text-xs text-muted-foreground">Customer pays later</p>
-                    </div>
-                  </div>
-                  <Switch checked={isCredit} onCheckedChange={(v) => { setIsCredit(v); if (!v) setAmountPaid(""); }} />
-                </div>
-
-                {isCredit && (
-                  <div className="p-3 rounded-md border bg-muted/30 space-y-2">
-                    <p className="text-xs font-medium text-muted-foreground">Amount Paid Now (optional)</p>
-                    <Input type="number" placeholder="0" value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)} className="h-9 text-sm" min={0} max={total} />
-                    {amountPaid && Number(amountPaid) > 0 && (
-                      <p className="text-xs text-muted-foreground">Balance remaining: {formatPrice(total - Number(amountPaid))}</p>
-                    )}
-                  </div>
-                )}
-
-                {(!isCredit || (isCredit && amountPaid && Number(amountPaid) > 0)) && (
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-2">Payment Method</p>
-                    <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PaymentMethod)} className="grid grid-cols-2 gap-2">
-                      {paymentMethods.map((pm) => (
-                        <label key={pm.value} className={`flex items-center gap-2 p-2.5 rounded-md border cursor-pointer text-sm transition-colors ${paymentMethod === pm.value ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}>
-                          <RadioGroupItem value={pm.value} className="sr-only" />
-                          {pm.icon}
-                          <span className="font-medium">{pm.label}</span>
-                        </label>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      {cart.map((item) => (
+                        <div key={item.product_id} className="flex min-w-0 items-center gap-2 rounded-md bg-muted/50 p-2">
+                          <div className="min-w-0 flex-1 overflow-hidden">
+                            <p className="truncate text-sm font-medium">{item.name}</p>
+                            <p className="text-xs text-muted-foreground">{formatPrice(item.price)} each</p>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-1">
+                            <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQty(item.product_id, -1)}><Minus className="h-3 w-3" /></Button>
+                            <span className="w-6 text-center text-sm font-medium">{item.quantity}</span>
+                            <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQty(item.product_id, 1)}><Plus className="h-3 w-3" /></Button>
+                          </div>
+                          <span className="shrink-0 text-right text-sm font-medium">{formatPrice(item.price * item.quantity)}</span>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-destructive" onClick={() => removeFromCart(item.product_id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                        </div>
                       ))}
-                    </RadioGroup>
-                  </div>
+                    </div>
+
+                    <div className="space-y-4 pb-1">
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium text-muted-foreground">Customer</p>
+                        <div className="relative">
+                          <Input
+                            ref={customerSearchRef}
+                            placeholder="Phone number *"
+                            value={customerPhone}
+                            onChange={(e) => searchCustomer(e.target.value)}
+                            onFocus={() => customerSearchResults.length > 0 && setShowCustomerDropdown(true)}
+                            onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
+                            className="h-9 text-sm"
+                          />
+                          {showCustomerDropdown && (
+                            <div className="absolute top-full z-50 mt-1 w-full rounded-md border bg-popover shadow-lg">
+                              {customerSearchResults.map((c: any) => (
+                                <button
+                                  key={c.id}
+                                  className="w-full px-3 py-2 text-left text-sm hover:bg-muted"
+                                  onMouseDown={() => selectCustomer(c)}
+                                >
+                                  <span className="text-muted-foreground">{c.phone}</span>
+                                  {c.full_name && <span className="ml-2 font-medium">{c.full_name}</span>}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          {selectedCustomer && (
+                            <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2" onClick={clearCustomer}><X className="h-3 w-3" /></Button>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Input placeholder="Name (optional)" value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="h-9 text-sm" disabled={!!selectedCustomer} />
+                          <Input placeholder="Address (optional)" value={customerAddress} onChange={(e) => setCustomerAddress(e.target.value)} className="h-9 text-sm" disabled={!!selectedCustomer} />
+                        </div>
+                        {selectedCustomer && <p className="text-xs text-green-600">✓ Existing customer</p>}
+                        {!selectedCustomer && customerPhone.length >= 6 && <p className="text-xs text-muted-foreground">New customer — will be saved automatically</p>}
+                      </div>
+
+                      <Textarea placeholder="Sale note (optional)..." className="h-16 text-sm" value={customerNote} onChange={(e) => setCustomerNote(e.target.value)} />
+
+                      <div className="space-y-2 rounded-md border bg-muted/30 p-3">
+                        <div className="flex items-center gap-2">
+                          <Percent className="h-4 w-4 text-muted-foreground" />
+                          <p className="text-sm font-medium">Discount</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Select value={discountType} onValueChange={(v) => { setDiscountType(v as any); setDiscountValue(""); }}>
+                            <SelectTrigger className="h-9 w-28 text-sm">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">None</SelectItem>
+                              <SelectItem value="percent">%</SelectItem>
+                              <SelectItem value="amount">Amount</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {discountType !== "none" && (
+                            <Input
+                              type="number"
+                              placeholder={discountType === "percent" ? "e.g. 10" : "e.g. 5000"}
+                              value={discountValue}
+                              onChange={(e) => setDiscountValue(e.target.value)}
+                              className="h-9 flex-1 text-sm"
+                              min={0}
+                              max={discountType === "percent" ? 100 : subtotal}
+                            />
+                          )}
+                        </div>
+                        {discountAmount > 0 && (
+                          <p className="text-xs text-red-600">-{formatPrice(discountAmount)} discount applied</p>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between rounded-md border bg-muted/30 p-3">
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm font-medium">Sell on Credit</p>
+                            <p className="text-xs text-muted-foreground">Customer pays later</p>
+                          </div>
+                        </div>
+                        <Switch checked={isCredit} onCheckedChange={(v) => { setIsCredit(v); if (!v) setAmountPaid(""); }} />
+                      </div>
+
+                      {isCredit && (
+                        <div className="space-y-2 rounded-md border bg-muted/30 p-3">
+                          <p className="text-xs font-medium text-muted-foreground">Amount Paid Now (optional)</p>
+                          <Input type="number" placeholder="0" value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)} className="h-9 text-sm" min={0} max={total} />
+                          {amountPaid && Number(amountPaid) > 0 && (
+                            <p className="text-xs text-muted-foreground">Balance remaining: {formatPrice(total - Number(amountPaid))}</p>
+                          )}
+                        </div>
+                      )}
+
+                      {(!isCredit || (isCredit && amountPaid && Number(amountPaid) > 0)) && (
+                        <div>
+                          <p className="mb-2 text-xs font-medium text-muted-foreground">Payment Method</p>
+                          <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PaymentMethod)} className="grid grid-cols-2 gap-2">
+                            {paymentMethods.map((pm) => (
+                              <label key={pm.value} className={`flex items-center gap-2 rounded-md border p-2.5 text-sm transition-colors cursor-pointer ${paymentMethod === pm.value ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}>
+                                <RadioGroupItem value={pm.value} className="sr-only" />
+                                {pm.icon}
+                                <span className="font-medium">{pm.label}</span>
+                              </label>
+                            ))}
+                          </RadioGroup>
+                        </div>
+                      )}
+
+                      <Separator />
+                      <div className="space-y-1 text-sm">
+                        <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{formatPrice(subtotal)}</span></div>
+                        {discountAmount > 0 && (
+                          <div className="flex justify-between text-red-600"><span>Discount{discountType === "percent" ? ` (${discountValue}%)` : ""}</span><span>-{formatPrice(discountAmount)}</span></div>
+                        )}
+                        <div className="flex justify-between"><span className="text-muted-foreground">VAT ({Math.round(vatRate * 100)}%)</span><span>{formatPrice(taxAmount)}</span></div>
+                        <Separator />
+                        <div className="flex justify-between pt-1 text-lg font-medium"><span>Total</span><span className="font-serif">{formatPrice(total)}</span></div>
+                      </div>
+
+                      <Button className="h-12 w-full text-base" onClick={handleCheckout} disabled={submitting} variant={isCredit ? "secondary" : "default"}>
+                        {submitting ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</>) : isCredit ? `Sell on Credit — ${formatPrice(total)}` : `Complete Sale — ${formatPrice(total)}`}
+                      </Button>
+                    </div>
+                  </>
                 )}
-
-                <Separator />
-                <div className="space-y-1 text-sm">
-                  <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{formatPrice(subtotal)}</span></div>
-                  {discountAmount > 0 && (
-                    <div className="flex justify-between text-red-600"><span>Discount{discountType === "percent" ? ` (${discountValue}%)` : ""}</span><span>-{formatPrice(discountAmount)}</span></div>
-                  )}
-                  <div className="flex justify-between"><span className="text-muted-foreground">VAT ({Math.round(vatRate * 100)}%)</span><span>{formatPrice(taxAmount)}</span></div>
-                  <Separator />
-                  <div className="flex justify-between text-lg font-medium pt-1"><span>Total</span><span className="font-serif">{formatPrice(total)}</span></div>
-                </div>
-
-                <Button className="w-full h-12 text-base" onClick={handleCheckout} disabled={submitting} variant={isCredit ? "secondary" : "default"}>
-                  {submitting ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</>) : isCredit ? `Sell on Credit — ${formatPrice(total)}` : `Complete Sale — ${formatPrice(total)}`}
-                </Button>
               </div>
-            )}
+            </ScrollArea>
           </CardContent>
         </Card>
       </div>
