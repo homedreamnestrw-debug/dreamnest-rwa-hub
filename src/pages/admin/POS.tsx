@@ -106,6 +106,8 @@ export default function POS() {
   // Customer search by phone
   const searchCustomer = useCallback(async (phone: string) => {
     setCustomerPhone(phone);
+    setCustomerResolved(false);
+    setSelectedCustomer(null);
     if (phone.length < 3) {
       setCustomerSearchResults([]);
       setShowCustomerDropdown(false);
@@ -113,7 +115,7 @@ export default function POS() {
     }
     const { data } = await supabase
       .from("profiles")
-      .select("id, user_id, full_name, phone")
+      .select("id, user_id, full_name, phone, shipping_address")
       .ilike("phone", `%${phone}%`)
       .limit(5);
     setCustomerSearchResults(data ?? []);
@@ -123,13 +125,19 @@ export default function POS() {
   const selectCustomer = (customer: any) => {
     setSelectedCustomer(customer);
     setCustomerPhone(customer.phone || "");
+    setCustomerName(customer.full_name || "");
+    setCustomerAddress(customer.shipping_address || "");
     setShowCustomerDropdown(false);
+    setCustomerResolved(true);
   };
 
   const clearCustomer = () => {
     setSelectedCustomer(null);
     setCustomerPhone("");
+    setCustomerName("");
+    setCustomerAddress("");
     setCustomerSearchResults([]);
+    setCustomerResolved(false);
   };
 
   const vatRate = settings?.vat_percentage ? Number(settings.vat_percentage) / 100 : 0.18;
