@@ -500,7 +500,7 @@ export default function POS() {
         </div>
 
         {/* Right: Cart + Checkout */}
-        <Card className="lg:w-[380px] flex flex-col">
+        <Card className="lg:w-[380px] flex flex-col min-w-0 overflow-hidden">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="font-serif text-lg">Current Sale</CardTitle>
@@ -523,18 +523,18 @@ export default function POS() {
               ) : (
                 <div className="space-y-2">
                   {cart.map((item) => (
-                    <div key={item.product_id} className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
-                      <div className="flex-1 min-w-0">
+                    <div key={item.product_id} className="flex items-center gap-2 p-2 rounded-md bg-muted/50 min-w-0">
+                      <div className="flex-1 min-w-0 overflow-hidden">
                         <p className="text-sm font-medium truncate">{item.name}</p>
                         <p className="text-xs text-muted-foreground">{formatPrice(item.price)} each</p>
                       </div>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 shrink-0">
                         <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQty(item.product_id, -1)}><Minus className="h-3 w-3" /></Button>
-                        <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
+                        <span className="w-6 text-center text-sm font-medium">{item.quantity}</span>
                         <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQty(item.product_id, 1)}><Plus className="h-3 w-3" /></Button>
                       </div>
-                      <span className="text-sm font-medium w-20 text-right">{formatPrice(item.price * item.quantity)}</span>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeFromCart(item.product_id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                      <span className="text-sm font-medium shrink-0 text-right">{formatPrice(item.price * item.quantity)}</span>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-destructive" onClick={() => removeFromCart(item.product_id)}><Trash2 className="h-3.5 w-3.5" /></Button>
                     </div>
                   ))}
                 </div>
