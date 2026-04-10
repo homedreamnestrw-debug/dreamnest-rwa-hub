@@ -187,17 +187,18 @@ export default function POS() {
     setSubmitting(true);
 
     try {
-      const paymentStatus = isCredit ? "unpaid" : "paid";
-      const orderStatus = isCredit ? "pending" : "delivered";
+      const paidAmount = isCredit && amountPaid ? Number(amountPaid) : 0;
+      const paymentStatus = isCredit ? (paidAmount >= total ? "paid" : paidAmount > 0 ? "partial" : "unpaid") : "paid";
+      const orderStatus = isCredit && paymentStatus !== "paid" ? "pending" : "delivered";
 
       const { data: order, error: orderErr } = await supabase
         .from("orders")
         .insert({
-          customer_id: null,
+          customer_id: selectedCustomer?.user_id || null,
           channel: "in_store" as const,
           status: orderStatus as any,
           payment_status: paymentStatus as any,
-          payment_method: isCredit ? null : paymentMethod,
+          payment_method: isCredit && paidAmount <= 0 ? null : paymentMethod,
           subtotal,
           tax_amount: taxAmount,
           discount_amount: 0,
@@ -223,6 +224,17 @@ export default function POS() {
       const { error: itemsErr } = await supabase.from("order_items").insert(items);
       if (itemsErr) throw itemsErr;
 
+      // Record partial payment if credit with amount paid
+      if (isCredit && paidAmount > 0) {
+        await supabase.from("credit_payments").insert({
+          order_id: order.id,
+          amount: paidAmount,
+          payment_method: paymentMethod,
+          received_by: user?.id || null,
+          note: "Initial payment at POS",
+        });
+      }
+
       setReceiptOrder({
         order_number: order.order_number,
         items: [...cart],
@@ -232,12 +244,17 @@ export default function POS() {
         payment_method: paymentMethod,
         payment_status: paymentStatus,
         created_at: new Date().toISOString(),
+        customer_name: selectedCustomer?.full_name,
+        customer_phone: selectedCustomer?.phone,
+        amount_paid: paidAmount,
       });
 
       toast.success(`Sale #${order.order_number} completed!${isCredit ? " (Credit)" : ""}`);
       setCart([]);
       setCustomerNote("");
       setIsCredit(false);
+      setAmountPaid("");
+      clearCustomer();
     } catch (err: any) {
       toast.error(err.message || "Failed to process sale");
     } finally {
