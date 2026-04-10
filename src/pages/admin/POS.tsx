@@ -41,6 +41,9 @@ interface CompletedOrder {
   payment_method: PaymentMethod;
   payment_status: string;
   created_at: string;
+  customer_name?: string | null;
+  customer_phone?: string | null;
+  amount_paid?: number;
 }
 
 export default function POS() {
