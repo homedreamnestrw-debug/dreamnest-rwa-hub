@@ -53,7 +53,13 @@ export default function POS() {
   const [customerNote, setCustomerNote] = useState("");
   const [selectedLocation, setSelectedLocation] = useState<string>("");
   const [isCredit, setIsCredit] = useState(false);
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [selectedCustomer, setSelectedCustomer] = useState<{ id: string; full_name: string | null; phone: string | null; user_id: string } | null>(null);
+  const [customerSearchResults, setCustomerSearchResults] = useState<any[]>([]);
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  const [amountPaid, setAmountPaid] = useState<string>("");
   const searchRef = useRef<HTMLInputElement>(null);
+  const customerSearchRef = useRef<HTMLInputElement>(null);
 
   const { data: products } = useQuery({
     queryKey: ["pos-products"],
