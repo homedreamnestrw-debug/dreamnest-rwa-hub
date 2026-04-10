@@ -41,6 +41,9 @@ interface CompletedOrder {
   payment_method: PaymentMethod;
   payment_status: string;
   created_at: string;
+  customer_name?: string | null;
+  customer_phone?: string | null;
+  amount_paid?: number;
 }
 
 export default function POS() {
@@ -53,7 +56,13 @@ export default function POS() {
   const [customerNote, setCustomerNote] = useState("");
   const [selectedLocation, setSelectedLocation] = useState<string>("");
   const [isCredit, setIsCredit] = useState(false);
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [selectedCustomer, setSelectedCustomer] = useState<{ id: string; full_name: string | null; phone: string | null; user_id: string } | null>(null);
+  const [customerSearchResults, setCustomerSearchResults] = useState<any[]>([]);
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  const [amountPaid, setAmountPaid] = useState<string>("");
   const searchRef = useRef<HTMLInputElement>(null);
+  const customerSearchRef = useRef<HTMLInputElement>(null);
 
   const { data: products } = useQuery({
     queryKey: ["pos-products"],
@@ -90,6 +99,35 @@ export default function POS() {
       setSelectedLocation(locations[0].id);
     }
   }, [locations, selectedLocation]);
+
+  // Customer search by phone
+  const searchCustomer = useCallback(async (phone: string) => {
+    setCustomerPhone(phone);
+    if (phone.length < 3) {
+      setCustomerSearchResults([]);
+      setShowCustomerDropdown(false);
+      return;
+    }
+    const { data } = await supabase
+      .from("profiles")
+      .select("id, user_id, full_name, phone")
+      .ilike("phone", `%${phone}%`)
+      .limit(5);
+    setCustomerSearchResults(data ?? []);
+    setShowCustomerDropdown((data ?? []).length > 0);
+  }, []);
+
+  const selectCustomer = (customer: any) => {
+    setSelectedCustomer(customer);
+    setCustomerPhone(customer.phone || "");
+    setShowCustomerDropdown(false);
+  };
+
+  const clearCustomer = () => {
+    setSelectedCustomer(null);
+    setCustomerPhone("");
+    setCustomerSearchResults([]);
+  };
 
   const vatRate = settings?.vat_percentage ? Number(settings.vat_percentage) / 100 : 0.18;
   const businessName = settings?.business_name ?? "DreamNest";
@@ -135,7 +173,7 @@ export default function POS() {
   };
 
   const removeFromCart = (productId: string) => setCart((prev) => prev.filter((i) => i.product_id !== productId));
-  const clearCart = () => { setCart([]); setCustomerNote(""); setIsCredit(false); searchRef.current?.focus(); };
+  const clearCart = () => { setCart([]); setCustomerNote(""); setIsCredit(false); setAmountPaid(""); clearCustomer(); searchRef.current?.focus(); };
 
   const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
   const taxAmount = Math.round(subtotal * vatRate);
@@ -149,17 +187,18 @@ export default function POS() {
     setSubmitting(true);
 
     try {
-      const paymentStatus = isCredit ? "unpaid" : "paid";
-      const orderStatus = isCredit ? "pending" : "delivered";
+      const paidAmount = isCredit && amountPaid ? Number(amountPaid) : 0;
+      const paymentStatus = isCredit ? (paidAmount >= total ? "paid" : paidAmount > 0 ? "partial" : "unpaid") : "paid";
+      const orderStatus = isCredit && paymentStatus !== "paid" ? "pending" : "delivered";
 
       const { data: order, error: orderErr } = await supabase
         .from("orders")
         .insert({
-          customer_id: null,
+          customer_id: selectedCustomer?.user_id || null,
           channel: "in_store" as const,
           status: orderStatus as any,
           payment_status: paymentStatus as any,
-          payment_method: isCredit ? null : paymentMethod,
+          payment_method: isCredit && paidAmount <= 0 ? null : paymentMethod,
           subtotal,
           tax_amount: taxAmount,
           discount_amount: 0,
@@ -185,6 +224,17 @@ export default function POS() {
       const { error: itemsErr } = await supabase.from("order_items").insert(items);
       if (itemsErr) throw itemsErr;
 
+      // Record partial payment if credit with amount paid
+      if (isCredit && paidAmount > 0) {
+        await supabase.from("credit_payments").insert({
+          order_id: order.id,
+          amount: paidAmount,
+          payment_method: paymentMethod,
+          received_by: user?.id || null,
+          note: "Initial payment at POS",
+        });
+      }
+
       setReceiptOrder({
         order_number: order.order_number,
         items: [...cart],
@@ -194,12 +244,17 @@ export default function POS() {
         payment_method: paymentMethod,
         payment_status: paymentStatus,
         created_at: new Date().toISOString(),
+        customer_name: selectedCustomer?.full_name,
+        customer_phone: selectedCustomer?.phone,
+        amount_paid: paidAmount,
       });
 
       toast.success(`Sale #${order.order_number} completed!${isCredit ? " (Credit)" : ""}`);
       setCart([]);
       setCustomerNote("");
       setIsCredit(false);
+      setAmountPaid("");
+      clearCustomer();
     } catch (err: any) {
       toast.error(err.message || "Failed to process sale");
     } finally {
@@ -336,6 +391,46 @@ export default function POS() {
 
             {cart.length > 0 && (
               <div className="mt-4 space-y-4">
+                {/* Customer search */}
+                <div className="relative">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Customer</p>
+                  {selectedCustomer ? (
+                    <div className="flex items-center justify-between p-2 rounded-md border bg-muted/30">
+                      <div>
+                        <p className="text-sm font-medium">{selectedCustomer.full_name || "Unknown"}</p>
+                        <p className="text-xs text-muted-foreground">{selectedCustomer.phone}</p>
+                      </div>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={clearCustomer}><X className="h-3.5 w-3.5" /></Button>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <Input
+                        ref={customerSearchRef}
+                        placeholder="Search by phone number..."
+                        value={customerPhone}
+                        onChange={(e) => searchCustomer(e.target.value)}
+                        onFocus={() => customerSearchResults.length > 0 && setShowCustomerDropdown(true)}
+                        onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
+                        className="h-9 text-sm"
+                      />
+                      {showCustomerDropdown && (
+                        <div className="absolute z-50 top-full mt-1 w-full bg-popover border rounded-md shadow-lg">
+                          {customerSearchResults.map((c: any) => (
+                            <button
+                              key={c.id}
+                              className="w-full text-left px-3 py-2 hover:bg-muted text-sm"
+                              onMouseDown={() => selectCustomer(c)}
+                            >
+                              <span className="font-medium">{c.full_name || "Unknown"}</span>
+                              <span className="text-muted-foreground ml-2">{c.phone}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <Textarea placeholder="Sale note (optional)..." className="h-16 text-sm" value={customerNote} onChange={(e) => setCustomerNote(e.target.value)} />
 
                 {/* Credit toggle */}
@@ -347,11 +442,32 @@ export default function POS() {
                       <p className="text-xs text-muted-foreground">Customer pays later</p>
                     </div>
                   </div>
-                  <Switch checked={isCredit} onCheckedChange={setIsCredit} />
+                  <Switch checked={isCredit} onCheckedChange={(v) => { setIsCredit(v); if (!v) setAmountPaid(""); }} />
                 </div>
 
-                {/* Payment method (hidden when credit) */}
-                {!isCredit && (
+                {/* Partial payment for credit */}
+                {isCredit && (
+                  <div className="p-3 rounded-md border bg-muted/30 space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground">Amount Paid Now (optional)</p>
+                    <Input
+                      type="number"
+                      placeholder="0"
+                      value={amountPaid}
+                      onChange={(e) => setAmountPaid(e.target.value)}
+                      className="h-9 text-sm"
+                      min={0}
+                      max={total}
+                    />
+                    {amountPaid && Number(amountPaid) > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Balance remaining: {formatPrice(total - Number(amountPaid))}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Payment method - show always (needed for partial payment too) */}
+                {(!isCredit || (isCredit && amountPaid && Number(amountPaid) > 0)) && (
                   <div>
                     <p className="text-xs font-medium text-muted-foreground mb-2">Payment Method</p>
                     <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PaymentMethod)} className="grid grid-cols-2 gap-2">
@@ -400,8 +516,14 @@ export default function POS() {
               <div className="text-sm space-y-1">
                 <div className="flex justify-between"><span className="text-muted-foreground">Receipt #</span><span className="font-mono">{receiptOrder.order_number}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Date</span><span>{format(new Date(receiptOrder.created_at), "MMM d, yyyy h:mm a")}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Payment</span><span className="capitalize">{receiptOrder.payment_status === "unpaid" ? "Credit (Unpaid)" : receiptOrder.payment_method.replace("_", " ")}</span></div>
-                {receiptOrder.payment_status === "unpaid" && (
+                {receiptOrder.customer_name && (
+                  <div className="flex justify-between"><span className="text-muted-foreground">Customer</span><span>{receiptOrder.customer_name}</span></div>
+                )}
+                {receiptOrder.customer_phone && (
+                  <div className="flex justify-between"><span className="text-muted-foreground">Phone</span><span>{receiptOrder.customer_phone}</span></div>
+                )}
+                <div className="flex justify-between"><span className="text-muted-foreground">Payment</span><span className="capitalize">{receiptOrder.payment_status === "unpaid" ? "Credit (Unpaid)" : receiptOrder.payment_status === "partial" ? "Partial Payment" : receiptOrder.payment_method.replace("_", " ")}</span></div>
+                {(receiptOrder.payment_status === "unpaid" || receiptOrder.payment_status === "partial") && (
                   <Badge variant="secondary" className="mt-1">CREDIT SALE</Badge>
                 )}
               </div>
@@ -421,8 +543,11 @@ export default function POS() {
                 <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{formatPrice(receiptOrder.subtotal)}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">VAT</span><span>{formatPrice(receiptOrder.tax)}</span></div>
                 <div className="flex justify-between font-medium text-base pt-1"><span>Total</span><span className="font-serif">{formatPrice(receiptOrder.total)}</span></div>
-                {receiptOrder.payment_status === "unpaid" && (
-                  <div className="flex justify-between text-destructive font-medium"><span>Balance Due</span><span>{formatPrice(receiptOrder.total)}</span></div>
+                {receiptOrder.amount_paid && receiptOrder.amount_paid > 0 && (
+                  <div className="flex justify-between text-green-600 font-medium"><span>Amount Paid</span><span>{formatPrice(receiptOrder.amount_paid)}</span></div>
+                )}
+                {(receiptOrder.payment_status === "unpaid" || receiptOrder.payment_status === "partial") && (
+                  <div className="flex justify-between text-destructive font-medium"><span>Balance Due</span><span>{formatPrice(receiptOrder.total - (receiptOrder.amount_paid || 0))}</span></div>
                 )}
               </div>
 
@@ -448,7 +573,9 @@ export default function POS() {
           </div>
           <p>Receipt #{receiptOrder.order_number}</p>
           <p>{format(new Date(receiptOrder.created_at), "MMM d, yyyy h:mm a")}</p>
-          <p>Payment: {receiptOrder.payment_status === "unpaid" ? "CREDIT" : receiptOrder.payment_method.replace("_", " ")}</p>
+          {receiptOrder.customer_name && <p>Customer: {receiptOrder.customer_name}</p>}
+          {receiptOrder.customer_phone && <p>Phone: {receiptOrder.customer_phone}</p>}
+          <p>Payment: {receiptOrder.payment_status === "unpaid" ? "CREDIT" : receiptOrder.payment_status === "partial" ? "PARTIAL" : receiptOrder.payment_method.replace("_", " ")}</p>
           <hr className="my-2" />
           {receiptOrder.items.map((item) => (
             <div key={item.product_id} className="flex justify-between">
@@ -460,8 +587,11 @@ export default function POS() {
           <div className="flex justify-between"><span>Subtotal</span><span>{formatPrice(receiptOrder.subtotal)}</span></div>
           <div className="flex justify-between"><span>VAT</span><span>{formatPrice(receiptOrder.tax)}</span></div>
           <div className="flex justify-between font-bold"><span>Total</span><span>{formatPrice(receiptOrder.total)}</span></div>
-          {receiptOrder.payment_status === "unpaid" && (
-            <div className="flex justify-between font-bold mt-1"><span>BALANCE DUE</span><span>{formatPrice(receiptOrder.total)}</span></div>
+          {receiptOrder.amount_paid && receiptOrder.amount_paid > 0 && (
+            <div className="flex justify-between mt-1"><span>PAID</span><span>{formatPrice(receiptOrder.amount_paid)}</span></div>
+          )}
+          {(receiptOrder.payment_status === "unpaid" || receiptOrder.payment_status === "partial") && (
+            <div className="flex justify-between font-bold mt-1"><span>BALANCE DUE</span><span>{formatPrice(receiptOrder.total - (receiptOrder.amount_paid || 0))}</span></div>
           )}
           <p className="text-center mt-4 text-xs">Thank you for your purchase!</p>
         </div>
