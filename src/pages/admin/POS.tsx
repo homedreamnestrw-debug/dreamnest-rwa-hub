@@ -391,6 +391,46 @@ export default function POS() {
 
             {cart.length > 0 && (
               <div className="mt-4 space-y-4">
+                {/* Customer search */}
+                <div className="relative">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Customer</p>
+                  {selectedCustomer ? (
+                    <div className="flex items-center justify-between p-2 rounded-md border bg-muted/30">
+                      <div>
+                        <p className="text-sm font-medium">{selectedCustomer.full_name || "Unknown"}</p>
+                        <p className="text-xs text-muted-foreground">{selectedCustomer.phone}</p>
+                      </div>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={clearCustomer}><X className="h-3.5 w-3.5" /></Button>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <Input
+                        ref={customerSearchRef}
+                        placeholder="Search by phone number..."
+                        value={customerPhone}
+                        onChange={(e) => searchCustomer(e.target.value)}
+                        onFocus={() => customerSearchResults.length > 0 && setShowCustomerDropdown(true)}
+                        onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
+                        className="h-9 text-sm"
+                      />
+                      {showCustomerDropdown && (
+                        <div className="absolute z-50 top-full mt-1 w-full bg-popover border rounded-md shadow-lg">
+                          {customerSearchResults.map((c: any) => (
+                            <button
+                              key={c.id}
+                              className="w-full text-left px-3 py-2 hover:bg-muted text-sm"
+                              onMouseDown={() => selectCustomer(c)}
+                            >
+                              <span className="font-medium">{c.full_name || "Unknown"}</span>
+                              <span className="text-muted-foreground ml-2">{c.phone}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <Textarea placeholder="Sale note (optional)..." className="h-16 text-sm" value={customerNote} onChange={(e) => setCustomerNote(e.target.value)} />
 
                 {/* Credit toggle */}
@@ -402,8 +442,29 @@ export default function POS() {
                       <p className="text-xs text-muted-foreground">Customer pays later</p>
                     </div>
                   </div>
-                  <Switch checked={isCredit} onCheckedChange={setIsCredit} />
+                  <Switch checked={isCredit} onCheckedChange={(v) => { setIsCredit(v); if (!v) setAmountPaid(""); }} />
                 </div>
+
+                {/* Partial payment for credit */}
+                {isCredit && (
+                  <div className="p-3 rounded-md border bg-muted/30 space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground">Amount Paid Now (optional)</p>
+                    <Input
+                      type="number"
+                      placeholder="0"
+                      value={amountPaid}
+                      onChange={(e) => setAmountPaid(e.target.value)}
+                      className="h-9 text-sm"
+                      min={0}
+                      max={total}
+                    />
+                    {amountPaid && Number(amountPaid) > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Balance remaining: {formatPrice(total - Number(amountPaid))}
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {/* Payment method (hidden when credit) */}
                 {!isCredit && (
