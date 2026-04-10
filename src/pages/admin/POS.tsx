@@ -573,7 +573,9 @@ export default function POS() {
           </div>
           <p>Receipt #{receiptOrder.order_number}</p>
           <p>{format(new Date(receiptOrder.created_at), "MMM d, yyyy h:mm a")}</p>
-          <p>Payment: {receiptOrder.payment_status === "unpaid" ? "CREDIT" : receiptOrder.payment_method.replace("_", " ")}</p>
+          {receiptOrder.customer_name && <p>Customer: {receiptOrder.customer_name}</p>}
+          {receiptOrder.customer_phone && <p>Phone: {receiptOrder.customer_phone}</p>}
+          <p>Payment: {receiptOrder.payment_status === "unpaid" ? "CREDIT" : receiptOrder.payment_status === "partial" ? "PARTIAL" : receiptOrder.payment_method.replace("_", " ")}</p>
           <hr className="my-2" />
           {receiptOrder.items.map((item) => (
             <div key={item.product_id} className="flex justify-between">
@@ -585,8 +587,11 @@ export default function POS() {
           <div className="flex justify-between"><span>Subtotal</span><span>{formatPrice(receiptOrder.subtotal)}</span></div>
           <div className="flex justify-between"><span>VAT</span><span>{formatPrice(receiptOrder.tax)}</span></div>
           <div className="flex justify-between font-bold"><span>Total</span><span>{formatPrice(receiptOrder.total)}</span></div>
-          {receiptOrder.payment_status === "unpaid" && (
-            <div className="flex justify-between font-bold mt-1"><span>BALANCE DUE</span><span>{formatPrice(receiptOrder.total)}</span></div>
+          {receiptOrder.amount_paid && receiptOrder.amount_paid > 0 && (
+            <div className="flex justify-between mt-1"><span>PAID</span><span>{formatPrice(receiptOrder.amount_paid)}</span></div>
+          )}
+          {(receiptOrder.payment_status === "unpaid" || receiptOrder.payment_status === "partial") && (
+            <div className="flex justify-between font-bold mt-1"><span>BALANCE DUE</span><span>{formatPrice(receiptOrder.total - (receiptOrder.amount_paid || 0))}</span></div>
           )}
           <p className="text-center mt-4 text-xs">Thank you for your purchase!</p>
         </div>
