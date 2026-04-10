@@ -206,6 +206,8 @@ export default function POS() {
         .from("orders")
         .insert({
           customer_id: selectedCustomer?.user_id || null,
+          guest_name: !selectedCustomer && customerName ? customerName : null,
+          guest_phone: !selectedCustomer && customerPhone ? customerPhone : null,
           channel: "in_store" as const,
           status: orderStatus as any,
           payment_status: paymentStatus as any,
@@ -217,6 +219,7 @@ export default function POS() {
           notes: customerNote || null,
           location_id: selectedLocation || null,
           served_by: user?.id || null,
+          shipping_address: customerAddress || null,
         })
         .select("id, order_number")
         .single();
