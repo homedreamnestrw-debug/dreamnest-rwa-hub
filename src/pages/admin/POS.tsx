@@ -57,9 +57,12 @@ export default function POS() {
   const [selectedLocation, setSelectedLocation] = useState<string>("");
   const [isCredit, setIsCredit] = useState(false);
   const [customerPhone, setCustomerPhone] = useState("");
-  const [selectedCustomer, setSelectedCustomer] = useState<{ id: string; full_name: string | null; phone: string | null; user_id: string } | null>(null);
+  const [customerName, setCustomerName] = useState("");
+  const [customerAddress, setCustomerAddress] = useState("");
+  const [selectedCustomer, setSelectedCustomer] = useState<{ id: string; full_name: string | null; phone: string | null; user_id: string; shipping_address?: string | null } | null>(null);
   const [customerSearchResults, setCustomerSearchResults] = useState<any[]>([]);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  const [customerResolved, setCustomerResolved] = useState(false);
   const [amountPaid, setAmountPaid] = useState<string>("");
   const searchRef = useRef<HTMLInputElement>(null);
   const customerSearchRef = useRef<HTMLInputElement>(null);
