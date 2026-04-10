@@ -466,8 +466,8 @@ export default function POS() {
                   </div>
                 )}
 
-                {/* Payment method (hidden when credit) */}
-                {!isCredit && (
+                {/* Payment method - show always (needed for partial payment too) */}
+                {(!isCredit || (isCredit && amountPaid && Number(amountPaid) > 0)) && (
                   <div>
                     <p className="text-xs font-medium text-muted-foreground mb-2">Payment Method</p>
                     <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PaymentMethod)} className="grid grid-cols-2 gap-2">
