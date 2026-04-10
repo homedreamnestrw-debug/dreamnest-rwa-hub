@@ -405,43 +405,60 @@ export default function POS() {
 
             {cart.length > 0 && (
               <div className="mt-4 space-y-4">
-                {/* Customer search */}
-                <div className="relative">
-                  <p className="text-xs font-medium text-muted-foreground mb-1">Customer</p>
-                  {selectedCustomer ? (
-                    <div className="flex items-center justify-between p-2 rounded-md border bg-muted/30">
-                      <div>
-                        <p className="text-sm font-medium">{selectedCustomer.full_name || "Unknown"}</p>
-                        <p className="text-xs text-muted-foreground">{selectedCustomer.phone}</p>
+                {/* Customer info */}
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground">Customer</p>
+                  {/* Phone (primary) */}
+                  <div className="relative">
+                    <Input
+                      ref={customerSearchRef}
+                      placeholder="Phone number *"
+                      value={customerPhone}
+                      onChange={(e) => searchCustomer(e.target.value)}
+                      onFocus={() => customerSearchResults.length > 0 && setShowCustomerDropdown(true)}
+                      onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
+                      className="h-9 text-sm"
+                    />
+                    {showCustomerDropdown && (
+                      <div className="absolute z-50 top-full mt-1 w-full bg-popover border rounded-md shadow-lg">
+                        {customerSearchResults.map((c: any) => (
+                          <button
+                            key={c.id}
+                            className="w-full text-left px-3 py-2 hover:bg-muted text-sm"
+                            onMouseDown={() => selectCustomer(c)}
+                          >
+                            <span className="text-muted-foreground">{c.phone}</span>
+                            {c.full_name && <span className="font-medium ml-2">{c.full_name}</span>}
+                          </button>
+                        ))}
                       </div>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={clearCustomer}><X className="h-3.5 w-3.5" /></Button>
-                    </div>
-                  ) : (
-                    <div className="relative">
-                      <Input
-                        ref={customerSearchRef}
-                        placeholder="Search by phone number..."
-                        value={customerPhone}
-                        onChange={(e) => searchCustomer(e.target.value)}
-                        onFocus={() => customerSearchResults.length > 0 && setShowCustomerDropdown(true)}
-                        onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
-                        className="h-9 text-sm"
-                      />
-                      {showCustomerDropdown && (
-                        <div className="absolute z-50 top-full mt-1 w-full bg-popover border rounded-md shadow-lg">
-                          {customerSearchResults.map((c: any) => (
-                            <button
-                              key={c.id}
-                              className="w-full text-left px-3 py-2 hover:bg-muted text-sm"
-                              onMouseDown={() => selectCustomer(c)}
-                            >
-                              <span className="font-medium">{c.full_name || "Unknown"}</span>
-                              <span className="text-muted-foreground ml-2">{c.phone}</span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                    )}
+                    {selectedCustomer && (
+                      <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6" onClick={clearCustomer}><X className="h-3 w-3" /></Button>
+                    )}
+                  </div>
+                  {/* Name + Address (auto-filled or manual) */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      placeholder="Name (optional)"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      className="h-9 text-sm"
+                      disabled={!!selectedCustomer}
+                    />
+                    <Input
+                      placeholder="Address (optional)"
+                      value={customerAddress}
+                      onChange={(e) => setCustomerAddress(e.target.value)}
+                      className="h-9 text-sm"
+                      disabled={!!selectedCustomer}
+                    />
+                  </div>
+                  {selectedCustomer && (
+                    <p className="text-xs text-green-600">✓ Existing customer</p>
+                  )}
+                  {!selectedCustomer && customerPhone.length >= 6 && (
+                    <p className="text-xs text-muted-foreground">New customer — will be saved automatically</p>
                   )}
                 </div>
 
