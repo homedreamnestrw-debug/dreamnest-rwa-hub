@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -8,7 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Eye } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Plus, Search, Eye, Pencil, History } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import type { Tables, TablesInsert } from "@/integrations/supabase/types";
@@ -34,6 +37,7 @@ const formatRWF = (n: number) =>
   new Intl.NumberFormat("en-RW", { style: "currency", currency: "RWF", minimumFractionDigits: 0 }).format(n);
 
 export default function Invoices() {
+  const { user } = useAuth();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
@@ -41,6 +45,10 @@ export default function Invoices() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewing, setViewing] = useState<Invoice | null>(null);
+  const [editing, setEditing] = useState<Invoice | null>(null);
+  const [auditLog, setAuditLog] = useState<any[]>([]);
+  const [showAudit, setShowAudit] = useState(false);
+  const [invoiceItems, setInvoiceItems] = useState<any[]>([]);
 
   const [form, setForm] = useState({
     document_type: "invoice" as Invoice["document_type"],
@@ -52,6 +60,17 @@ export default function Invoices() {
     total: 0,
     due_date: "",
     notes: "",
+  });
+
+  const [editForm, setEditForm] = useState({
+    subtotal: 0,
+    tax_rate: 18,
+    tax_amount: 0,
+    discount: 0,
+    total: 0,
+    due_date: "",
+    notes: "",
+    status: "draft" as Invoice["status"],
   });
 
   const fetchData = async () => {
@@ -72,6 +91,12 @@ export default function Invoices() {
     const next = { ...form, ...patch };
     const calc = recalculate(next.subtotal, next.tax_rate, next.discount);
     setForm({ ...next, ...calc });
+  };
+
+  const updateEditForm = (patch: Partial<typeof editForm>) => {
+    const next = { ...editForm, ...patch };
+    const calc = recalculate(next.subtotal, next.tax_rate, next.discount);
+    setEditForm({ ...next, ...calc });
   };
 
   const resetForm = () => {
@@ -100,12 +125,88 @@ export default function Invoices() {
   };
 
   const updateStatus = async (id: string, status: Invoice["status"]) => {
+    const invoice = invoices.find(i => i.id === id);
     const update: any = { status };
     if (status === "paid") update.paid_at = new Date().toISOString();
     const { error } = await supabase.from("invoices").update(update).eq("id", id);
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    // Audit log
+    if (invoice) {
+      await supabase.from("invoice_audit_log" as any).insert({
+        invoice_id: id,
+        field_name: "status",
+        old_value: invoice.status,
+        new_value: status,
+        changed_by: user?.id || null,
+      });
+    }
     toast({ title: `Status updated to ${status}` });
     fetchData();
+  };
+
+  const openEdit = async (inv: Invoice) => {
+    setEditing(inv);
+    setEditForm({
+      subtotal: inv.subtotal,
+      tax_rate: Number(inv.tax_rate),
+      tax_amount: inv.tax_amount,
+      discount: inv.discount,
+      total: inv.total,
+      due_date: inv.due_date || "",
+      notes: inv.notes || "",
+      status: inv.status,
+    });
+    // Load invoice items
+    const { data } = await supabase.from("invoice_items").select("*").eq("invoice_id", inv.id).order("created_at");
+    setInvoiceItems(data || []);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editing) return;
+    const changes: { field: string; old_val: string; new_val: string }[] = [];
+    const fields: (keyof typeof editForm)[] = ["subtotal", "tax_rate", "discount", "total", "due_date", "notes", "status"];
+    for (const f of fields) {
+      const oldVal = String((editing as any)[f] ?? "");
+      const newVal = String(editForm[f] ?? "");
+      if (oldVal !== newVal) changes.push({ field: f, old_val: oldVal, new_val: newVal });
+    }
+
+    const update: any = {
+      subtotal: editForm.subtotal,
+      tax_rate: editForm.tax_rate,
+      tax_amount: editForm.tax_amount,
+      discount: editForm.discount,
+      total: editForm.total,
+      due_date: editForm.due_date || null,
+      notes: editForm.notes || null,
+      status: editForm.status,
+    };
+    if (editForm.status === "paid" && editing.status !== "paid") update.paid_at = new Date().toISOString();
+
+    const { error } = await supabase.from("invoices").update(update).eq("id", editing.id);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+
+    // Write audit log
+    if (changes.length > 0) {
+      const logs = changes.map(c => ({
+        invoice_id: editing.id,
+        field_name: c.field,
+        old_value: c.old_val,
+        new_value: c.new_val,
+        changed_by: user?.id || null,
+      }));
+      await supabase.from("invoice_audit_log" as any).insert(logs);
+    }
+
+    toast({ title: "Invoice updated" });
+    setEditing(null);
+    fetchData();
+  };
+
+  const fetchAuditLog = async (invoiceId: string) => {
+    const { data } = await supabase.from("invoice_audit_log" as any).select("*").eq("invoice_id", invoiceId).order("created_at", { ascending: false });
+    setAuditLog(data || []);
+    setShowAudit(true);
   };
 
   const filtered = invoices.filter((inv) => {
@@ -184,7 +285,7 @@ export default function Invoices() {
               <TableHead>Total</TableHead>
               <TableHead>Due Date</TableHead>
               <TableHead>Created</TableHead>
-              <TableHead className="w-32">Actions</TableHead>
+              <TableHead className="w-40">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -204,7 +305,9 @@ export default function Invoices() {
                 <TableCell>{format(new Date(inv.created_at), "MMM d, yyyy")}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => setViewing(inv)}><Eye className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => setViewing(inv)} title="View"><Eye className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => openEdit(inv)} title="Edit"><Pencil className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => fetchAuditLog(inv.id)} title="Audit trail"><History className="h-4 w-4" /></Button>
                     {inv.status === "draft" && (
                       <Button variant="ghost" size="sm" onClick={() => updateStatus(inv.id, "sent")}>Send</Button>
                     )}
@@ -239,6 +342,7 @@ export default function Invoices() {
               {viewing.paid_at && <p><span className="text-muted-foreground">Paid:</span> {format(new Date(viewing.paid_at), "MMM d, yyyy")}</p>}
               {viewing.notes && <p><span className="text-muted-foreground">Notes:</span> {viewing.notes}</p>}
               <div className="flex gap-2 pt-2">
+                <Button size="sm" variant="outline" onClick={() => { openEdit(viewing); setViewing(null); }}><Pencil className="h-3.5 w-3.5 mr-1" /> Edit</Button>
                 {viewing.status === "draft" && <Button size="sm" onClick={() => { updateStatus(viewing.id, "sent"); setViewing(null); }}>Mark as Sent</Button>}
                 {(viewing.status === "sent" || viewing.status === "overdue") && <Button size="sm" onClick={() => { updateStatus(viewing.id, "paid"); setViewing(null); }}>Mark as Paid</Button>}
                 {viewing.status !== "cancelled" && viewing.status !== "paid" && (
@@ -247,6 +351,98 @@ export default function Invoices() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={!!editing} onOpenChange={(o) => { if (!o) setEditing(null); }}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Edit Document — {editing?.document_number}</DialogTitle></DialogHeader>
+          {editing && (
+            <div className="space-y-4">
+              <div>
+                <Label>Status</Label>
+                <Select value={editForm.status} onValueChange={(v: any) => setEditForm({ ...editForm, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {docStatuses.map((s) => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div><Label>Subtotal (RWF)</Label><Input type="number" value={editForm.subtotal} onChange={(e) => updateEditForm({ subtotal: +e.target.value })} /></div>
+                <div><Label>Tax Rate (%)</Label><Input type="number" value={editForm.tax_rate} onChange={(e) => updateEditForm({ tax_rate: +e.target.value })} /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div><Label>Discount (RWF)</Label><Input type="number" value={editForm.discount} onChange={(e) => updateEditForm({ discount: +e.target.value })} /></div>
+                <div><Label>Total</Label><Input value={formatRWF(editForm.total)} disabled /></div>
+              </div>
+              <div><Label>Due Date</Label><Input type="date" value={editForm.due_date} onChange={(e) => setEditForm({ ...editForm, due_date: e.target.value })} /></div>
+              <div><Label>Notes</Label><Textarea value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} /></div>
+
+              {invoiceItems.length > 0 && (
+                <div>
+                  <Label className="mb-2 block">Line Items</Label>
+                  <div className="rounded-md border text-xs">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-xs">Description</TableHead>
+                          <TableHead className="text-xs text-center">Qty</TableHead>
+                          <TableHead className="text-xs text-right">Unit Price</TableHead>
+                          <TableHead className="text-xs text-right">Total</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {invoiceItems.map((item: any) => (
+                          <TableRow key={item.id}>
+                            <TableCell className="text-xs">{item.description}</TableCell>
+                            <TableCell className="text-xs text-center">{item.quantity}</TableCell>
+                            <TableCell className="text-xs text-right">{formatRWF(item.unit_price)}</TableCell>
+                            <TableCell className="text-xs text-right">{formatRWF(item.total)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+
+              <Separator />
+              <div className="flex gap-2">
+                <Button onClick={handleSaveEdit} className="flex-1">Save Changes</Button>
+                <Button variant="outline" onClick={() => fetchAuditLog(editing.id)}><History className="h-4 w-4 mr-1" /> Audit Trail</Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Audit Trail Dialog */}
+      <Dialog open={showAudit} onOpenChange={setShowAudit}>
+        <DialogContent className="max-w-md max-h-[80vh]">
+          <DialogHeader><DialogTitle>Audit Trail</DialogTitle></DialogHeader>
+          <ScrollArea className="max-h-[60vh]">
+            {auditLog.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">No changes recorded yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {auditLog.map((entry: any) => (
+                  <div key={entry.id} className="p-3 rounded-md border text-xs space-y-1">
+                    <div className="flex justify-between">
+                      <span className="font-medium capitalize">{entry.field_name.replace("_", " ")}</span>
+                      <span className="text-muted-foreground">{format(new Date(entry.created_at), "MMM d, yyyy h:mm a")}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <span className="text-muted-foreground line-through">{entry.old_value || "—"}</span>
+                      <span>→</span>
+                      <span className="font-medium">{entry.new_value || "—"}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
         </DialogContent>
       </Dialog>
     </div>
