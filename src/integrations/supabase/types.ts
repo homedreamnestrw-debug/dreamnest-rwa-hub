@@ -1114,6 +1114,9 @@ export type Database = {
           loyalty_redemption_rate: number
           loyalty_tiers: Json
           phone: string
+          receipt_footer: string
+          receipt_header: string
+          receipt_logo_url: string
           tagline: string
           updated_at: string
           vat_percentage: number
