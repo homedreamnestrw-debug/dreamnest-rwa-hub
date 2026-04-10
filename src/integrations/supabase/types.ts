@@ -29,6 +29,9 @@ export type Database = {
           loyalty_redemption_rate: number
           loyalty_tiers: Json | null
           phone: string | null
+          receipt_footer: string | null
+          receipt_header: string | null
+          receipt_logo_url: string | null
           smtp_host: string | null
           smtp_port: number | null
           smtp_user: string | null
@@ -51,6 +54,9 @@ export type Database = {
           loyalty_redemption_rate?: number
           loyalty_tiers?: Json | null
           phone?: string | null
+          receipt_footer?: string | null
+          receipt_header?: string | null
+          receipt_logo_url?: string | null
           smtp_host?: string | null
           smtp_port?: number | null
           smtp_user?: string | null
@@ -73,6 +79,9 @@ export type Database = {
           loyalty_redemption_rate?: number
           loyalty_tiers?: Json | null
           phone?: string | null
+          receipt_footer?: string | null
+          receipt_header?: string | null
+          receipt_logo_url?: string | null
           smtp_host?: string | null
           smtp_port?: number | null
           smtp_user?: string | null
