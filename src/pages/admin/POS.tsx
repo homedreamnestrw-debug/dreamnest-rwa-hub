@@ -258,8 +258,8 @@ export default function POS() {
         payment_method: paymentMethod,
         payment_status: paymentStatus,
         created_at: new Date().toISOString(),
-        customer_name: selectedCustomer?.full_name,
-        customer_phone: selectedCustomer?.phone,
+        customer_name: selectedCustomer?.full_name || customerName || null,
+        customer_phone: selectedCustomer?.phone || customerPhone || null,
         amount_paid: paidAmount,
       });
 
