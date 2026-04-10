@@ -97,6 +97,35 @@ export default function POS() {
     }
   }, [locations, selectedLocation]);
 
+  // Customer search by phone
+  const searchCustomer = useCallback(async (phone: string) => {
+    setCustomerPhone(phone);
+    if (phone.length < 3) {
+      setCustomerSearchResults([]);
+      setShowCustomerDropdown(false);
+      return;
+    }
+    const { data } = await supabase
+      .from("profiles")
+      .select("id, user_id, full_name, phone")
+      .ilike("phone", `%${phone}%`)
+      .limit(5);
+    setCustomerSearchResults(data ?? []);
+    setShowCustomerDropdown((data ?? []).length > 0);
+  }, []);
+
+  const selectCustomer = (customer: any) => {
+    setSelectedCustomer(customer);
+    setCustomerPhone(customer.phone || "");
+    setShowCustomerDropdown(false);
+  };
+
+  const clearCustomer = () => {
+    setSelectedCustomer(null);
+    setCustomerPhone("");
+    setCustomerSearchResults([]);
+  };
+
   const vatRate = settings?.vat_percentage ? Number(settings.vat_percentage) / 100 : 0.18;
   const businessName = settings?.business_name ?? "DreamNest";
 
