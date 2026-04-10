@@ -17,7 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import {
   Search, Plus, Minus, Trash2, CreditCard, Smartphone, Banknote,
-  Loader2, Receipt, X, Printer, MapPin, Clock,
+  Loader2, Receipt, X, Printer, MapPin, Clock, Percent,
 } from "lucide-react";
 import { format } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
@@ -36,6 +36,7 @@ interface CompletedOrder {
   order_number: number;
   items: CartItem[];
   subtotal: number;
+  discount_amount: number;
   tax: number;
   total: number;
   payment_method: PaymentMethod;
@@ -53,6 +54,7 @@ export default function POS() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [submitting, setSubmitting] = useState(false);
   const [receiptOrder, setReceiptOrder] = useState<CompletedOrder | null>(null);
+  const [receiptFormat, setReceiptFormat] = useState<"thermal" | "a4">("thermal");
   const [customerNote, setCustomerNote] = useState("");
   const [selectedLocation, setSelectedLocation] = useState<string>("");
   const [isCredit, setIsCredit] = useState(false);
@@ -64,6 +66,9 @@ export default function POS() {
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [customerResolved, setCustomerResolved] = useState(false);
   const [amountPaid, setAmountPaid] = useState<string>("");
+  // Discount
+  const [discountType, setDiscountType] = useState<"none" | "percent" | "amount">("none");
+  const [discountValue, setDiscountValue] = useState<string>("");
   const searchRef = useRef<HTMLInputElement>(null);
   const customerSearchRef = useRef<HTMLInputElement>(null);
 
@@ -96,14 +101,12 @@ export default function POS() {
     },
   });
 
-  // Auto-select first location
   useEffect(() => {
     if (locations && locations.length > 0 && !selectedLocation) {
       setSelectedLocation(locations[0].id);
     }
   }, [locations, selectedLocation]);
 
-  // Customer search by phone
   const searchCustomer = useCallback(async (phone: string) => {
     setCustomerPhone(phone);
     setCustomerResolved(false);
@@ -142,6 +145,9 @@ export default function POS() {
 
   const vatRate = settings?.vat_percentage ? Number(settings.vat_percentage) / 100 : 0.18;
   const businessName = settings?.business_name ?? "DreamNest";
+  const receiptLogoUrl = (settings as any)?.receipt_logo_url || settings?.logo_url || "";
+  const receiptHeader = (settings as any)?.receipt_header || "";
+  const receiptFooter = (settings as any)?.receipt_footer || "";
 
   const filtered = products?.filter(
     (p: any) =>
@@ -184,11 +190,21 @@ export default function POS() {
   };
 
   const removeFromCart = (productId: string) => setCart((prev) => prev.filter((i) => i.product_id !== productId));
-  const clearCart = () => { setCart([]); setCustomerNote(""); setIsCredit(false); setAmountPaid(""); clearCustomer(); searchRef.current?.focus(); };
+  const clearCart = () => { setCart([]); setCustomerNote(""); setIsCredit(false); setAmountPaid(""); setDiscountType("none"); setDiscountValue(""); clearCustomer(); searchRef.current?.focus(); };
 
   const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
-  const taxAmount = Math.round(subtotal * vatRate);
-  const total = subtotal + taxAmount;
+  
+  // Calculate discount
+  let discountAmount = 0;
+  if (discountType === "percent" && discountValue) {
+    discountAmount = Math.round(subtotal * Number(discountValue) / 100);
+  } else if (discountType === "amount" && discountValue) {
+    discountAmount = Math.min(Number(discountValue), subtotal);
+  }
+  
+  const afterDiscount = subtotal - discountAmount;
+  const taxAmount = Math.round(afterDiscount * vatRate);
+  const total = afterDiscount + taxAmount;
 
   const formatPrice = (price: number) =>
     new Intl.NumberFormat("en-RW", { style: "currency", currency: "RWF", minimumFractionDigits: 0 }).format(price);
@@ -214,7 +230,7 @@ export default function POS() {
           payment_method: isCredit && paidAmount <= 0 ? null : paymentMethod,
           subtotal,
           tax_amount: taxAmount,
-          discount_amount: 0,
+          discount_amount: discountAmount,
           total,
           notes: customerNote || null,
           location_id: selectedLocation || null,
@@ -238,7 +254,6 @@ export default function POS() {
       const { error: itemsErr } = await supabase.from("order_items").insert(items);
       if (itemsErr) throw itemsErr;
 
-      // Record partial payment if credit with amount paid
       if (isCredit && paidAmount > 0) {
         await supabase.from("credit_payments").insert({
           order_id: order.id,
@@ -253,6 +268,7 @@ export default function POS() {
         order_number: order.order_number,
         items: [...cart],
         subtotal,
+        discount_amount: discountAmount,
         tax: taxAmount,
         total,
         payment_method: paymentMethod,
@@ -268,6 +284,8 @@ export default function POS() {
       setCustomerNote("");
       setIsCredit(false);
       setAmountPaid("");
+      setDiscountType("none");
+      setDiscountValue("");
       clearCustomer();
     } catch (err: any) {
       toast.error(err.message || "Failed to process sale");
@@ -293,12 +311,132 @@ export default function POS() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
+  // A4 Receipt component
+  const A4Receipt = ({ order }: { order: CompletedOrder }) => (
+    <div className="p-8 max-w-[210mm] mx-auto bg-white text-black text-sm" style={{ fontFamily: "Inter, sans-serif" }}>
+      {/* Header with logo */}
+      <div className="flex items-start justify-between mb-6">
+        <div className="flex items-center gap-4">
+          {receiptLogoUrl && <img src={receiptLogoUrl} alt="Logo" className="h-16 object-contain" />}
+          <div>
+            <h1 className="text-2xl font-bold">{businessName}</h1>
+            {settings?.tagline && <p className="text-gray-500 text-xs">{settings.tagline}</p>}
+          </div>
+        </div>
+        <div className="text-right text-xs text-gray-600">
+          {settings?.address && <p>{settings.address}</p>}
+          {settings?.city && <p>{settings.city}, {(settings as any)?.country}</p>}
+          {settings?.phone && <p>Tel: {settings.phone}</p>}
+          {settings?.email && <p>{settings.email}</p>}
+        </div>
+      </div>
+
+      {receiptHeader && <p className="text-center text-xs text-gray-600 mb-4 border-b pb-2">{receiptHeader}</p>}
+
+      {/* Receipt info */}
+      <div className="grid grid-cols-2 gap-4 mb-6 text-xs">
+        <div>
+          <p><span className="text-gray-500">Receipt #:</span> <strong>{order.order_number}</strong></p>
+          <p><span className="text-gray-500">Date:</span> {format(new Date(order.created_at), "MMM d, yyyy h:mm a")}</p>
+          <p><span className="text-gray-500">Payment:</span> {order.payment_status === "unpaid" ? "Credit" : order.payment_status === "partial" ? "Partial" : order.payment_method.replace("_", " ")}</p>
+        </div>
+        <div>
+          {order.customer_name && <p><span className="text-gray-500">Customer:</span> {order.customer_name}</p>}
+          {order.customer_phone && <p><span className="text-gray-500">Phone:</span> {order.customer_phone}</p>}
+        </div>
+      </div>
+
+      {/* Items table */}
+      <table className="w-full mb-6 text-xs">
+        <thead>
+          <tr className="border-b-2 border-gray-800">
+            <th className="text-left py-2 font-semibold">#</th>
+            <th className="text-left py-2 font-semibold">Item</th>
+            <th className="text-center py-2 font-semibold">Qty</th>
+            <th className="text-right py-2 font-semibold">Unit Price</th>
+            <th className="text-right py-2 font-semibold">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {order.items.map((item, idx) => (
+            <tr key={item.product_id} className="border-b border-gray-200">
+              <td className="py-2">{idx + 1}</td>
+              <td className="py-2">{item.name}</td>
+              <td className="py-2 text-center">{item.quantity}</td>
+              <td className="py-2 text-right">{formatPrice(item.price)}</td>
+              <td className="py-2 text-right">{formatPrice(item.price * item.quantity)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {/* Totals */}
+      <div className="flex justify-end mb-6">
+        <div className="w-64 text-xs space-y-1">
+          <div className="flex justify-between"><span className="text-gray-500">Subtotal</span><span>{formatPrice(order.subtotal)}</span></div>
+          {order.discount_amount > 0 && (
+            <div className="flex justify-between text-red-600"><span>Discount</span><span>-{formatPrice(order.discount_amount)}</span></div>
+          )}
+          <div className="flex justify-between"><span className="text-gray-500">VAT ({Math.round(vatRate * 100)}%)</span><span>{formatPrice(order.tax)}</span></div>
+          <div className="flex justify-between border-t-2 border-gray-800 pt-2 text-base font-bold"><span>Total</span><span>{formatPrice(order.total)}</span></div>
+          {order.amount_paid != null && order.amount_paid > 0 && (
+            <div className="flex justify-between text-green-700 font-medium"><span>Amount Paid</span><span>{formatPrice(order.amount_paid)}</span></div>
+          )}
+          {(order.payment_status === "unpaid" || order.payment_status === "partial") && (
+            <div className="flex justify-between text-red-600 font-bold"><span>Balance Due</span><span>{formatPrice(order.total - (order.amount_paid || 0))}</span></div>
+          )}
+        </div>
+      </div>
+
+      {receiptFooter && <p className="text-center text-xs text-gray-500 border-t pt-4 whitespace-pre-line">{receiptFooter}</p>}
+      {!receiptFooter && <p className="text-center text-xs text-gray-500 border-t pt-4">Thank you for your purchase!</p>}
+    </div>
+  );
+
+  // Thermal receipt component
+  const ThermalReceipt = ({ order }: { order: CompletedOrder }) => (
+    <div className="p-4 max-w-[300px] mx-auto text-sm">
+      <div className="text-center mb-4">
+        {receiptLogoUrl && <img src={receiptLogoUrl} alt="Logo" className="h-10 mx-auto mb-2 object-contain" />}
+        <h2 className="font-bold text-lg">{businessName}</h2>
+        {settings?.address && <p className="text-xs">{settings.address}, {settings?.city}</p>}
+        {settings?.phone && <p className="text-xs">{settings.phone}</p>}
+        {receiptHeader && <p className="text-xs mt-1">{receiptHeader}</p>}
+      </div>
+      <p>Receipt #{order.order_number}</p>
+      <p>{format(new Date(order.created_at), "MMM d, yyyy h:mm a")}</p>
+      {order.customer_name && <p>Customer: {order.customer_name}</p>}
+      {order.customer_phone && <p>Phone: {order.customer_phone}</p>}
+      <p>Payment: {order.payment_status === "unpaid" ? "CREDIT" : order.payment_status === "partial" ? "PARTIAL" : order.payment_method.replace("_", " ")}</p>
+      <hr className="my-2" />
+      {order.items.map((item) => (
+        <div key={item.product_id} className="flex justify-between">
+          <span>{item.name} ×{item.quantity}</span>
+          <span>{formatPrice(item.price * item.quantity)}</span>
+        </div>
+      ))}
+      <hr className="my-2" />
+      <div className="flex justify-between"><span>Subtotal</span><span>{formatPrice(order.subtotal)}</span></div>
+      {order.discount_amount > 0 && (
+        <div className="flex justify-between text-red-600"><span>Discount</span><span>-{formatPrice(order.discount_amount)}</span></div>
+      )}
+      <div className="flex justify-between"><span>VAT</span><span>{formatPrice(order.tax)}</span></div>
+      <div className="flex justify-between font-bold"><span>Total</span><span>{formatPrice(order.total)}</span></div>
+      {order.amount_paid != null && order.amount_paid > 0 && (
+        <div className="flex justify-between mt-1"><span>PAID</span><span>{formatPrice(order.amount_paid)}</span></div>
+      )}
+      {(order.payment_status === "unpaid" || order.payment_status === "partial") && (
+        <div className="flex justify-between font-bold mt-1"><span>BALANCE DUE</span><span>{formatPrice(order.total - (order.amount_paid || 0))}</span></div>
+      )}
+      <p className="text-center mt-4 text-xs">{receiptFooter || "Thank you for your purchase!"}</p>
+    </div>
+  );
+
   return (
     <>
       <div className="flex flex-col lg:flex-row gap-4 h-[calc(100vh-8rem)] print:hidden">
         {/* Left: Product search + grid */}
         <div className="flex-1 flex flex-col min-w-0">
-          {/* Location + Search bar */}
           <div className="flex gap-3 mb-4">
             {locations && locations.length > 0 && (
               <Select value={selectedLocation} onValueChange={setSelectedLocation}>
@@ -408,7 +546,6 @@ export default function POS() {
                 {/* Customer info */}
                 <div className="space-y-2">
                   <p className="text-xs font-medium text-muted-foreground">Customer</p>
-                  {/* Phone (primary) */}
                   <div className="relative">
                     <Input
                       ref={customerSearchRef}
@@ -437,32 +574,49 @@ export default function POS() {
                       <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6" onClick={clearCustomer}><X className="h-3 w-3" /></Button>
                     )}
                   </div>
-                  {/* Name + Address (auto-filled or manual) */}
                   <div className="grid grid-cols-2 gap-2">
-                    <Input
-                      placeholder="Name (optional)"
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      className="h-9 text-sm"
-                      disabled={!!selectedCustomer}
-                    />
-                    <Input
-                      placeholder="Address (optional)"
-                      value={customerAddress}
-                      onChange={(e) => setCustomerAddress(e.target.value)}
-                      className="h-9 text-sm"
-                      disabled={!!selectedCustomer}
-                    />
+                    <Input placeholder="Name (optional)" value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="h-9 text-sm" disabled={!!selectedCustomer} />
+                    <Input placeholder="Address (optional)" value={customerAddress} onChange={(e) => setCustomerAddress(e.target.value)} className="h-9 text-sm" disabled={!!selectedCustomer} />
                   </div>
-                  {selectedCustomer && (
-                    <p className="text-xs text-green-600">✓ Existing customer</p>
-                  )}
-                  {!selectedCustomer && customerPhone.length >= 6 && (
-                    <p className="text-xs text-muted-foreground">New customer — will be saved automatically</p>
-                  )}
+                  {selectedCustomer && <p className="text-xs text-green-600">✓ Existing customer</p>}
+                  {!selectedCustomer && customerPhone.length >= 6 && <p className="text-xs text-muted-foreground">New customer — will be saved automatically</p>}
                 </div>
 
                 <Textarea placeholder="Sale note (optional)..." className="h-16 text-sm" value={customerNote} onChange={(e) => setCustomerNote(e.target.value)} />
+
+                {/* Discount */}
+                <div className="p-3 rounded-md border bg-muted/30 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Percent className="h-4 w-4 text-muted-foreground" />
+                    <p className="text-sm font-medium">Discount</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Select value={discountType} onValueChange={(v) => { setDiscountType(v as any); setDiscountValue(""); }}>
+                      <SelectTrigger className="h-9 text-sm w-28">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        <SelectItem value="percent">%</SelectItem>
+                        <SelectItem value="amount">Amount</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {discountType !== "none" && (
+                      <Input
+                        type="number"
+                        placeholder={discountType === "percent" ? "e.g. 10" : "e.g. 5000"}
+                        value={discountValue}
+                        onChange={(e) => setDiscountValue(e.target.value)}
+                        className="h-9 text-sm flex-1"
+                        min={0}
+                        max={discountType === "percent" ? 100 : subtotal}
+                      />
+                    )}
+                  </div>
+                  {discountAmount > 0 && (
+                    <p className="text-xs text-red-600">-{formatPrice(discountAmount)} discount applied</p>
+                  )}
+                </div>
 
                 {/* Credit toggle */}
                 <div className="flex items-center justify-between p-3 rounded-md border bg-muted/30">
@@ -476,28 +630,16 @@ export default function POS() {
                   <Switch checked={isCredit} onCheckedChange={(v) => { setIsCredit(v); if (!v) setAmountPaid(""); }} />
                 </div>
 
-                {/* Partial payment for credit */}
                 {isCredit && (
                   <div className="p-3 rounded-md border bg-muted/30 space-y-2">
                     <p className="text-xs font-medium text-muted-foreground">Amount Paid Now (optional)</p>
-                    <Input
-                      type="number"
-                      placeholder="0"
-                      value={amountPaid}
-                      onChange={(e) => setAmountPaid(e.target.value)}
-                      className="h-9 text-sm"
-                      min={0}
-                      max={total}
-                    />
+                    <Input type="number" placeholder="0" value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)} className="h-9 text-sm" min={0} max={total} />
                     {amountPaid && Number(amountPaid) > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        Balance remaining: {formatPrice(total - Number(amountPaid))}
-                      </p>
+                      <p className="text-xs text-muted-foreground">Balance remaining: {formatPrice(total - Number(amountPaid))}</p>
                     )}
                   </div>
                 )}
 
-                {/* Payment method - show always (needed for partial payment too) */}
                 {(!isCredit || (isCredit && amountPaid && Number(amountPaid) > 0)) && (
                   <div>
                     <p className="text-xs font-medium text-muted-foreground mb-2">Payment Method</p>
@@ -516,6 +658,9 @@ export default function POS() {
                 <Separator />
                 <div className="space-y-1 text-sm">
                   <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{formatPrice(subtotal)}</span></div>
+                  {discountAmount > 0 && (
+                    <div className="flex justify-between text-red-600"><span>Discount{discountType === "percent" ? ` (${discountValue}%)` : ""}</span><span>-{formatPrice(discountAmount)}</span></div>
+                  )}
                   <div className="flex justify-between"><span className="text-muted-foreground">VAT ({Math.round(vatRate * 100)}%)</span><span>{formatPrice(taxAmount)}</span></div>
                   <Separator />
                   <div className="flex justify-between text-lg font-medium pt-1"><span>Total</span><span className="font-serif">{formatPrice(total)}</span></div>
@@ -532,60 +677,65 @@ export default function POS() {
 
       {/* Receipt Dialog */}
       <Dialog open={!!receiptOrder} onOpenChange={() => setReceiptOrder(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className={receiptFormat === "a4" ? "max-w-3xl max-h-[90vh] overflow-y-auto" : "max-w-md"}>
           <DialogHeader>
-            <DialogTitle className="font-serif text-xl">Sale Receipt</DialogTitle>
+            <DialogTitle className="font-serif text-xl flex items-center justify-between">
+              <span>Sale Receipt</span>
+              <div className="flex gap-2">
+                <Button variant={receiptFormat === "thermal" ? "default" : "outline"} size="sm" onClick={() => setReceiptFormat("thermal")}>Thermal</Button>
+                <Button variant={receiptFormat === "a4" ? "default" : "outline"} size="sm" onClick={() => setReceiptFormat("a4")}>A4</Button>
+              </div>
+            </DialogTitle>
           </DialogHeader>
           {receiptOrder && (
-            <div id="receipt" className="space-y-4">
-              <div className="text-center border-b pb-4">
-                <h3 className="font-serif text-xl font-semibold">{businessName}</h3>
-                {settings?.address && <p className="text-xs text-muted-foreground">{settings.address}, {settings?.city}</p>}
-                {settings?.phone && <p className="text-xs text-muted-foreground">{settings.phone}</p>}
-              </div>
-
-              <div className="text-sm space-y-1">
-                <div className="flex justify-between"><span className="text-muted-foreground">Receipt #</span><span className="font-mono">{receiptOrder.order_number}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Date</span><span>{format(new Date(receiptOrder.created_at), "MMM d, yyyy h:mm a")}</span></div>
-                {receiptOrder.customer_name && (
-                  <div className="flex justify-between"><span className="text-muted-foreground">Customer</span><span>{receiptOrder.customer_name}</span></div>
-                )}
-                {receiptOrder.customer_phone && (
-                  <div className="flex justify-between"><span className="text-muted-foreground">Phone</span><span>{receiptOrder.customer_phone}</span></div>
-                )}
-                <div className="flex justify-between"><span className="text-muted-foreground">Payment</span><span className="capitalize">{receiptOrder.payment_status === "unpaid" ? "Credit (Unpaid)" : receiptOrder.payment_status === "partial" ? "Partial Payment" : receiptOrder.payment_method.replace("_", " ")}</span></div>
-                {(receiptOrder.payment_status === "unpaid" || receiptOrder.payment_status === "partial") && (
-                  <Badge variant="secondary" className="mt-1">CREDIT SALE</Badge>
-                )}
-              </div>
-
-              <Separator />
-              <div className="space-y-2 text-sm">
-                {receiptOrder.items.map((item) => (
-                  <div key={item.product_id} className="flex justify-between">
-                    <span>{item.name} × {item.quantity}</span>
-                    <span>{formatPrice(item.price * item.quantity)}</span>
+            <div id="receipt">
+              {receiptFormat === "a4" ? (
+                <A4Receipt order={receiptOrder} />
+              ) : (
+                <div className="space-y-4">
+                  <div className="text-center border-b pb-4">
+                    {receiptLogoUrl && <img src={receiptLogoUrl} alt="Logo" className="h-10 mx-auto mb-2 object-contain" />}
+                    <h3 className="font-serif text-xl font-semibold">{businessName}</h3>
+                    {settings?.address && <p className="text-xs text-muted-foreground">{settings.address}, {settings?.city}</p>}
+                    {settings?.phone && <p className="text-xs text-muted-foreground">{settings.phone}</p>}
+                    {receiptHeader && <p className="text-xs text-muted-foreground mt-1">{receiptHeader}</p>}
                   </div>
-                ))}
-              </div>
 
-              <Separator />
-              <div className="space-y-1 text-sm">
-                <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{formatPrice(receiptOrder.subtotal)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">VAT</span><span>{formatPrice(receiptOrder.tax)}</span></div>
-                <div className="flex justify-between font-medium text-base pt-1"><span>Total</span><span className="font-serif">{formatPrice(receiptOrder.total)}</span></div>
-                {receiptOrder.amount_paid && receiptOrder.amount_paid > 0 && (
-                  <div className="flex justify-between text-green-600 font-medium"><span>Amount Paid</span><span>{formatPrice(receiptOrder.amount_paid)}</span></div>
-                )}
-                {(receiptOrder.payment_status === "unpaid" || receiptOrder.payment_status === "partial") && (
-                  <div className="flex justify-between text-destructive font-medium"><span>Balance Due</span><span>{formatPrice(receiptOrder.total - (receiptOrder.amount_paid || 0))}</span></div>
-                )}
-              </div>
+                  <div className="text-sm space-y-1">
+                    <div className="flex justify-between"><span className="text-muted-foreground">Receipt #</span><span className="font-mono">{receiptOrder.order_number}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Date</span><span>{format(new Date(receiptOrder.created_at), "MMM d, yyyy h:mm a")}</span></div>
+                    {receiptOrder.customer_name && <div className="flex justify-between"><span className="text-muted-foreground">Customer</span><span>{receiptOrder.customer_name}</span></div>}
+                    {receiptOrder.customer_phone && <div className="flex justify-between"><span className="text-muted-foreground">Phone</span><span>{receiptOrder.customer_phone}</span></div>}
+                    <div className="flex justify-between"><span className="text-muted-foreground">Payment</span><span className="capitalize">{receiptOrder.payment_status === "unpaid" ? "Credit (Unpaid)" : receiptOrder.payment_status === "partial" ? "Partial Payment" : receiptOrder.payment_method.replace("_", " ")}</span></div>
+                    {(receiptOrder.payment_status === "unpaid" || receiptOrder.payment_status === "partial") && <Badge variant="secondary" className="mt-1">CREDIT SALE</Badge>}
+                  </div>
 
-              <Separator />
-              <p className="text-center text-xs text-muted-foreground">Thank you for your purchase!</p>
+                  <Separator />
+                  <div className="space-y-2 text-sm">
+                    {receiptOrder.items.map((item) => (
+                      <div key={item.product_id} className="flex justify-between">
+                        <span>{item.name} × {item.quantity}</span>
+                        <span>{formatPrice(item.price * item.quantity)}</span>
+                      </div>
+                    ))}
+                  </div>
 
-              <div className="flex gap-3 pt-2">
+                  <Separator />
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{formatPrice(receiptOrder.subtotal)}</span></div>
+                    {receiptOrder.discount_amount > 0 && <div className="flex justify-between text-red-600"><span>Discount</span><span>-{formatPrice(receiptOrder.discount_amount)}</span></div>}
+                    <div className="flex justify-between"><span className="text-muted-foreground">VAT</span><span>{formatPrice(receiptOrder.tax)}</span></div>
+                    <div className="flex justify-between font-medium text-base pt-1"><span>Total</span><span className="font-serif">{formatPrice(receiptOrder.total)}</span></div>
+                    {receiptOrder.amount_paid != null && receiptOrder.amount_paid > 0 && <div className="flex justify-between text-green-600 font-medium"><span>Amount Paid</span><span>{formatPrice(receiptOrder.amount_paid)}</span></div>}
+                    {(receiptOrder.payment_status === "unpaid" || receiptOrder.payment_status === "partial") && <div className="flex justify-between text-destructive font-medium"><span>Balance Due</span><span>{formatPrice(receiptOrder.total - (receiptOrder.amount_paid || 0))}</span></div>}
+                  </div>
+
+                  <Separator />
+                  <p className="text-center text-xs text-muted-foreground">{receiptFooter || "Thank you for your purchase!"}</p>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-4 print:hidden">
                 <Button variant="outline" className="flex-1" onClick={printReceipt}><Printer className="mr-2 h-4 w-4" /> Print</Button>
                 <Button className="flex-1" onClick={() => { setReceiptOrder(null); searchRef.current?.focus(); }}>New Sale</Button>
               </div>
@@ -596,35 +746,12 @@ export default function POS() {
 
       {/* Print-only receipt */}
       {receiptOrder && (
-        <div className="hidden print:block p-4 max-w-[300px] mx-auto text-sm">
-          <div className="text-center mb-4">
-            <h2 className="font-bold text-lg">{businessName}</h2>
-            {settings?.address && <p className="text-xs">{settings.address}, {settings?.city}</p>}
-            {settings?.phone && <p className="text-xs">{settings.phone}</p>}
-          </div>
-          <p>Receipt #{receiptOrder.order_number}</p>
-          <p>{format(new Date(receiptOrder.created_at), "MMM d, yyyy h:mm a")}</p>
-          {receiptOrder.customer_name && <p>Customer: {receiptOrder.customer_name}</p>}
-          {receiptOrder.customer_phone && <p>Phone: {receiptOrder.customer_phone}</p>}
-          <p>Payment: {receiptOrder.payment_status === "unpaid" ? "CREDIT" : receiptOrder.payment_status === "partial" ? "PARTIAL" : receiptOrder.payment_method.replace("_", " ")}</p>
-          <hr className="my-2" />
-          {receiptOrder.items.map((item) => (
-            <div key={item.product_id} className="flex justify-between">
-              <span>{item.name} ×{item.quantity}</span>
-              <span>{formatPrice(item.price * item.quantity)}</span>
-            </div>
-          ))}
-          <hr className="my-2" />
-          <div className="flex justify-between"><span>Subtotal</span><span>{formatPrice(receiptOrder.subtotal)}</span></div>
-          <div className="flex justify-between"><span>VAT</span><span>{formatPrice(receiptOrder.tax)}</span></div>
-          <div className="flex justify-between font-bold"><span>Total</span><span>{formatPrice(receiptOrder.total)}</span></div>
-          {receiptOrder.amount_paid && receiptOrder.amount_paid > 0 && (
-            <div className="flex justify-between mt-1"><span>PAID</span><span>{formatPrice(receiptOrder.amount_paid)}</span></div>
+        <div className="hidden print:block">
+          {receiptFormat === "a4" ? (
+            <A4Receipt order={receiptOrder} />
+          ) : (
+            <ThermalReceipt order={receiptOrder} />
           )}
-          {(receiptOrder.payment_status === "unpaid" || receiptOrder.payment_status === "partial") && (
-            <div className="flex justify-between font-bold mt-1"><span>BALANCE DUE</span><span>{formatPrice(receiptOrder.total - (receiptOrder.amount_paid || 0))}</span></div>
-          )}
-          <p className="text-center mt-4 text-xs">Thank you for your purchase!</p>
         </div>
       )}
     </>

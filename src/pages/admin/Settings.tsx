@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { Save, Building2, CreditCard, Mail, Heart } from "lucide-react";
+import { Save, Building2, CreditCard, Mail, Heart, FileText } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -35,6 +35,9 @@ export default function Settings() {
     smtp_host: "",
     smtp_port: 587,
     smtp_user: "",
+    receipt_header: "",
+    receipt_footer: "",
+    receipt_logo_url: "",
   });
 
   const fetchSettings = async () => {
@@ -58,6 +61,9 @@ export default function Settings() {
         smtp_host: data.smtp_host || "",
         smtp_port: data.smtp_port || 587,
         smtp_user: data.smtp_user || "",
+        receipt_header: (data as any).receipt_header || "",
+        receipt_footer: (data as any).receipt_footer || "",
+        receipt_logo_url: (data as any).receipt_logo_url || "",
       });
     }
     setLoading(false);
@@ -85,7 +91,10 @@ export default function Settings() {
       smtp_host: form.smtp_host || null,
       smtp_port: form.smtp_port || null,
       smtp_user: form.smtp_user || null,
-    }).eq("id", settings.id);
+      receipt_header: form.receipt_header || null,
+      receipt_footer: form.receipt_footer || null,
+      receipt_logo_url: form.receipt_logo_url || null,
+    } as any).eq("id", settings.id);
 
     setSaving(false);
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
@@ -114,6 +123,7 @@ export default function Settings() {
           <TabsTrigger value="finance"><CreditCard className="h-4 w-4 mr-1" /> Finance</TabsTrigger>
           <TabsTrigger value="loyalty"><Heart className="h-4 w-4 mr-1" /> Loyalty</TabsTrigger>
           <TabsTrigger value="email"><Mail className="h-4 w-4 mr-1" /> Email</TabsTrigger>
+          <TabsTrigger value="receipt"><FileText className="h-4 w-4 mr-1" /> Receipt / Invoice</TabsTrigger>
         </TabsList>
 
         <TabsContent value="business" className="space-y-4 mt-4">
@@ -194,6 +204,49 @@ export default function Settings() {
                 <div><Label>SMTP Port</Label><Input type="number" value={form.smtp_port} onChange={(e) => f("smtp_port", +e.target.value)} /></div>
               </div>
               <div><Label>SMTP User</Label><Input value={form.smtp_user} onChange={(e) => f("smtp_user", e.target.value)} /></div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="receipt" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Receipt & Invoice Customization</CardTitle>
+              <CardDescription>Set the logo, header text, and footer text that appear on receipts and invoices.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label>Receipt / Invoice Logo URL</Label>
+                <Input value={form.receipt_logo_url} onChange={(e) => f("receipt_logo_url", e.target.value)} placeholder="https://... (leave empty to use main logo)" />
+                <p className="text-xs text-muted-foreground mt-1">If empty, the main business logo will be used.</p>
+              </div>
+              {(form.receipt_logo_url || form.logo_url) && (
+                <div className="flex items-center gap-4 p-4 border rounded-lg bg-muted/30">
+                  <img src={form.receipt_logo_url || form.logo_url} alt="Receipt Logo Preview" className="h-16 object-contain" />
+                  <span className="text-xs text-muted-foreground">Logo preview</span>
+                </div>
+              )}
+              <Separator />
+              <div>
+                <Label>Header Text</Label>
+                <Textarea
+                  value={form.receipt_header}
+                  onChange={(e) => f("receipt_header", e.target.value)}
+                  placeholder="e.g. Thank you for shopping with us!"
+                  className="h-20"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Displayed below the logo on receipts and invoices.</p>
+              </div>
+              <div>
+                <Label>Footer Text</Label>
+                <Textarea
+                  value={form.receipt_footer}
+                  onChange={(e) => f("receipt_footer", e.target.value)}
+                  placeholder="e.g. Returns accepted within 7 days with receipt. TIN: 123456789"
+                  className="h-20"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Displayed at the bottom of receipts and invoices.</p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
