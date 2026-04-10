@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { Save, Building2, CreditCard, Mail, Heart, FileText } from "lucide-react";
+import { Save, Building2, CreditCard, Mail, Heart, FileText, Upload, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -17,6 +17,7 @@ export default function Settings() {
   const [settings, setSettings] = useState<BusinessSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
 
   const [form, setForm] = useState({
     business_name: "",
@@ -216,8 +217,27 @@ export default function Settings() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label>Receipt / Invoice Logo URL</Label>
-                <Input value={form.receipt_logo_url} onChange={(e) => f("receipt_logo_url", e.target.value)} placeholder="https://... (leave empty to use main logo)" />
+                <Label>Receipt / Invoice Logo</Label>
+                <div className="flex gap-2 items-end">
+                  <Input value={form.receipt_logo_url} onChange={(e) => f("receipt_logo_url", e.target.value)} placeholder="https://... (leave empty to use main logo)" className="flex-1" />
+                  <label className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium border rounded-md cursor-pointer hover:bg-muted transition-colors">
+                    {logoUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                    Upload
+                    <input type="file" accept="image/*" className="hidden" disabled={logoUploading} onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setLogoUploading(true);
+                      const ext = file.name.split(".").pop();
+                      const path = `receipt-logo-${Date.now()}.${ext}`;
+                      const { error } = await supabase.storage.from("business-assets").upload(path, file);
+                      if (error) { toast({ title: "Upload failed", description: error.message, variant: "destructive" }); setLogoUploading(false); return; }
+                      const { data } = supabase.storage.from("business-assets").getPublicUrl(path);
+                      f("receipt_logo_url", data.publicUrl);
+                      setLogoUploading(false);
+                      e.target.value = "";
+                    }} />
+                  </label>
+                </div>
                 <p className="text-xs text-muted-foreground mt-1">If empty, the main business logo will be used.</p>
               </div>
               {(form.receipt_logo_url || form.logo_url) && (
