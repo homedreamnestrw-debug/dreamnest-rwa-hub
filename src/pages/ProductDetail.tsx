@@ -1,14 +1,14 @@
 import { useParams, Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/hooks/useCart";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Heart, Minus, Plus, ShoppingCart, Star } from "lucide-react";
 import { ReviewForm } from "@/components/product/ReviewForm";
-import { useQueryClient } from "@tanstack/react-query";
 
 export default function ProductDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -61,17 +61,16 @@ export default function ProductDetail() {
     new Intl.NumberFormat("en-RW", { style: "currency", currency: "RWF", minimumFractionDigits: 0 }).format(price);
 
   const addToCart = async () => {
-    if (!user) {
-      toast.error("Please sign in to add items to your cart");
-      return;
-    }
-    const { error } = await supabase.from("cart_items").insert({
-      user_id: user.id,
-      product_id: product!.id,
-      quantity,
-    });
-    if (error) toast.error("Failed to add to cart");
-    else toast.success("Added to cart!");
+    if (!product) return;
+    await addItem({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      slug: product.slug,
+      images: product.images,
+      stock_quantity: product.stock_quantity,
+    }, quantity);
+    toast.success("Added to cart!");
   };
 
   const addToWishlist = async () => {
