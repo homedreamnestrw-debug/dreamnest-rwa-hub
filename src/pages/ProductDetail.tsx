@@ -16,6 +16,7 @@ export default function ProductDetail() {
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const queryClient = useQueryClient();
+  const { addItem } = useCart();
 
   const { data: product, isLoading } = useQuery({
     queryKey: ["product", slug],
