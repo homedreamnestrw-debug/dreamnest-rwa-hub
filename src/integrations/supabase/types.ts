@@ -313,6 +313,75 @@ export type Database = {
         }
         Relationships: []
       }
+      gift_vouchers: {
+        Row: {
+          amount: number
+          balance: number
+          buyer_email: string | null
+          buyer_name: string
+          buyer_phone: string | null
+          code: string
+          created_at: string
+          expires_at: string
+          id: string
+          payment_approved: boolean
+          payment_approved_at: string | null
+          payment_approved_by: string | null
+          payment_method: string
+          payment_status: string
+          personal_message: string | null
+          recipient_email: string | null
+          recipient_name: string
+          recipient_phone: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          balance: number
+          buyer_email?: string | null
+          buyer_name: string
+          buyer_phone?: string | null
+          code: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          payment_approved?: boolean
+          payment_approved_at?: string | null
+          payment_approved_by?: string | null
+          payment_method: string
+          payment_status?: string
+          personal_message?: string | null
+          recipient_email?: string | null
+          recipient_name: string
+          recipient_phone?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          balance?: number
+          buyer_email?: string | null
+          buyer_name?: string
+          buyer_phone?: string | null
+          code?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          payment_approved?: boolean
+          payment_approved_at?: string | null
+          payment_approved_by?: string | null
+          payment_method?: string
+          payment_status?: string
+          personal_message?: string | null
+          recipient_email?: string | null
+          recipient_name?: string
+          recipient_phone?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       invoice_audit_log: {
         Row: {
           changed_by: string | null
@@ -1150,6 +1219,45 @@ export type Database = {
           },
         ]
       }
+      voucher_redemptions: {
+        Row: {
+          amount_used: number
+          created_at: string
+          id: string
+          order_id: string
+          voucher_id: string
+        }
+        Insert: {
+          amount_used: number
+          created_at?: string
+          id?: string
+          order_id: string
+          voucher_id: string
+        }
+        Update: {
+          amount_used?: number
+          created_at?: string
+          id?: string
+          order_id?: string
+          voucher_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voucher_redemptions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voucher_redemptions_voucher_id_fkey"
+            columns: ["voucher_id"]
+            isOneToOne: false
+            referencedRelation: "gift_vouchers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       website_content: {
         Row: {
           content_key: string
@@ -1206,6 +1314,7 @@ export type Database = {
     }
     Functions: {
       approve_order_payment: { Args: { order_id: string }; Returns: undefined }
+      generate_voucher_code: { Args: never; Returns: string }
       get_public_business_settings: {
         Args: never
         Returns: {
@@ -1248,6 +1357,16 @@ export type Database = {
       reject_order_payment: {
         Args: { order_id: string; rejection_note?: string }
         Returns: undefined
+      }
+      validate_voucher: {
+        Args: { voucher_code: string }
+        Returns: {
+          balance: number
+          code: string
+          expires_at: string
+          id: string
+          status: string
+        }[]
       }
     }
     Enums: {
