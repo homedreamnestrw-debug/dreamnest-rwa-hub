@@ -6,8 +6,11 @@ import { getCategoryImage } from "@/lib/categoryImages";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowRight, Star, Truck, Shield, Leaf } from "lucide-react";
 import heroBedroom from "@/assets/hero-bedroom.jpg";
+import { useWebsiteContent } from "@/hooks/useWebsiteContent";
 
 export default function Home() {
+  const { content: c } = useWebsiteContent();
+
   const { data: featuredProducts } = useQuery({
     queryKey: ["featured-products"],
     queryFn: async () => {
@@ -47,13 +50,16 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/70 to-transparent" />
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-2xl space-y-6 animate-fade-in">
-            <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground font-medium">Premium Bedding & Home Decor</p>
+            <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground font-medium">
+              {c.hero_subtitle ?? "Premium Bedding & Home Decor"}
+            </p>
             <h1 className="text-4xl lg:text-6xl font-serif text-foreground leading-tight">
-              Comfort Meets <br />
-              <span className="text-soft-gold italic">Elegance</span>
+              {(c.hero_title ?? "Comfort Meets Elegance").split("\n").map((line, i) => (
+                <span key={i}>{i > 0 && <br />}{line}</span>
+              ))}
             </h1>
             <p className="text-lg text-muted-foreground max-w-lg leading-relaxed">
-              Discover handcrafted bedding and decor pieces that transform your home into a sanctuary of warmth and style.
+              {c.hero_description ?? "Discover handcrafted bedding and decor pieces that transform your home into a sanctuary of warmth and style."}
             </p>
             <div className="flex gap-4 pt-2">
               <Link to="/shop">
@@ -75,18 +81,18 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
             <div className="flex flex-col items-center gap-3">
               <Truck className="h-8 w-8 text-soft-gold" />
-              <h3 className="font-serif text-lg">Free Delivery in Kigali</h3>
-              <p className="text-sm text-muted-foreground">On orders above 50,000 RWF</p>
+              <h3 className="font-serif text-lg">{c.feature_1_title ?? "Free Delivery in Kigali"}</h3>
+              <p className="text-sm text-muted-foreground">{c.feature_1_desc ?? "On orders above 50,000 RWF"}</p>
             </div>
             <div className="flex flex-col items-center gap-3">
               <Shield className="h-8 w-8 text-soft-gold" />
-              <h3 className="font-serif text-lg">Quality Guaranteed</h3>
-              <p className="text-sm text-muted-foreground">30-day return policy</p>
+              <h3 className="font-serif text-lg">{c.feature_2_title ?? "Quality Guaranteed"}</h3>
+              <p className="text-sm text-muted-foreground">{c.feature_2_desc ?? "30-day return policy"}</p>
             </div>
             <div className="flex flex-col items-center gap-3">
               <Leaf className="h-8 w-8 text-soft-gold" />
-              <h3 className="font-serif text-lg">Sustainably Made</h3>
-              <p className="text-sm text-muted-foreground">Eco-friendly materials</p>
+              <h3 className="font-serif text-lg">{c.feature_3_title ?? "Sustainably Made"}</h3>
+              <p className="text-sm text-muted-foreground">{c.feature_3_desc ?? "Eco-friendly materials"}</p>
             </div>
           </div>
         </div>
@@ -163,8 +169,8 @@ export default function Home() {
       {/* Newsletter */}
       <section className="py-20">
         <div className="container mx-auto px-4 text-center max-w-xl">
-          <h2 className="text-3xl font-serif mb-4">Stay in the Loop</h2>
-          <p className="text-muted-foreground mb-8">Subscribe for exclusive offers, new arrivals, and home styling tips.</p>
+          <h2 className="text-3xl font-serif mb-4">{c.newsletter_title ?? "Stay in the Loop"}</h2>
+          <p className="text-muted-foreground mb-8">{c.newsletter_desc ?? "Subscribe for exclusive offers, new arrivals, and home styling tips."}</p>
           <form
             onSubmit={async (e) => {
               e.preventDefault();

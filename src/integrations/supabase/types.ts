@@ -1150,6 +1150,27 @@ export type Database = {
           },
         ]
       }
+      website_content: {
+        Row: {
+          content_key: string
+          content_value: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          content_key: string
+          content_value?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          content_key?: string
+          content_value?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       wishlist_items: {
         Row: {
           created_at: string
@@ -1208,6 +1229,13 @@ export type Database = {
           updated_at: string
           vat_percentage: number
           whatsapp_number: string
+        }[]
+      }
+      get_public_website_content: {
+        Args: never
+        Returns: {
+          content_key: string
+          content_value: string
         }[]
       }
       has_role: {
