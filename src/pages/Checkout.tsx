@@ -78,6 +78,7 @@ export default function Checkout() {
   const taxAmount = Math.round(subtotal * vatRate);
   const voucherDiscount = voucherData ? Math.min(voucherData.balance, subtotal + taxAmount) : 0;
   const total = subtotal + taxAmount - voucherDiscount;
+  const isFullyPaidByVoucher = voucherDiscount > 0 && total <= 0;
 
   const applyVoucher = async () => {
     if (!voucherCode.trim()) return;
