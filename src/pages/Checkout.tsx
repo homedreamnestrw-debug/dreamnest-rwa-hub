@@ -13,7 +13,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Loader2, CreditCard, Smartphone, Banknote } from "lucide-react";
+import { Loader2, CreditCard, Smartphone, Banknote, Gift, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import type { Database } from "@/integrations/supabase/types";
 
 type PaymentMethod = Database["public"]["Enums"]["payment_method"];
@@ -23,6 +24,9 @@ export default function Checkout() {
   const navigate = useNavigate();
   const { cartItems, isLoading, clearCart } = useCart();
   const [submitting, setSubmitting] = useState(false);
+  const [voucherCode, setVoucherCode] = useState("");
+  const [voucherData, setVoucherData] = useState<{ id: string; code: string; balance: number; expires_at: string } | null>(null);
+  const [voucherLoading, setVoucherLoading] = useState(false);
 
   const [form, setForm] = useState({
     full_name: "",
@@ -72,7 +76,32 @@ export default function Checkout() {
 
   const subtotal = cartItems.reduce((sum, item) => sum + (item.product?.price ?? 0) * item.quantity, 0);
   const taxAmount = Math.round(subtotal * vatRate);
-  const total = subtotal + taxAmount;
+  const voucherDiscount = voucherData ? Math.min(voucherData.balance, subtotal + taxAmount) : 0;
+  const total = subtotal + taxAmount - voucherDiscount;
+
+  const applyVoucher = async () => {
+    if (!voucherCode.trim()) return;
+    setVoucherLoading(true);
+    try {
+      const { data, error } = await supabase.rpc("validate_voucher", { voucher_code: voucherCode.trim() });
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        toast.error("Invalid, expired, or already redeemed voucher code");
+        return;
+      }
+      setVoucherData(data[0] as any);
+      toast.success(`Voucher applied! Balance: ${formatPrice(data[0].balance)}`);
+    } catch {
+      toast.error("Could not validate voucher code");
+    } finally {
+      setVoucherLoading(false);
+    }
+  };
+
+  const removeVoucher = () => {
+    setVoucherData(null);
+    setVoucherCode("");
+  };
 
   const formatPrice = (price: number) =>
     new Intl.NumberFormat("en-RW", { style: "currency", currency: "RWF", minimumFractionDigits: 0 }).format(price);
