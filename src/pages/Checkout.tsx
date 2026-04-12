@@ -376,9 +376,42 @@ export default function Checkout() {
                     </div>
                   ))}
                   <Separator />
+                  {/* Voucher Code */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium flex items-center gap-1">
+                      <Gift className="h-3.5 w-3.5" /> Gift Voucher
+                    </Label>
+                    {voucherData ? (
+                      <div className="flex items-center justify-between p-2 rounded-md bg-primary/5 border border-primary/20">
+                        <div className="text-sm">
+                          <span className="font-mono font-bold">{voucherData.code}</span>
+                          <Badge variant="secondary" className="ml-2 text-xs">-{formatPrice(voucherDiscount)}</Badge>
+                        </div>
+                        <Button type="button" variant="ghost" size="sm" onClick={removeVoucher}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Enter voucher code"
+                          value={voucherCode}
+                          onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                          className="font-mono text-sm"
+                        />
+                        <Button type="button" variant="outline" size="sm" onClick={applyVoucher} disabled={voucherLoading}>
+                          {voucherLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply"}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                  <Separator />
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{formatPrice(subtotal)}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">VAT ({Math.round(vatRate * 100)}%)</span><span>{formatPrice(taxAmount)}</span></div>
+                    {voucherDiscount > 0 && (
+                      <div className="flex justify-between text-green-600"><span>Voucher Discount</span><span>-{formatPrice(voucherDiscount)}</span></div>
+                    )}
                     <Separator />
                     <div className="flex justify-between font-medium text-base"><span>Total</span><span className="font-serif">{formatPrice(total)}</span></div>
                   </div>
