@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { Save, Building2, CreditCard, Mail, Heart, FileText, Upload, Loader2 } from "lucide-react";
+import { Save, Building2, CreditCard, Mail, Heart, FileText, Upload, Loader2, Globe } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -18,6 +18,10 @@ export default function Settings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
+
+  // Website content state
+  const [websiteContent, setWebsiteContent] = useState<Record<string, string>>({});
+  const [savingContent, setSavingContent] = useState(false);
 
   const [form, setForm] = useState({
     business_name: "",
@@ -70,7 +74,21 @@ export default function Settings() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchSettings(); }, []);
+  const fetchWebsiteContent = async () => {
+    const { data } = await supabase.from("website_content").select("content_key, content_value");
+    if (data) {
+      const map: Record<string, string> = {};
+      for (const row of data) {
+        map[row.content_key] = row.content_value;
+      }
+      setWebsiteContent(map);
+    }
+  };
+
+  useEffect(() => {
+    fetchSettings();
+    fetchWebsiteContent();
+  }, []);
 
   const handleSave = async () => {
     if (!settings) return;
@@ -103,11 +121,38 @@ export default function Settings() {
     fetchSettings();
   };
 
+  const handleSaveContent = async () => {
+    setSavingContent(true);
+    const promises = Object.entries(websiteContent).map(([key, value]) =>
+      supabase.from("website_content").update({ content_value: value }).eq("content_key", key)
+    );
+    const results = await Promise.all(promises);
+    const failed = results.find((r) => r.error);
+    setSavingContent(false);
+    if (failed?.error) {
+      toast({ title: "Error", description: failed.error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Website content saved" });
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center py-16 text-muted-foreground">Loading settings...</div>;
   }
 
   const f = (key: keyof typeof form, value: string | number) => setForm({ ...form, [key]: value });
+  const wc = (key: string, value: string) => setWebsiteContent((prev) => ({ ...prev, [key]: value }));
+
+  const contentField = (key: string, label: string, multiline = false) => (
+    <div key={key}>
+      <Label>{label}</Label>
+      {multiline ? (
+        <Textarea value={websiteContent[key] || ""} onChange={(e) => wc(key, e.target.value)} className="h-20" />
+      ) : (
+        <Input value={websiteContent[key] || ""} onChange={(e) => wc(key, e.target.value)} />
+      )}
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -119,12 +164,13 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="business">
-        <TabsList>
+        <TabsList className="flex-wrap">
           <TabsTrigger value="business"><Building2 className="h-4 w-4 mr-1" /> Business</TabsTrigger>
           <TabsTrigger value="finance"><CreditCard className="h-4 w-4 mr-1" /> Finance</TabsTrigger>
           <TabsTrigger value="loyalty"><Heart className="h-4 w-4 mr-1" /> Loyalty</TabsTrigger>
           <TabsTrigger value="email"><Mail className="h-4 w-4 mr-1" /> Email</TabsTrigger>
-          <TabsTrigger value="receipt"><FileText className="h-4 w-4 mr-1" /> Receipt / Invoice</TabsTrigger>
+          <TabsTrigger value="receipt"><FileText className="h-4 w-4 mr-1" /> Receipt</TabsTrigger>
+          <TabsTrigger value="website"><Globe className="h-4 w-4 mr-1" /> Website</TabsTrigger>
         </TabsList>
 
         <TabsContent value="business" className="space-y-4 mt-4">
@@ -269,6 +315,81 @@ export default function Settings() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="website" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Hero Section</CardTitle>
+              <CardDescription>The main banner on the homepage.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {contentField("hero_subtitle", "Subtitle")}
+              {contentField("hero_title", "Title")}
+              {contentField("hero_description", "Description", true)}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Features</CardTitle>
+              <CardDescription>Three feature highlights below the hero.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {contentField("feature_1_title", "Feature 1 Title")}
+                {contentField("feature_1_desc", "Feature 1 Description")}
+              </div>
+              <Separator />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {contentField("feature_2_title", "Feature 2 Title")}
+                {contentField("feature_2_desc", "Feature 2 Description")}
+              </div>
+              <Separator />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {contentField("feature_3_title", "Feature 3 Title")}
+                {contentField("feature_3_desc", "Feature 3 Description")}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Newsletter</CardTitle>
+              <CardDescription>Newsletter signup section on the homepage.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {contentField("newsletter_title", "Title")}
+              {contentField("newsletter_desc", "Description", true)}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>About Page</CardTitle>
+              <CardDescription>Main heading and story text on the About page.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {contentField("about_title", "Title")}
+              {contentField("about_description", "Description", true)}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Footer</CardTitle>
+              <CardDescription>Brand description in the footer.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {contentField("footer_description", "Footer Description", true)}
+            </CardContent>
+          </Card>
+
+          <div className="flex justify-end">
+            <Button onClick={handleSaveContent} disabled={savingContent}>
+              <Save className="h-4 w-4 mr-2" /> {savingContent ? "Saving..." : "Save Website Content"}
+            </Button>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

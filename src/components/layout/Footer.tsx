@@ -1,7 +1,10 @@
 import { Link } from "react-router-dom";
 import logo from "@/assets/logo.png";
+import { useWebsiteContent } from "@/hooks/useWebsiteContent";
 
 export function Footer() {
+  const { content: c } = useWebsiteContent();
+
   return (
     <footer className="bg-primary text-primary-foreground">
       <div className="container mx-auto px-4 py-16">
@@ -10,7 +13,7 @@ export function Footer() {
           <div className="md:col-span-1 space-y-4">
             <img src={logo} alt="DreamNest" className="h-14 w-auto brightness-0 invert" />
             <p className="text-primary-foreground/70 text-sm leading-relaxed">
-              Premium bedding & home decor, crafted with care in Kigali, Rwanda.
+              {c.footer_description ?? "Premium bedding & home decor, crafted with care in Kigali, Rwanda."}
             </p>
           </div>
 
