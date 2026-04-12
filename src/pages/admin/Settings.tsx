@@ -398,6 +398,8 @@ export default function Settings() {
               {contentField("contact_email", "Email")}
             </CardContent>
           </Card>
+
+          <div className="flex justify-end">
             <Button onClick={handleSaveContent} disabled={savingContent}>
               <Save className="h-4 w-4 mr-2" /> {savingContent ? "Saving..." : "Save Website Content"}
             </Button>
