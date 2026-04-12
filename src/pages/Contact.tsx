@@ -81,7 +81,7 @@ export default function Contact() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone</Label>
-                <Input id="phone" name="phone" />
+                <Input id="phone" name="phone" type="tel" placeholder="+250 7XX XXX XXX" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="subject">Subject</Label>

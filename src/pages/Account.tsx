@@ -203,7 +203,7 @@ function ProfileTab({ userId, email, onSignOut }: { userId: string; email: strin
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+              <Input id="phone" type="tel" placeholder="+250 7XX XXX XXX" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
             </div>
             <Separator />
             <div className="space-y-2">
