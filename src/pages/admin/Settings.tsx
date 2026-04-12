@@ -385,6 +385,20 @@ export default function Settings() {
             </CardContent>
           </Card>
 
+          <Card>
+            <CardHeader>
+              <CardTitle>Contact Info</CardTitle>
+              <CardDescription>Address, phone, and email shown on the Contact page and footer.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {contentField("contact_title", "Page Title")}
+              {contentField("contact_description", "Page Description", true)}
+              {contentField("contact_address", "Address")}
+              {contentField("contact_phone", "Phone")}
+              {contentField("contact_email", "Email")}
+            </CardContent>
+          </Card>
+
           <div className="flex justify-end">
             <Button onClick={handleSaveContent} disabled={savingContent}>
               <Save className="h-4 w-4 mr-2" /> {savingContent ? "Saving..." : "Save Website Content"}
