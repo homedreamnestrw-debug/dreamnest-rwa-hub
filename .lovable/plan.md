@@ -1,29 +1,28 @@
 
 
-## Plan: Enable Guest Cart & Guest Checkout
+## Plan: Contact Form — Admin View + Email Notification
 
-### Current State
-- The `useCart` hook already supports guest cart via localStorage (add, update, remove, clear).
-- The `Checkout` page already supports guest orders (guest_name, guest_email, guest_phone fields in orders table).
-- **Problem**: `ProductDetail.tsx` does NOT use the `useCart` hook. It directly calls `supabase.from("cart_items").insert(...)` and blocks unauthenticated users with "Please sign in to add items to your cart".
-- The Cart page and Checkout page are already public routes (no `ProtectedRoute` wrapper).
+### What exists now
+- Contact form saves submissions to `contact_submissions` table in Supabase
+- No admin page to view/manage these messages
+- No email notification when a new message arrives
 
-### Changes Required
+### What we'll build
 
-**1. Update `src/pages/ProductDetail.tsx` — Use `useCart` hook instead of direct Supabase calls**
-- Import and use `useCart().addItem` instead of manually inserting into `cart_items`.
-- Remove the `if (!user)` guard on `addToCart` so guests can add items.
-- Pass the full product object to `addItem()` so the guest cart has product details in localStorage.
-- Keep the wishlist sign-in requirement (wishlist needs a user account).
+**1. Admin Messages Page (`src/pages/admin/Messages.tsx`)**
+- Table showing all contact submissions (name, email, subject, date, read/unread badge)
+- Click to expand and read the full message
+- Mark as read/unread toggle
+- Search/filter capability
+- Add route in `App.tsx` and link in `AdminSidebar`
 
-**2. No database changes needed**
-- The `orders` table already has `guest_name`, `guest_email`, `guest_phone` columns with nullable `customer_id`.
-- The guest cart uses localStorage, no DB interaction.
-- The Checkout page already handles guest order submission.
+**2. Email Notification on New Submission**
+- After saving to the database, call the existing `notify-customer` Edge Function to send an email to `sales@dreamnestrw.com` with the submission details (sender name, email, subject, message)
+- This uses the same Zoho SMTP setup already configured
+- Also send a confirmation reply to the customer ("Thanks for reaching out, we'll get back to you soon")
 
-**3. No routing changes needed**
-- `/cart` and `/checkout` are already public routes without `ProtectedRoute`.
-
-### Summary
-This is a single-file change in `ProductDetail.tsx` to wire up the existing `useCart` hook, removing the login requirement for adding to cart. Everything else (guest cart storage, guest checkout, guest order creation) is already implemented.
+### Technical details
+- Reuse the existing `notify-customer` Edge Function for both the admin notification and customer confirmation emails
+- Admin sidebar gets a "Messages" link with unread count badge
+- Contact form `handleSubmit` gets two additional `supabase.functions.invoke("notify-customer", ...)` calls after the insert
 
