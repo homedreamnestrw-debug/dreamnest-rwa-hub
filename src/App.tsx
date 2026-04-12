@@ -38,6 +38,7 @@ import Settings from "./pages/admin/Settings";
 import POS from "./pages/admin/POS";
 import Staff from "./pages/admin/Staff";
 import Finance from "./pages/admin/Finance";
+import Messages from "./pages/admin/Messages";
 
 const queryClient = new QueryClient();
 
@@ -92,6 +93,7 @@ const App = () => (
               <Route path="pos" element={<POS />} />
               <Route path="staff" element={<Staff />} />
               <Route path="finance" element={<Finance />} />
+              <Route path="messages" element={<Messages />} />
             </Route>
 
             {/* Catch-all */}

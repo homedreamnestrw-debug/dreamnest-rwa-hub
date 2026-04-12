@@ -16,17 +16,44 @@ export default function Contact() {
     setLoading(true);
     const form = e.currentTarget;
     const formData = new FormData(form);
+    const name = formData.get("name") as string;
+    const email = formData.get("email") as string;
+    const phone = (formData.get("phone") as string) || null;
+    const subject = (formData.get("subject") as string) || null;
+    const message = formData.get("message") as string;
+
     const { error } = await supabase.from("contact_submissions").insert({
-      name: formData.get("name") as string,
-      email: formData.get("email") as string,
-      phone: (formData.get("phone") as string) || null,
-      subject: (formData.get("subject") as string) || null,
-      message: formData.get("message") as string,
+      name, email, phone, subject, message,
     });
-    if (error) toast.error("Failed to send message. Please try again.");
-    else {
+
+    if (error) {
+      toast.error("Failed to send message. Please try again.");
+    } else {
       toast.success("Message sent! We'll get back to you soon.");
       form.reset();
+
+      // Notify admin
+      supabase.functions.invoke("notify-customer", {
+        body: {
+          to: "sales@dreamnestrw.com",
+          subject: `New Contact: ${subject || "No Subject"} — from ${name}`,
+          html: `<p><strong>From:</strong> ${name} (${email}${phone ? `, ${phone}` : ""})</p>
+                 <p><strong>Subject:</strong> ${subject || "N/A"}</p>
+                 <hr/>
+                 <p>${message.replace(/\n/g, "<br/>")}</p>`,
+        },
+      });
+
+      // Confirmation to customer
+      supabase.functions.invoke("notify-customer", {
+        body: {
+          to: email,
+          subject: "We received your message — DreamNest",
+          html: `<p>Hi ${name},</p>
+                 <p>Thank you for reaching out to DreamNest! We've received your message and will get back to you as soon as possible.</p>
+                 <p>Best regards,<br/>The DreamNest Team</p>`,
+        },
+      });
     }
     setLoading(false);
   };
