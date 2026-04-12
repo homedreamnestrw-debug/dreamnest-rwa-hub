@@ -169,7 +169,24 @@ export default function Checkout() {
       const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
       if (itemsError) throw itemsError;
 
-      // Update profile if logged in
+      // Record voucher redemption if used
+      if (voucherData && voucherDiscount > 0) {
+        await supabase.from("voucher_redemptions").insert({
+          voucher_id: voucherData.id,
+          order_id: order.id,
+          amount_used: voucherDiscount,
+        });
+        // Update voucher balance
+        const newBalance = voucherData.balance - voucherDiscount;
+        await supabase
+          .from("gift_vouchers")
+          .update({
+            balance: newBalance,
+            status: newBalance <= 0 ? "redeemed" : "active",
+          })
+          .eq("id", voucherData.id);
+      }
+
       if (user) {
         await supabase
           .from("profiles")
