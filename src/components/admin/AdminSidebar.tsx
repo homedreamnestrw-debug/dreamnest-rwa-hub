@@ -48,6 +48,7 @@ const inventoryItems = [
 ];
 
 const financeItems = [
+  { title: "Payment Approvals", url: "/admin/finance", icon: DollarSign },
   { title: "Invoices", url: "/admin/invoices", icon: FileText },
   { title: "Expenses", url: "/admin/expenses", icon: DollarSign },
   { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
