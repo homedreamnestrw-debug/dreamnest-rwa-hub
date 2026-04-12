@@ -78,6 +78,7 @@ export default function Checkout() {
   const taxAmount = Math.round(subtotal * vatRate);
   const voucherDiscount = voucherData ? Math.min(voucherData.balance, subtotal + taxAmount) : 0;
   const total = subtotal + taxAmount - voucherDiscount;
+  const isFullyPaidByVoucher = voucherDiscount > 0 && total <= 0;
 
   const applyVoucher = async () => {
     if (!voucherCode.trim()) return;
@@ -124,18 +125,20 @@ export default function Checkout() {
 
     setSubmitting(true);
     try {
+      const effectivePaymentMethod = isFullyPaidByVoucher ? "voucher" : form.payment_method;
       const orderPayload: any = {
         channel: "online" as const,
         status: "pending" as const,
-        payment_status: "unpaid" as const,
-        payment_method: form.payment_method,
+        payment_status: isFullyPaidByVoucher ? ("paid" as const) : ("unpaid" as const),
+        payment_method: effectivePaymentMethod,
         subtotal,
         tax_amount: taxAmount,
         discount_amount: voucherDiscount,
-        total,
+        total: Math.max(0, total),
         shipping_address: form.shipping_address,
         shipping_city: form.shipping_city,
         notes: form.notes || null,
+        payment_approved: isFullyPaidByVoucher ? true : false,
       };
 
       if (user) {
@@ -335,31 +338,48 @@ export default function Checkout() {
               </Card>
 
               {/* Payment */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="font-serif text-xl">Payment Method</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <RadioGroup
-                    value={form.payment_method}
-                    onValueChange={(val) => setForm({ ...form, payment_method: val as PaymentMethod })}
-                    className="space-y-3"
-                  >
-                    {paymentMethods.map((pm) => (
-                      <label
-                        key={pm.value}
-                        className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${
-                          form.payment_method === pm.value ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-                        }`}
-                      >
-                        <RadioGroupItem value={pm.value} />
-                        {pm.icon}
-                        <span className="font-medium">{pm.label}</span>
-                      </label>
-                    ))}
-                  </RadioGroup>
-                </CardContent>
-              </Card>
+              {isFullyPaidByVoucher ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="font-serif text-xl">Payment Method</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center gap-3 p-4 rounded-lg border border-primary bg-primary/5">
+                      <Gift className="h-5 w-5 text-primary" />
+                      <div>
+                        <span className="font-medium">Paid by Gift Voucher</span>
+                        <p className="text-sm text-muted-foreground">Your voucher covers the full order amount</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="font-serif text-xl">Payment Method</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <RadioGroup
+                      value={form.payment_method}
+                      onValueChange={(val) => setForm({ ...form, payment_method: val as PaymentMethod })}
+                      className="space-y-3"
+                    >
+                      {paymentMethods.map((pm) => (
+                        <label
+                          key={pm.value}
+                          className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${
+                            form.payment_method === pm.value ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                          }`}
+                        >
+                          <RadioGroupItem value={pm.value} />
+                          {pm.icon}
+                          <span className="font-medium">{pm.label}</span>
+                        </label>
+                      ))}
+                    </RadioGroup>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Summary */}

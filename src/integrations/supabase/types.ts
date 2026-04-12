@@ -1387,7 +1387,13 @@ export type Database = {
         | "shipped"
         | "delivered"
         | "cancelled"
-      payment_method: "cash" | "card" | "mtn_momo" | "airtel_money" | "stripe"
+      payment_method:
+        | "cash"
+        | "card"
+        | "mtn_momo"
+        | "airtel_money"
+        | "stripe"
+        | "voucher"
       payment_status: "unpaid" | "partial" | "paid" | "refunded"
       po_status: "draft" | "sent" | "received" | "cancelled"
       sale_channel: "online" | "in_store"
@@ -1543,7 +1549,14 @@ export const Constants = {
         "delivered",
         "cancelled",
       ],
-      payment_method: ["cash", "card", "mtn_momo", "airtel_money", "stripe"],
+      payment_method: [
+        "cash",
+        "card",
+        "mtn_momo",
+        "airtel_money",
+        "stripe",
+        "voucher",
+      ],
       payment_status: ["unpaid", "partial", "paid", "refunded"],
       po_status: ["draft", "sent", "received", "cancelled"],
       sale_channel: ["online", "in_store"],
