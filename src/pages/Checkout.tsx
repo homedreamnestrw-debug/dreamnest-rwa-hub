@@ -131,7 +131,7 @@ export default function Checkout() {
         payment_method: form.payment_method,
         subtotal,
         tax_amount: taxAmount,
-        discount_amount: 0,
+        discount_amount: voucherDiscount,
         total,
         shipping_address: form.shipping_address,
         shipping_city: form.shipping_city,
