@@ -200,6 +200,45 @@ export type Database = {
         }
         Relationships: []
       }
+      contacts: {
+        Row: {
+          city: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          notes: string | null
+          phone: string | null
+          shipping_address: string | null
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          shipping_address?: string | null
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          city?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          shipping_address?: string | null
+          source?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       credit_payments: {
         Row: {
           amount: number
