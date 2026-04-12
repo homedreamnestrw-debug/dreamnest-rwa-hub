@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,15 @@ import { Mail, Phone, MapPin } from "lucide-react";
 
 export default function Contact() {
   const [loading, setLoading] = useState(false);
+
+  const { data: biz } = useQuery({
+    queryKey: ["business-settings-public"],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("get_public_business_settings");
+      return data?.[0] ?? null;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -35,7 +45,7 @@ export default function Contact() {
       // Notify admin
       supabase.functions.invoke("notify-customer", {
         body: {
-          to: "sales@dreamnestrw.com",
+          to: biz?.email || "sales@dreamnestrw.com",
           subject: `New Contact: ${subject || "No Subject"} — from ${name}`,
           html: `<p><strong>From:</strong> ${name} (${email}${phone ? `, ${phone}` : ""})</p>
                  <p><strong>Subject:</strong> ${subject || "N/A"}</p>
@@ -102,21 +112,21 @@ export default function Contact() {
               <MapPin className="h-6 w-6 text-soft-gold flex-shrink-0 mt-1" />
               <div>
                 <h3 className="font-serif text-lg mb-1">Visit Us</h3>
-                <p className="text-muted-foreground text-sm">KG 123 Street<br />Kigali, Rwanda</p>
+                <p className="text-muted-foreground text-sm">{biz?.address || "KG 123 Street"}<br />{biz?.city || "Kigali"}, {biz?.country || "Rwanda"}</p>
               </div>
             </div>
             <div className="flex gap-4">
               <Phone className="h-6 w-6 text-soft-gold flex-shrink-0 mt-1" />
               <div>
                 <h3 className="font-serif text-lg mb-1">Call Us</h3>
-                <p className="text-muted-foreground text-sm">+250 788 000 000</p>
+                <p className="text-muted-foreground text-sm">{biz?.phone || "+250 788 000 000"}</p>
               </div>
             </div>
             <div className="flex gap-4">
               <Mail className="h-6 w-6 text-soft-gold flex-shrink-0 mt-1" />
               <div>
                 <h3 className="font-serif text-lg mb-1">Email Us</h3>
-                <p className="text-muted-foreground text-sm">sales@dreamnestrw.com</p>
+                <p className="text-muted-foreground text-sm">{biz?.email || "sales@dreamnestrw.com"}</p>
               </div>
             </div>
           </div>
