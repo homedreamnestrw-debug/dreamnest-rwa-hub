@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { MapPin, Phone, Mail, User, StickyNote, Package } from "lucide-react";
+import { MapPin, Phone, Mail, User, StickyNote, Package, MessageCircle } from "lucide-react";
 
 interface OrderDetailDialogProps {
   orderId: string | null;
