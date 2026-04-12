@@ -39,6 +39,9 @@ import POS from "./pages/admin/POS";
 import Staff from "./pages/admin/Staff";
 import Finance from "./pages/admin/Finance";
 import Messages from "./pages/admin/Messages";
+import GiftVouchers from "./pages/GiftVouchers";
+import GiftVoucherConfirmation from "./pages/GiftVoucherConfirmation";
+import AdminGiftVouchers from "./pages/admin/GiftVouchers";
 
 const queryClient = new QueryClient();
 
@@ -68,6 +71,8 @@ const App = () => (
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/order-confirmation/:orderNumber" element={<OrderConfirmation />} />
             <Route path="/account" element={<Account />} />
+            <Route path="/gift-vouchers" element={<GiftVouchers />} />
+            <Route path="/gift-vouchers/confirmation/:code" element={<GiftVoucherConfirmation />} />
 
             {/* Admin */}
             <Route
@@ -94,6 +99,7 @@ const App = () => (
               <Route path="staff" element={<Staff />} />
               <Route path="finance" element={<Finance />} />
               <Route path="messages" element={<Messages />} />
+              <Route path="gift-vouchers" element={<AdminGiftVouchers />} />
             </Route>
 
             {/* Catch-all */}

@@ -25,6 +25,7 @@ export function Header() {
             <Link to="/shop" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">Shop</Link>
             <Link to="/about" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">About</Link>
             <Link to="/contact" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">Contact</Link>
+            <Link to="/gift-vouchers" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">Gift Vouchers</Link>
           </nav>
 
           <div className="flex items-center gap-2">
@@ -74,6 +75,7 @@ export function Header() {
             <Link to="/shop" className="block py-2 text-sm font-medium" onClick={() => setMobileOpen(false)}>Shop</Link>
             <Link to="/about" className="block py-2 text-sm font-medium" onClick={() => setMobileOpen(false)}>About</Link>
             <Link to="/contact" className="block py-2 text-sm font-medium" onClick={() => setMobileOpen(false)}>Contact</Link>
+            <Link to="/gift-vouchers" className="block py-2 text-sm font-medium" onClick={() => setMobileOpen(false)}>Gift Vouchers</Link>
             {user ? (
               <>
                 <Link to="/account" className="block py-2 text-sm font-medium" onClick={() => setMobileOpen(false)}>My Account</Link>

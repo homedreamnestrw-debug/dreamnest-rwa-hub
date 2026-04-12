@@ -13,7 +13,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Loader2, CreditCard, Smartphone, Banknote } from "lucide-react";
+import { Loader2, CreditCard, Smartphone, Banknote, Gift, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import type { Database } from "@/integrations/supabase/types";
 
 type PaymentMethod = Database["public"]["Enums"]["payment_method"];
@@ -23,6 +24,9 @@ export default function Checkout() {
   const navigate = useNavigate();
   const { cartItems, isLoading, clearCart } = useCart();
   const [submitting, setSubmitting] = useState(false);
+  const [voucherCode, setVoucherCode] = useState("");
+  const [voucherData, setVoucherData] = useState<{ id: string; code: string; balance: number; expires_at: string } | null>(null);
+  const [voucherLoading, setVoucherLoading] = useState(false);
 
   const [form, setForm] = useState({
     full_name: "",
@@ -72,7 +76,32 @@ export default function Checkout() {
 
   const subtotal = cartItems.reduce((sum, item) => sum + (item.product?.price ?? 0) * item.quantity, 0);
   const taxAmount = Math.round(subtotal * vatRate);
-  const total = subtotal + taxAmount;
+  const voucherDiscount = voucherData ? Math.min(voucherData.balance, subtotal + taxAmount) : 0;
+  const total = subtotal + taxAmount - voucherDiscount;
+
+  const applyVoucher = async () => {
+    if (!voucherCode.trim()) return;
+    setVoucherLoading(true);
+    try {
+      const { data, error } = await supabase.rpc("validate_voucher", { voucher_code: voucherCode.trim() });
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        toast.error("Invalid, expired, or already redeemed voucher code");
+        return;
+      }
+      setVoucherData(data[0] as any);
+      toast.success(`Voucher applied! Balance: ${formatPrice(data[0].balance)}`);
+    } catch {
+      toast.error("Could not validate voucher code");
+    } finally {
+      setVoucherLoading(false);
+    }
+  };
+
+  const removeVoucher = () => {
+    setVoucherData(null);
+    setVoucherCode("");
+  };
 
   const formatPrice = (price: number) =>
     new Intl.NumberFormat("en-RW", { style: "currency", currency: "RWF", minimumFractionDigits: 0 }).format(price);
@@ -102,7 +131,7 @@ export default function Checkout() {
         payment_method: form.payment_method,
         subtotal,
         tax_amount: taxAmount,
-        discount_amount: 0,
+        discount_amount: voucherDiscount,
         total,
         shipping_address: form.shipping_address,
         shipping_city: form.shipping_city,
@@ -140,7 +169,24 @@ export default function Checkout() {
       const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
       if (itemsError) throw itemsError;
 
-      // Update profile if logged in
+      // Record voucher redemption if used
+      if (voucherData && voucherDiscount > 0) {
+        await supabase.from("voucher_redemptions").insert({
+          voucher_id: voucherData.id,
+          order_id: order.id,
+          amount_used: voucherDiscount,
+        });
+        // Update voucher balance
+        const newBalance = voucherData.balance - voucherDiscount;
+        await supabase
+          .from("gift_vouchers")
+          .update({
+            balance: newBalance,
+            status: newBalance <= 0 ? "redeemed" : "active",
+          })
+          .eq("id", voucherData.id);
+      }
+
       if (user) {
         await supabase
           .from("profiles")
@@ -330,9 +376,42 @@ export default function Checkout() {
                     </div>
                   ))}
                   <Separator />
+                  {/* Voucher Code */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium flex items-center gap-1">
+                      <Gift className="h-3.5 w-3.5" /> Gift Voucher
+                    </Label>
+                    {voucherData ? (
+                      <div className="flex items-center justify-between p-2 rounded-md bg-primary/5 border border-primary/20">
+                        <div className="text-sm">
+                          <span className="font-mono font-bold">{voucherData.code}</span>
+                          <Badge variant="secondary" className="ml-2 text-xs">-{formatPrice(voucherDiscount)}</Badge>
+                        </div>
+                        <Button type="button" variant="ghost" size="sm" onClick={removeVoucher}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Enter voucher code"
+                          value={voucherCode}
+                          onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                          className="font-mono text-sm"
+                        />
+                        <Button type="button" variant="outline" size="sm" onClick={applyVoucher} disabled={voucherLoading}>
+                          {voucherLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply"}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                  <Separator />
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{formatPrice(subtotal)}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">VAT ({Math.round(vatRate * 100)}%)</span><span>{formatPrice(taxAmount)}</span></div>
+                    {voucherDiscount > 0 && (
+                      <div className="flex justify-between text-green-600"><span>Voucher Discount</span><span>-{formatPrice(voucherDiscount)}</span></div>
+                    )}
                     <Separator />
                     <div className="flex justify-between font-medium text-base"><span>Total</span><span className="font-serif">{formatPrice(total)}</span></div>
                   </div>

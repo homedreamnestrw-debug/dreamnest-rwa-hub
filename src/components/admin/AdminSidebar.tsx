@@ -14,6 +14,7 @@ import {
   Monitor,
   ExternalLink,
   MessageSquare,
+  Gift,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -41,6 +42,7 @@ const mainItems = [
   { title: "Customers", url: "/admin/customers", icon: Users },
   { title: "Staff", url: "/admin/staff", icon: Users },
   { title: "Messages", url: "/admin/messages", icon: MessageSquare },
+  { title: "Gift Vouchers", url: "/admin/gift-vouchers", icon: Gift },
 ];
 
 const inventoryItems = [
