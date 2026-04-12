@@ -56,32 +56,17 @@ export default function AdminGiftVouchers() {
         .eq("id", id);
       if (error) throw error;
 
-      // Get voucher details for notification
+      // Send emails to recipient, buyer, and shop with PDF
       const voucher = vouchers.find((v) => v.id === id);
-      if (voucher?.recipient_email) {
-        supabase.functions.invoke("notify-customer", {
-          body: {
-            to: voucher.recipient_email,
-            subject: `🎁 You've Received a DreamNest Gift Voucher!`,
-            html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px">
-              <h2 style="color:#5c4033">🎁 You've Received a Gift!</h2>
-              <p>Dear ${voucher.recipient_name},</p>
-              <p><strong>${voucher.buyer_name}</strong> has sent you a DreamNest Gift Voucher worth <strong>${formatPrice(voucher.amount)}</strong>!</p>
-              ${voucher.personal_message ? `<p style="padding:12px;background:#f9f5f0;border-radius:8px;font-style:italic">"${voucher.personal_message}"</p>` : ""}
-              <div style="text-align:center;padding:20px;margin:20px 0;background:#f9f5f0;border-radius:12px">
-                <p style="margin:0;font-size:12px;color:#999">Your Voucher Code</p>
-                <p style="margin:8px 0;font-size:32px;font-weight:bold;letter-spacing:4px">${voucher.code}</p>
-              </div>
-              <p>Use this code at checkout on <a href="https://dreamnestrw.com">dreamnestrw.com</a></p>
-              <p style="color:#999;font-size:12px;margin-top:32px">Valid until ${format(new Date(voucher.expires_at), "MMMM d, yyyy")}. DreamNest — Premium Bedding & Home Decor</p>
-            </div>`,
-          },
+      if (voucher) {
+        await supabase.functions.invoke("send-voucher-emails", {
+          body: { voucher_code: voucher.code, type: "approved" },
         });
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-gift-vouchers"] });
-      toast.success("Voucher approved and activated");
+      toast.success("Voucher approved and activated — emails sent");
     },
     onError: (err: any) => toast.error(err.message),
   });

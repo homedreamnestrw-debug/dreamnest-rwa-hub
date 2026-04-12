@@ -82,20 +82,9 @@ export default function GiftVouchers() {
 
       if (error) throw error;
 
-      // Notify admin
-      supabase.functions.invoke("notify-customer", {
-        body: {
-          to: "sales@dreamnestrw.com",
-          subject: `New Gift Voucher Purchase — ${formatPrice(amount)}`,
-          html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px">
-            <h2 style="color:#5c4033">🎁 New Gift Voucher Purchase</h2>
-            <p><strong>Amount:</strong> ${formatPrice(amount)}</p>
-            <p><strong>Buyer:</strong> ${form.buyer_name} (${form.buyer_phone})</p>
-            <p><strong>Recipient:</strong> ${form.recipient_name}</p>
-            <p><strong>Payment:</strong> ${form.payment_method.replace("_", " ")}</p>
-            <p style="color:#999;font-size:12px;margin-top:24px">This voucher requires payment approval before activation.</p>
-          </div>`,
-        },
+      // Send emails to shop + buyer with PDF
+      supabase.functions.invoke("send-voucher-emails", {
+        body: { voucher_code: data.code, type: "purchased" },
       });
 
       navigate(`/gift-vouchers/confirmation/${data.code}`);
