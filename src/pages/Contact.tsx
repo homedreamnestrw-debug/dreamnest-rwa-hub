@@ -109,7 +109,7 @@ export default function Contact() {
             <div className="flex gap-4">
               <MapPin className="h-6 w-6 text-soft-gold flex-shrink-0 mt-1" />
               <div>
-                <h3 className="font-serif text-lg mb-1">Visit Us</h3>
+                <h3 className="font-serif text-lg mb-1">{c.contact_label_visit ?? "Visit Us"}</h3>
                 <p className="text-muted-foreground text-sm">
                   {c.contact_address ?? "KG 123 Street, Kigali, Rwanda"}
                 </p>
@@ -118,7 +118,7 @@ export default function Contact() {
             <div className="flex gap-4">
               <Phone className="h-6 w-6 text-soft-gold flex-shrink-0 mt-1" />
               <div>
-                <h3 className="font-serif text-lg mb-1">Call Us</h3>
+                <h3 className="font-serif text-lg mb-1">{c.contact_label_call ?? "Call Us"}</h3>
                 <p className="text-muted-foreground text-sm">
                   {c.contact_phone ?? "+250 788 000 000"}
                 </p>
@@ -127,7 +127,7 @@ export default function Contact() {
             <div className="flex gap-4">
               <Mail className="h-6 w-6 text-soft-gold flex-shrink-0 mt-1" />
               <div>
-                <h3 className="font-serif text-lg mb-1">Email Us</h3>
+                <h3 className="font-serif text-lg mb-1">{c.contact_label_email ?? "Email Us"}</h3>
                 <p className="text-muted-foreground text-sm">
                   {c.contact_email ?? "sales@dreamnestrw.com"}
                 </p>

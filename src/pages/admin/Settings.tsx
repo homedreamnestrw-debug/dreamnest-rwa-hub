@@ -393,8 +393,11 @@ export default function Settings() {
             <CardContent className="space-y-4">
               {contentField("contact_title", "Page Title")}
               {contentField("contact_description", "Page Description", true)}
+              {contentField("contact_label_visit", "Visit Us Label")}
               {contentField("contact_address", "Address")}
+              {contentField("contact_label_call", "Call Us Label")}
               {contentField("contact_phone", "Phone")}
+              {contentField("contact_label_email", "Email Us Label")}
               {contentField("contact_email", "Email")}
             </CardContent>
           </Card>
