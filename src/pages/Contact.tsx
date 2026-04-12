@@ -45,7 +45,7 @@ export default function Contact() {
       // Notify admin
       supabase.functions.invoke("notify-customer", {
         body: {
-          to: "sales@dreamnestrw.com",
+          to: biz?.email || "sales@dreamnestrw.com",
           subject: `New Contact: ${subject || "No Subject"} — from ${name}`,
           html: `<p><strong>From:</strong> ${name} (${email}${phone ? `, ${phone}` : ""})</p>
                  <p><strong>Subject:</strong> ${subject || "N/A"}</p>
