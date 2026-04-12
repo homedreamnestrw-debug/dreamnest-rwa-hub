@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { MapPin, Phone, Mail, User, StickyNote, Package } from "lucide-react";
+import { MapPin, Phone, Mail, User, StickyNote, Package, MessageCircle } from "lucide-react";
 
 interface OrderDetailDialogProps {
   orderId: string | null;
@@ -170,6 +171,22 @@ export function OrderDetailDialog({ orderId, open, onOpenChange }: OrderDetailDi
             <p className="text-xs text-muted-foreground">
               Created: {new Date(order.created_at).toLocaleString()}
             </p>
+
+            {/* WhatsApp Button */}
+            {order.guest_phone && (() => {
+              const phone = order.guest_phone.replace(/[^0-9+]/g, "").replace(/^\+/, "");
+              const itemsSummary = items.map((i) => `• ${i.product?.name || "Item"} ×${i.quantity}`).join("\n");
+              const msg = `Hello ${customerName},\n\nThank you for your order #${order.order_number} from DreamNest! 🛏️\n\n${itemsSummary}\n\nTotal: ${formatRWF(order.total)}\n\nWe'll update you once your order is confirmed. Feel free to reach out if you have any questions!`;
+              const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+              return (
+                <Button variant="outline" className="w-full gap-2" asChild>
+                  <a href={url} target="_blank" rel="noopener noreferrer">
+                    <MessageCircle className="h-4 w-4" />
+                    Send WhatsApp Confirmation
+                  </a>
+                </Button>
+              );
+            })()}
           </div>
         ) : null}
       </DialogContent>
