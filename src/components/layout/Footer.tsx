@@ -41,9 +41,9 @@ export function Footer() {
           <div className="space-y-4">
             <h4 className="font-serif text-lg">Get in Touch</h4>
             <div className="flex flex-col gap-2 text-sm text-primary-foreground/70">
-              <span>KG 123 Street, Kigali</span>
-              <span>+250 788 742 122</span>
-              <span>sales@dreamnestrw.com</span>
+              <span>{c.contact_address ?? "KG 123 Street, Kigali"}</span>
+              <span>{c.contact_phone ?? "+250 788 000 000"}</span>
+              <span>{c.contact_email ?? "sales@dreamnestrw.com"}</span>
             </div>
           </div>
         </div>
