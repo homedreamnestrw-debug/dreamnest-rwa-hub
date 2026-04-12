@@ -12,6 +12,15 @@ import { Mail, Phone, MapPin } from "lucide-react";
 export default function Contact() {
   const [loading, setLoading] = useState(false);
 
+  const { data: biz } = useQuery({
+    queryKey: ["business-settings-public"],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("get_public_business_settings");
+      return data?.[0] ?? null;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
