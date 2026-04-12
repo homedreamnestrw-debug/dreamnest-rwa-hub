@@ -125,18 +125,20 @@ export default function Checkout() {
 
     setSubmitting(true);
     try {
+      const effectivePaymentMethod = isFullyPaidByVoucher ? "voucher" : form.payment_method;
       const orderPayload: any = {
         channel: "online" as const,
         status: "pending" as const,
-        payment_status: "unpaid" as const,
-        payment_method: form.payment_method,
+        payment_status: isFullyPaidByVoucher ? ("paid" as const) : ("unpaid" as const),
+        payment_method: effectivePaymentMethod,
         subtotal,
         tax_amount: taxAmount,
         discount_amount: voucherDiscount,
-        total,
+        total: Math.max(0, total),
         shipping_address: form.shipping_address,
         shipping_city: form.shipping_city,
         notes: form.notes || null,
+        payment_approved: isFullyPaidByVoucher ? true : false,
       };
 
       if (user) {
