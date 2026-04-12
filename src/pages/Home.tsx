@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { useQuery } from "@tanstack/react-query";
+import { getCategoryImage } from "@/lib/categoryImages";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowRight, Star, Truck, Shield, Leaf } from "lucide-react";
 import heroBedroom from "@/assets/hero-bedroom.jpg";
@@ -106,8 +107,8 @@ export default function Home() {
                   to={`/shop?category=${cat.slug}`}
                   className="group relative aspect-[4/3] rounded-lg overflow-hidden bg-linen flex items-end p-6 hover:shadow-lg transition-shadow"
                 >
-                  {cat.image_url && (
-                    <img src={cat.image_url} alt={cat.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  {getCategoryImage(cat.slug, cat.image_url) && (
+                    <img src={getCategoryImage(cat.slug, cat.image_url)} alt={cat.name} loading="lazy" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   )}
                   <div className="relative z-10 bg-background/90 backdrop-blur-sm rounded-md px-4 py-2">
                     <h3 className="font-serif text-lg">{cat.name}</h3>
