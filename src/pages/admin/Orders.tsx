@@ -45,6 +45,9 @@ export default function Orders() {
     cancelled: "bg-red-100 text-red-800",
   };
 
+  // Count pending payment approvals for badge
+  const pendingApprovalCount = orders.filter(o => !o.payment_approved && o.channel === "online" && o.status !== "cancelled").length;
+
   const getCustomerDisplay = (o: any) => {
     if (o.guest_name) return o.guest_name;
     if (o.guest_phone) return o.guest_phone;
@@ -65,7 +68,15 @@ export default function Orders() {
 
   return (
     <div className="space-y-6">
-      <h1 className="font-serif text-2xl font-semibold">Orders</h1>
+      <div className="flex items-center gap-3">
+        <h1 className="font-serif text-2xl font-semibold">Orders</h1>
+        {pendingApprovalCount > 0 && (
+          <a href="/admin/finance" className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 hover:bg-amber-200 transition-colors">
+            <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+            {pendingApprovalCount} pending payment{pendingApprovalCount > 1 ? "s" : ""}
+          </a>
+        )}
+      </div>
 
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative max-w-sm flex-1">
@@ -118,9 +129,16 @@ export default function Orders() {
                 <TableCell>{formatRWF(o.total)}</TableCell>
                 <TableCell><Badge variant="outline" className="capitalize">{o.payment_status}</Badge></TableCell>
                 <TableCell>
-                  <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium capitalize ${statusColor[o.status] || ""}`}>
-                    {o.status}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium capitalize ${statusColor[o.status] || ""}`}>
+                      {o.status}
+                    </span>
+                    {!o.payment_approved && o.channel === "online" && o.status !== "cancelled" && (
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-800">
+                        Booked
+                      </span>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell className="text-muted-foreground text-sm">{new Date(o.created_at).toLocaleDateString()}</TableCell>
                 <TableCell onClick={(e) => e.stopPropagation()}>

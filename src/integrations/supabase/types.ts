@@ -584,6 +584,9 @@ export type Database = {
           location_id: string | null
           notes: string | null
           order_number: number
+          payment_approved: boolean
+          payment_approved_at: string | null
+          payment_approved_by: string | null
           payment_method: Database["public"]["Enums"]["payment_method"] | null
           payment_status: Database["public"]["Enums"]["payment_status"]
           served_by: string | null
@@ -607,6 +610,9 @@ export type Database = {
           location_id?: string | null
           notes?: string | null
           order_number?: number
+          payment_approved?: boolean
+          payment_approved_at?: string | null
+          payment_approved_by?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
           served_by?: string | null
@@ -630,6 +636,9 @@ export type Database = {
           location_id?: string | null
           notes?: string | null
           order_number?: number
+          payment_approved?: boolean
+          payment_approved_at?: string | null
+          payment_approved_by?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
           served_by?: string | null
@@ -1175,6 +1184,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_order_payment: { Args: { order_id: string }; Returns: undefined }
       get_public_business_settings: {
         Args: never
         Returns: {
@@ -1206,6 +1216,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      reject_order_payment: {
+        Args: { order_id: string; rejection_note?: string }
+        Returns: undefined
       }
     }
     Enums: {
