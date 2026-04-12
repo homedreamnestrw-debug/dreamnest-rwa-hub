@@ -269,8 +269,8 @@ export default function Checkout() {
                   </div>
                   {!user && (
                     <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input id="email" type="email" placeholder="your@email.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+                      <Label htmlFor="email">Email *</Label>
+                      <Input id="email" type="email" required placeholder="your@email.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
                     </div>
                   )}
                   <div className="space-y-2">
