@@ -13,6 +13,7 @@ import {
   LogOut,
   Monitor,
   ExternalLink,
+  MessageSquare,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -39,6 +40,7 @@ const mainItems = [
   { title: "Categories", url: "/admin/categories", icon: FolderTree },
   { title: "Customers", url: "/admin/customers", icon: Users },
   { title: "Staff", url: "/admin/staff", icon: Users },
+  { title: "Messages", url: "/admin/messages", icon: MessageSquare },
 ];
 
 const inventoryItems = [

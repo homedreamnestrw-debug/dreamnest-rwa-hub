@@ -92,6 +92,7 @@ const App = () => (
               <Route path="pos" element={<POS />} />
               <Route path="staff" element={<Staff />} />
               <Route path="finance" element={<Finance />} />
+              <Route path="messages" element={<Messages />} />
             </Route>
 
             {/* Catch-all */}
