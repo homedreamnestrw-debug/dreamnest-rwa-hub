@@ -37,13 +37,48 @@ export default function Finance() {
   const formatRWF = (n: number) =>
     new Intl.NumberFormat("en-RW", { style: "currency", currency: "RWF", minimumFractionDigits: 0 }).format(n);
 
+  const sendNotification = async (order: any, type: "approved" | "rejected", note?: string) => {
+    const email = order.guest_email;
+    if (!email) return;
+    const name = order.guest_name || "Customer";
+    const orderNum = order.order_number;
+    const subject = type === "approved"
+      ? `Payment Confirmed – Order #${orderNum}`
+      : `Payment Update – Order #${orderNum}`;
+    const html = type === "approved"
+      ? `<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:24px">
+           <h2 style="color:#5c4033">Payment Confirmed ✓</h2>
+           <p>Dear ${name},</p>
+           <p>Your payment for <strong>Order #${orderNum}</strong> has been verified and approved. Your order is now being processed.</p>
+           <p>Thank you for shopping with DreamNest!</p>
+           <p style="color:#999;font-size:12px;margin-top:32px">DreamNest – Premium Bedding & Home Decor</p>
+         </div>`
+      : `<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:24px">
+           <h2 style="color:#5c4033">Payment Could Not Be Verified</h2>
+           <p>Dear ${name},</p>
+           <p>Unfortunately, we were unable to verify the payment for <strong>Order #${orderNum}</strong> and the order has been cancelled.</p>
+           ${note ? `<p><strong>Reason:</strong> ${note}</p>` : ""}
+           <p>Please feel free to place a new order or contact us for assistance.</p>
+           <p style="color:#999;font-size:12px;margin-top:32px">DreamNest – Premium Bedding & Home Decor</p>
+         </div>`;
+    try {
+      await supabase.functions.invoke("notify-customer", {
+        body: { to: email, subject, html },
+      });
+    } catch (e) {
+      console.error("Notification failed:", e);
+    }
+  };
+
   const approvePayment = async (orderId: string) => {
     setProcessing(orderId);
+    const order = orders.find((o) => o.id === orderId);
     const { error } = await supabase.rpc("approve_order_payment", { order_id: orderId });
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Payment approved", description: "Order moved to processing and stock deducted." });
+      if (order) sendNotification(order, "approved");
     }
     setProcessing(null);
     fetchOrders();
@@ -52,6 +87,7 @@ export default function Finance() {
   const rejectPayment = async () => {
     if (!rejectDialog.orderId) return;
     setProcessing(rejectDialog.orderId);
+    const order = orders.find((o) => o.id === rejectDialog.orderId);
     const { error } = await supabase.rpc("reject_order_payment", {
       order_id: rejectDialog.orderId,
       rejection_note: rejectNote || null,
@@ -60,6 +96,7 @@ export default function Finance() {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Payment rejected", description: "Order has been cancelled." });
+      if (order) sendNotification(order, "rejected", rejectNote);
     }
     setProcessing(null);
     setRejectDialog({ open: false, orderId: null });
