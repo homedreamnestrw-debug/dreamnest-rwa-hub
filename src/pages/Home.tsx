@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { useQuery } from "@tanstack/react-query";
+import { getCategoryImage } from "@/lib/categoryImages";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowRight, Star, Truck, Shield, Leaf } from "lucide-react";
 import heroBedroom from "@/assets/hero-bedroom.jpg";
