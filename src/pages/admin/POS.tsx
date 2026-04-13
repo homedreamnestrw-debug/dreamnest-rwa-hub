@@ -293,6 +293,23 @@ export default function POS() {
         });
       }
 
+      // Record voucher redemption if used
+      if (voucherData && voucherDiscount > 0) {
+        await supabase.from("voucher_redemptions").insert({
+          voucher_id: voucherData.id,
+          order_id: order.id,
+          amount_used: voucherDiscount,
+        });
+        const newBalance = voucherData.balance - voucherDiscount;
+        await supabase
+          .from("gift_vouchers")
+          .update({
+            balance: newBalance,
+            status: newBalance <= 0 ? "redeemed" : "active",
+          })
+          .eq("id", voucherData.id);
+      }
+
       // Auto-create receipt in invoices
       const receiptPayload = {
         document_number: "TEMP",
@@ -302,8 +319,8 @@ export default function POS() {
         subtotal,
         tax_rate: Math.round(vatRate * 100),
         tax_amount: taxAmount,
-        discount: discountAmount,
-        total,
+        discount: discountAmount + voucherDiscount,
+        total: Math.max(0, total),
         status: (paymentStatus === "paid" ? "paid" : "sent") as any,
         paid_at: paymentStatus === "paid" ? new Date().toISOString() : null,
         notes: customerNote || null,
@@ -336,10 +353,10 @@ export default function POS() {
         order_number: order.order_number,
         items: [...cart],
         subtotal,
-        discount_amount: discountAmount,
+        discount_amount: discountAmount + voucherDiscount,
         tax: taxAmount,
-        total,
-        payment_method: paymentMethod,
+        total: Math.max(0, total),
+        payment_method: isFullyPaidByVoucher ? "voucher" as PaymentMethod : paymentMethod,
         payment_status: paymentStatus,
         created_at: new Date().toISOString(),
         customer_name: selectedCustomer?.full_name || customerName || null,
@@ -347,13 +364,15 @@ export default function POS() {
         amount_paid: paidAmount,
       });
 
-      toast.success(`Sale #${order.order_number} completed!${isCredit ? " (Credit)" : ""}`);
+      toast.success(`Sale #${order.order_number} completed!${isCredit ? " (Credit)" : ""}${voucherDiscount > 0 ? " (Voucher applied)" : ""}`);
       setCart([]);
       setCustomerNote("");
       setIsCredit(false);
       setAmountPaid("");
       setDiscountType("none");
       setDiscountValue("");
+      setVoucherCode("");
+      setVoucherData(null);
       clearCustomer();
     } catch (err: any) {
       toast.error(err.message || "Failed to process sale");
