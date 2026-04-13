@@ -243,7 +243,8 @@ export default function POS() {
 
     try {
       const paidAmount = isCredit && amountPaid ? Number(amountPaid) : 0;
-      const paymentStatus = isCredit ? (paidAmount >= total ? "paid" : paidAmount > 0 ? "partial" : "unpaid") : "paid";
+      const effectivePaymentMethod = isFullyPaidByVoucher ? "voucher" as PaymentMethod : (isCredit && paidAmount <= 0 ? null : paymentMethod);
+      const paymentStatus = isFullyPaidByVoucher ? "paid" : isCredit ? (paidAmount >= total ? "paid" : paidAmount > 0 ? "partial" : "unpaid") : "paid";
       const orderStatus = isCredit && paymentStatus !== "paid" ? "pending" : "delivered";
 
       const { data: order, error: orderErr } = await supabase
@@ -255,11 +256,11 @@ export default function POS() {
           channel: "in_store" as const,
           status: orderStatus as any,
           payment_status: paymentStatus as any,
-          payment_method: isCredit && paidAmount <= 0 ? null : paymentMethod,
+          payment_method: effectivePaymentMethod,
           subtotal,
           tax_amount: taxAmount,
-          discount_amount: discountAmount,
-          total,
+          discount_amount: discountAmount + voucherDiscount,
+          total: Math.max(0, total),
           notes: customerNote || null,
           location_id: selectedLocation || null,
           served_by: user?.id || null,
