@@ -661,76 +661,81 @@ export default function POS() {
                     </div>
 
                     <div className="space-y-4 pb-1">
-                      <div className="space-y-2">
+                      <div className="space-y-1.5">
                         <p className="text-xs font-medium text-muted-foreground">Customer</p>
                         <div className="relative">
                           <Input
                             ref={customerSearchRef}
-                            placeholder="Phone number *"
+                            placeholder="Search phone, name, or TIN..."
                             value={customerPhone}
                             onChange={(e) => searchCustomer(e.target.value)}
                             onFocus={() => customerSearchResults.length > 0 && setShowCustomerDropdown(true)}
                             onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
-                            className="h-9 text-sm"
+                            className="h-8 text-sm"
                           />
                           {showCustomerDropdown && (
-                            <div className="absolute top-full z-50 mt-1 w-full rounded-md border bg-popover shadow-lg">
+                            <div className="absolute top-full z-50 mt-1 w-full rounded-md border bg-popover shadow-lg max-h-48 overflow-y-auto">
                               {customerSearchResults.map((c: any) => (
                                 <button
-                                  key={c.id}
-                                  className="w-full px-3 py-2 text-left text-sm hover:bg-muted"
+                                  key={`${c.source}-${c.id}`}
+                                  className="w-full px-3 py-1.5 text-left text-sm hover:bg-muted flex items-center gap-2"
                                   onMouseDown={() => selectCustomer(c)}
                                 >
-                                  <span className="text-muted-foreground">{c.phone}</span>
-                                  {c.full_name && <span className="ml-2 font-medium">{c.full_name}</span>}
+                                  <Badge variant={c.source === "registered" ? "default" : "outline"} className="text-[10px] px-1 py-0 shrink-0">
+                                    {c.source === "registered" ? "Reg" : "Guest"}
+                                  </Badge>
+                                  <span className="truncate">{c.full_name || "—"}</span>
+                                  <span className="text-muted-foreground text-xs ml-auto shrink-0">{c.phone || c.email || ""}</span>
                                 </button>
                               ))}
                             </div>
                           )}
                           {selectedCustomer && (
-                            <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2" onClick={clearCustomer}><X className="h-3 w-3" /></Button>
+                            <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 h-5 w-5 -translate-y-1/2" onClick={clearCustomer}><X className="h-3 w-3" /></Button>
                           )}
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <Input placeholder="Name (optional)" value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="h-9 text-sm" disabled={!!selectedCustomer} />
-                          <Input placeholder="Address (optional)" value={customerAddress} onChange={(e) => setCustomerAddress(e.target.value)} className="h-9 text-sm" disabled={!!selectedCustomer} />
+                        <div className="grid grid-cols-2 gap-1.5">
+                          <Input placeholder="Name" value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="h-8 text-sm" disabled={!!selectedCustomer} />
+                          <Input placeholder="Email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} className="h-8 text-sm" disabled={!!selectedCustomer} />
+                          <Input placeholder="Address" value={customerAddress} onChange={(e) => setCustomerAddress(e.target.value)} className="h-8 text-sm" disabled={!!selectedCustomer} />
+                          <Input placeholder="TIN (optional)" value={customerTin} onChange={(e) => setCustomerTin(e.target.value)} className="h-8 text-sm" disabled={!!selectedCustomer} />
                         </div>
-                        {selectedCustomer && <p className="text-xs text-green-600">✓ Existing customer</p>}
-                        {!selectedCustomer && customerPhone.length >= 6 && <p className="text-xs text-muted-foreground">New customer — will be saved automatically</p>}
+                        {selectedCustomer && <p className="text-[11px] text-green-600">✓ {selectedCustomer.source === "registered" ? "Registered" : "Guest"} customer</p>}
+                        {!selectedCustomer && customerPhone.length >= 6 && <p className="text-[11px] text-muted-foreground">New — auto-saved on checkout</p>}
                       </div>
 
-                      <Textarea placeholder="Sale note (optional)..." className="h-16 text-sm" value={customerNote} onChange={(e) => setCustomerNote(e.target.value)} />
+                      <Input placeholder="Sale note (optional)" className="h-8 text-sm" value={customerNote} onChange={(e) => setCustomerNote(e.target.value)} />
 
-                      <div className="space-y-2 rounded-md border bg-muted/30 p-3">
+                      <div className="space-y-1.5 rounded-md border bg-muted/30 p-2">
                         <div className="flex items-center gap-2">
-                          <Percent className="h-4 w-4 text-muted-foreground" />
-                          <p className="text-sm font-medium">Discount</p>
+                          <Percent className="h-3.5 w-3.5 text-muted-foreground" />
+                          <p className="text-xs font-medium">Discount</p>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-1.5">
                           <Select value={discountType} onValueChange={(v) => { setDiscountType(v as any); setDiscountValue(""); }}>
-                            <SelectTrigger className="h-9 w-28 text-sm">
+                            <SelectTrigger className="h-8 w-24 text-xs">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="none">None</SelectItem>
                               <SelectItem value="percent">%</SelectItem>
-                              <SelectItem value="amount">Amount</SelectItem>
+                              <SelectItem value="amount">Amt</SelectItem>
                             </SelectContent>
                           </Select>
                           {discountType !== "none" && (
                             <Input
                               type="number"
-                              placeholder={discountType === "percent" ? "e.g. 10" : "e.g. 5000"}
+                              placeholder={discountType === "percent" ? "%" : "RWF"}
                               value={discountValue}
                               onChange={(e) => setDiscountValue(e.target.value)}
-                              className="h-9 flex-1 text-sm"
+                              className="h-8 flex-1 text-sm"
                               min={0}
                               max={discountType === "percent" ? 100 : subtotal}
                             />
                           )}
                         </div>
                         {discountAmount > 0 && (
-                          <p className="text-xs text-red-600">-{formatPrice(discountAmount)} discount applied</p>
+                          <p className="text-[11px] text-red-600">-{formatPrice(discountAmount)}</p>
                         )}
                       </div>
 
