@@ -194,7 +194,7 @@ export default function POS() {
   };
 
   const removeFromCart = (productId: string) => setCart((prev) => prev.filter((i) => i.product_id !== productId));
-  const clearCart = () => { setCart([]); setCustomerNote(""); setIsCredit(false); setAmountPaid(""); setDiscountType("none"); setDiscountValue(""); clearCustomer(); searchRef.current?.focus(); };
+  const clearCart = () => { setCart([]); setCustomerNote(""); setIsCredit(false); setAmountPaid(""); setDiscountType("none"); setDiscountValue(""); setVoucherCode(""); setVoucherData(null); clearCustomer(); searchRef.current?.focus(); };
 
   const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
   
