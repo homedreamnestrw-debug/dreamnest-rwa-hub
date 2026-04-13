@@ -61,7 +61,9 @@ export default function POS() {
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerAddress, setCustomerAddress] = useState("");
-  const [selectedCustomer, setSelectedCustomer] = useState<{ id: string; full_name: string | null; phone: string | null; user_id: string; shipping_address?: string | null } | null>(null);
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [customerTin, setCustomerTin] = useState("");
+  const [selectedCustomer, setSelectedCustomer] = useState<{ id: string; full_name: string | null; phone: string | null; user_id?: string; shipping_address?: string | null; email?: string | null; tin?: string | null; source?: string } | null>(null);
   const [customerSearchResults, setCustomerSearchResults] = useState<any[]>([]);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [customerResolved, setCustomerResolved] = useState(false);

@@ -211,6 +211,7 @@ export type Database = {
           phone: string | null
           shipping_address: string | null
           source: string
+          tin: string | null
           updated_at: string
         }
         Insert: {
@@ -223,6 +224,7 @@ export type Database = {
           phone?: string | null
           shipping_address?: string | null
           source?: string
+          tin?: string | null
           updated_at?: string
         }
         Update: {
@@ -235,6 +237,7 @@ export type Database = {
           phone?: string | null
           shipping_address?: string | null
           source?: string
+          tin?: string | null
           updated_at?: string
         }
         Relationships: []
