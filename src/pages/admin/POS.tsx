@@ -208,7 +208,31 @@ export default function POS() {
   
   const afterDiscount = subtotal - discountAmount;
   const taxAmount = Math.round(afterDiscount * vatRate);
-  const total = afterDiscount + taxAmount;
+  const preVoucherTotal = afterDiscount + taxAmount;
+  const voucherDiscount = voucherData ? Math.min(voucherData.balance, preVoucherTotal) : 0;
+  const total = preVoucherTotal - voucherDiscount;
+  const isFullyPaidByVoucher = voucherDiscount > 0 && total <= 0;
+
+  const applyVoucher = async () => {
+    if (!voucherCode.trim()) return;
+    setVoucherLoading(true);
+    try {
+      const { data, error } = await supabase.rpc("validate_voucher", { voucher_code: voucherCode.trim() });
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        toast.error("Invalid, expired, or already redeemed voucher");
+        return;
+      }
+      setVoucherData(data[0] as any);
+      toast.success(`Voucher applied! Balance: ${formatPrice(data[0].balance)}`);
+    } catch {
+      toast.error("Could not validate voucher");
+    } finally {
+      setVoucherLoading(false);
+    }
+  };
+
+  const removeVoucher = () => { setVoucherData(null); setVoucherCode(""); };
 
   const formatPrice = (price: number) =>
     new Intl.NumberFormat("en-RW", { style: "currency", currency: "RWF", minimumFractionDigits: 0 }).format(price);
