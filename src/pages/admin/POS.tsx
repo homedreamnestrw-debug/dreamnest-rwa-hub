@@ -761,7 +761,7 @@ export default function POS() {
                               placeholder="Enter voucher code"
                               value={voucherCode}
                               onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
-                              className="font-mono text-sm h-9"
+                              className="font-mono text-sm h-8"
                             />
                             <Button type="button" variant="outline" size="sm" onClick={applyVoucher} disabled={voucherLoading}>
                               {voucherLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply"}
