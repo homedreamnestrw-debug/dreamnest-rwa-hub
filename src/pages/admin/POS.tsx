@@ -113,22 +113,33 @@ export default function POS() {
     }
   }, [locations, selectedLocation]);
 
-  const searchCustomer = useCallback(async (phone: string) => {
-    setCustomerPhone(phone);
+  const searchCustomer = useCallback(async (query: string) => {
+    setCustomerPhone(query);
     setCustomerResolved(false);
     setSelectedCustomer(null);
-    if (phone.length < 3) {
+    if (query.length < 3) {
       setCustomerSearchResults([]);
       setShowCustomerDropdown(false);
       return;
     }
-    const { data } = await supabase
-      .from("profiles")
-      .select("id, user_id, full_name, phone, shipping_address")
-      .ilike("phone", `%${phone}%`)
-      .limit(5);
-    setCustomerSearchResults(data ?? []);
-    setShowCustomerDropdown((data ?? []).length > 0);
+    // Search both profiles (registered) and contacts (guest)
+    const [profilesRes, contactsRes] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("id, user_id, full_name, phone, shipping_address")
+        .or(`phone.ilike.%${query}%,full_name.ilike.%${query}%`)
+        .limit(5),
+      supabase
+        .from("contacts")
+        .select("id, full_name, phone, email, shipping_address, tin")
+        .or(`phone.ilike.%${query}%,full_name.ilike.%${query}%,tin.ilike.%${query}%`)
+        .limit(5),
+    ]);
+    const profiles = (profilesRes.data ?? []).map((p: any) => ({ ...p, source: "registered" }));
+    const contacts = (contactsRes.data ?? []).map((c: any) => ({ ...c, source: "guest" }));
+    const combined = [...profiles, ...contacts];
+    setCustomerSearchResults(combined);
+    setShowCustomerDropdown(combined.length > 0);
   }, []);
 
   const selectCustomer = (customer: any) => {
@@ -136,6 +147,8 @@ export default function POS() {
     setCustomerPhone(customer.phone || "");
     setCustomerName(customer.full_name || "");
     setCustomerAddress(customer.shipping_address || "");
+    setCustomerEmail(customer.email || "");
+    setCustomerTin(customer.tin || "");
     setShowCustomerDropdown(false);
     setCustomerResolved(true);
   };
@@ -145,6 +158,8 @@ export default function POS() {
     setCustomerPhone("");
     setCustomerName("");
     setCustomerAddress("");
+    setCustomerEmail("");
+    setCustomerTin("");
     setCustomerSearchResults([]);
     setCustomerResolved(false);
   };
