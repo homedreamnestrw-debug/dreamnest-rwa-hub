@@ -291,14 +291,14 @@ export default function POS() {
 
       // Auto-save new POS customer as contact
       if (!selectedCustomer && (customerPhone || customerEmail)) {
-        await supabase.from("contacts").upsert({
+        await supabase.from("contacts").insert({
           full_name: customerName || null,
           phone: customerPhone || null,
           email: customerEmail || null,
           shipping_address: customerAddress || null,
           tin: customerTin || null,
           source: "pos",
-        }, { onConflict: "phone" }).then(() => {});
+        });
       }
 
       if (orderErr) throw orderErr;
