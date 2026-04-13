@@ -268,8 +268,9 @@ export default function POS() {
         .from("orders")
         .insert({
           customer_id: selectedCustomer?.user_id || null,
-          guest_name: !selectedCustomer && customerName ? customerName : null,
-          guest_phone: !selectedCustomer && customerPhone ? customerPhone : null,
+          guest_name: !selectedCustomer?.user_id && customerName ? customerName : null,
+          guest_phone: !selectedCustomer?.user_id && customerPhone ? customerPhone : null,
+          guest_email: !selectedCustomer?.user_id && customerEmail ? customerEmail : null,
           channel: "in_store" as const,
           status: orderStatus as any,
           payment_status: paymentStatus as any,
@@ -285,6 +286,20 @@ export default function POS() {
         })
         .select("id, order_number")
         .single();
+
+      if (orderErr) throw orderErr;
+
+      // Auto-save new POS customer as contact
+      if (!selectedCustomer && (customerPhone || customerEmail)) {
+        await supabase.from("contacts").upsert({
+          full_name: customerName || null,
+          phone: customerPhone || null,
+          email: customerEmail || null,
+          shipping_address: customerAddress || null,
+          tin: customerTin || null,
+          source: "pos",
+        }, { onConflict: "phone" }).then(() => {});
+      }
 
       if (orderErr) throw orderErr;
 
