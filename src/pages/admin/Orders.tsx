@@ -127,7 +127,14 @@ export default function Orders() {
                   <Badge variant="secondary" className="capitalize text-xs">{o.channel}</Badge>
                 </TableCell>
                 <TableCell>{formatRWF(o.total)}</TableCell>
-                <TableCell><Badge variant="outline" className="capitalize">{o.payment_status}</Badge></TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-1">
+                    <Badge variant="outline" className="capitalize">{o.payment_status}</Badge>
+                    {o.payment_method === "voucher" && (
+                      <Badge variant="secondary" className="text-[10px] px-1 py-0 bg-violet-100 text-violet-800">Voucher</Badge>
+                    )}
+                  </div>
+                </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1.5">
                     <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium capitalize ${statusColor[o.status] || ""}`}>

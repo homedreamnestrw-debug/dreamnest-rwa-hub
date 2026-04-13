@@ -17,7 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import {
   Search, Plus, Minus, Trash2, CreditCard, Smartphone, Banknote,
-  Loader2, Receipt, X, Printer, MapPin, Clock, Percent,
+  Loader2, Receipt, X, Printer, MapPin, Clock, Percent, Gift,
 } from "lucide-react";
 import { format } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
