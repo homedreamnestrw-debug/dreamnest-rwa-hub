@@ -740,10 +740,10 @@ export default function POS() {
                       </div>
 
                       {/* Voucher Code */}
-                      <div className="space-y-2 rounded-md border bg-muted/30 p-3">
+                      <div className="space-y-1.5 rounded-md border bg-muted/30 p-2">
                         <div className="flex items-center gap-2">
-                          <Gift className="h-4 w-4 text-muted-foreground" />
-                          <p className="text-sm font-medium">Gift Voucher</p>
+                          <Gift className="h-3.5 w-3.5 text-muted-foreground" />
+                          <p className="text-xs font-medium">Gift Voucher</p>
                         </div>
                         {voucherData ? (
                           <div className="flex items-center justify-between p-2 rounded-md bg-primary/5 border border-primary/20">
