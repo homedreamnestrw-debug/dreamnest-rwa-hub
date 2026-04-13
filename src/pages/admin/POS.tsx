@@ -17,7 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import {
   Search, Plus, Minus, Trash2, CreditCard, Smartphone, Banknote,
-  Loader2, Receipt, X, Printer, MapPin, Clock, Percent,
+  Loader2, Receipt, X, Printer, MapPin, Clock, Percent, Gift,
 } from "lucide-react";
 import { format } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
@@ -69,6 +69,10 @@ export default function POS() {
   // Discount
   const [discountType, setDiscountType] = useState<"none" | "percent" | "amount">("none");
   const [discountValue, setDiscountValue] = useState<string>("");
+  // Voucher
+  const [voucherCode, setVoucherCode] = useState("");
+  const [voucherData, setVoucherData] = useState<{ id: string; code: string; balance: number; expires_at: string } | null>(null);
+  const [voucherLoading, setVoucherLoading] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const customerSearchRef = useRef<HTMLInputElement>(null);
 
@@ -190,7 +194,7 @@ export default function POS() {
   };
 
   const removeFromCart = (productId: string) => setCart((prev) => prev.filter((i) => i.product_id !== productId));
-  const clearCart = () => { setCart([]); setCustomerNote(""); setIsCredit(false); setAmountPaid(""); setDiscountType("none"); setDiscountValue(""); clearCustomer(); searchRef.current?.focus(); };
+  const clearCart = () => { setCart([]); setCustomerNote(""); setIsCredit(false); setAmountPaid(""); setDiscountType("none"); setDiscountValue(""); setVoucherCode(""); setVoucherData(null); clearCustomer(); searchRef.current?.focus(); };
 
   const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
   
@@ -204,7 +208,31 @@ export default function POS() {
   
   const afterDiscount = subtotal - discountAmount;
   const taxAmount = Math.round(afterDiscount * vatRate);
-  const total = afterDiscount + taxAmount;
+  const preVoucherTotal = afterDiscount + taxAmount;
+  const voucherDiscount = voucherData ? Math.min(voucherData.balance, preVoucherTotal) : 0;
+  const total = preVoucherTotal - voucherDiscount;
+  const isFullyPaidByVoucher = voucherDiscount > 0 && total <= 0;
+
+  const applyVoucher = async () => {
+    if (!voucherCode.trim()) return;
+    setVoucherLoading(true);
+    try {
+      const { data, error } = await supabase.rpc("validate_voucher", { voucher_code: voucherCode.trim() });
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        toast.error("Invalid, expired, or already redeemed voucher");
+        return;
+      }
+      setVoucherData(data[0] as any);
+      toast.success(`Voucher applied! Balance: ${formatPrice(data[0].balance)}`);
+    } catch {
+      toast.error("Could not validate voucher");
+    } finally {
+      setVoucherLoading(false);
+    }
+  };
+
+  const removeVoucher = () => { setVoucherData(null); setVoucherCode(""); };
 
   const formatPrice = (price: number) =>
     new Intl.NumberFormat("en-RW", { style: "currency", currency: "RWF", minimumFractionDigits: 0 }).format(price);
@@ -215,7 +243,8 @@ export default function POS() {
 
     try {
       const paidAmount = isCredit && amountPaid ? Number(amountPaid) : 0;
-      const paymentStatus = isCredit ? (paidAmount >= total ? "paid" : paidAmount > 0 ? "partial" : "unpaid") : "paid";
+      const effectivePaymentMethod = isFullyPaidByVoucher ? "voucher" as PaymentMethod : (isCredit && paidAmount <= 0 ? null : paymentMethod);
+      const paymentStatus = isFullyPaidByVoucher ? "paid" : isCredit ? (paidAmount >= total ? "paid" : paidAmount > 0 ? "partial" : "unpaid") : "paid";
       const orderStatus = isCredit && paymentStatus !== "paid" ? "pending" : "delivered";
 
       const { data: order, error: orderErr } = await supabase
@@ -227,11 +256,11 @@ export default function POS() {
           channel: "in_store" as const,
           status: orderStatus as any,
           payment_status: paymentStatus as any,
-          payment_method: isCredit && paidAmount <= 0 ? null : paymentMethod,
+          payment_method: effectivePaymentMethod,
           subtotal,
           tax_amount: taxAmount,
-          discount_amount: discountAmount,
-          total,
+          discount_amount: discountAmount + voucherDiscount,
+          total: Math.max(0, total),
           notes: customerNote || null,
           location_id: selectedLocation || null,
           served_by: user?.id || null,
@@ -264,6 +293,23 @@ export default function POS() {
         });
       }
 
+      // Record voucher redemption if used
+      if (voucherData && voucherDiscount > 0) {
+        await supabase.from("voucher_redemptions").insert({
+          voucher_id: voucherData.id,
+          order_id: order.id,
+          amount_used: voucherDiscount,
+        });
+        const newBalance = voucherData.balance - voucherDiscount;
+        await supabase
+          .from("gift_vouchers")
+          .update({
+            balance: newBalance,
+            status: newBalance <= 0 ? "redeemed" : "active",
+          })
+          .eq("id", voucherData.id);
+      }
+
       // Auto-create receipt in invoices
       const receiptPayload = {
         document_number: "TEMP",
@@ -273,8 +319,8 @@ export default function POS() {
         subtotal,
         tax_rate: Math.round(vatRate * 100),
         tax_amount: taxAmount,
-        discount: discountAmount,
-        total,
+        discount: discountAmount + voucherDiscount,
+        total: Math.max(0, total),
         status: (paymentStatus === "paid" ? "paid" : "sent") as any,
         paid_at: paymentStatus === "paid" ? new Date().toISOString() : null,
         notes: customerNote || null,
@@ -307,10 +353,10 @@ export default function POS() {
         order_number: order.order_number,
         items: [...cart],
         subtotal,
-        discount_amount: discountAmount,
+        discount_amount: discountAmount + voucherDiscount,
         tax: taxAmount,
-        total,
-        payment_method: paymentMethod,
+        total: Math.max(0, total),
+        payment_method: isFullyPaidByVoucher ? "voucher" as PaymentMethod : paymentMethod,
         payment_status: paymentStatus,
         created_at: new Date().toISOString(),
         customer_name: selectedCustomer?.full_name || customerName || null,
@@ -318,13 +364,15 @@ export default function POS() {
         amount_paid: paidAmount,
       });
 
-      toast.success(`Sale #${order.order_number} completed!${isCredit ? " (Credit)" : ""}`);
+      toast.success(`Sale #${order.order_number} completed!${isCredit ? " (Credit)" : ""}${voucherDiscount > 0 ? " (Voucher applied)" : ""}`);
       setCart([]);
       setCustomerNote("");
       setIsCredit(false);
       setAmountPaid("");
       setDiscountType("none");
       setDiscountValue("");
+      setVoucherCode("");
+      setVoucherData(null);
       clearCustomer();
     } catch (err: any) {
       toast.error(err.message || "Failed to process sale");
@@ -654,39 +702,84 @@ export default function POS() {
                         )}
                       </div>
 
-                      <div className="flex items-center justify-between rounded-md border bg-muted/30 p-3">
+                      {/* Voucher Code */}
+                      <div className="space-y-2 rounded-md border bg-muted/30 p-3">
                         <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-muted-foreground" />
-                          <div>
-                            <p className="text-sm font-medium">Sell on Credit</p>
-                            <p className="text-xs text-muted-foreground">Customer pays later</p>
-                          </div>
+                          <Gift className="h-4 w-4 text-muted-foreground" />
+                          <p className="text-sm font-medium">Gift Voucher</p>
                         </div>
-                        <Switch checked={isCredit} onCheckedChange={(v) => { setIsCredit(v); if (!v) setAmountPaid(""); }} />
+                        {voucherData ? (
+                          <div className="flex items-center justify-between p-2 rounded-md bg-primary/5 border border-primary/20">
+                            <div className="text-sm">
+                              <span className="font-mono font-bold">{voucherData.code}</span>
+                              <Badge variant="secondary" className="ml-2 text-xs">-{formatPrice(voucherDiscount)}</Badge>
+                            </div>
+                            <Button type="button" variant="ghost" size="sm" onClick={removeVoucher}>
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="Enter voucher code"
+                              value={voucherCode}
+                              onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                              className="font-mono text-sm h-9"
+                            />
+                            <Button type="button" variant="outline" size="sm" onClick={applyVoucher} disabled={voucherLoading}>
+                              {voucherLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply"}
+                            </Button>
+                          </div>
+                        )}
                       </div>
 
-                      {isCredit && (
-                        <div className="space-y-2 rounded-md border bg-muted/30 p-3">
-                          <p className="text-xs font-medium text-muted-foreground">Amount Paid Now (optional)</p>
-                          <Input type="number" placeholder="0" value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)} className="h-9 text-sm" min={0} max={total} />
-                          {amountPaid && Number(amountPaid) > 0 && (
-                            <p className="text-xs text-muted-foreground">Balance remaining: {formatPrice(total - Number(amountPaid))}</p>
+                      {!isFullyPaidByVoucher && (
+                        <>
+                          <div className="flex items-center justify-between rounded-md border bg-muted/30 p-3">
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4 text-muted-foreground" />
+                              <div>
+                                <p className="text-sm font-medium">Sell on Credit</p>
+                                <p className="text-xs text-muted-foreground">Customer pays later</p>
+                              </div>
+                            </div>
+                            <Switch checked={isCredit} onCheckedChange={(v) => { setIsCredit(v); if (!v) setAmountPaid(""); }} />
+                          </div>
+
+                          {isCredit && (
+                            <div className="space-y-2 rounded-md border bg-muted/30 p-3">
+                              <p className="text-xs font-medium text-muted-foreground">Amount Paid Now (optional)</p>
+                              <Input type="number" placeholder="0" value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)} className="h-9 text-sm" min={0} max={total} />
+                              {amountPaid && Number(amountPaid) > 0 && (
+                                <p className="text-xs text-muted-foreground">Balance remaining: {formatPrice(total - Number(amountPaid))}</p>
+                              )}
+                            </div>
                           )}
-                        </div>
+
+                          {(!isCredit || (isCredit && amountPaid && Number(amountPaid) > 0)) && (
+                            <div>
+                              <p className="mb-2 text-xs font-medium text-muted-foreground">Payment Method</p>
+                              <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PaymentMethod)} className="grid grid-cols-2 gap-2">
+                                {paymentMethods.map((pm) => (
+                                  <label key={pm.value} className={`flex items-center gap-2 rounded-md border p-2.5 text-sm transition-colors cursor-pointer ${paymentMethod === pm.value ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}>
+                                    <RadioGroupItem value={pm.value} className="sr-only" />
+                                    {pm.icon}
+                                    <span className="font-medium">{pm.label}</span>
+                                  </label>
+                                ))}
+                              </RadioGroup>
+                            </div>
+                          )}
+                        </>
                       )}
 
-                      {(!isCredit || (isCredit && amountPaid && Number(amountPaid) > 0)) && (
-                        <div>
-                          <p className="mb-2 text-xs font-medium text-muted-foreground">Payment Method</p>
-                          <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PaymentMethod)} className="grid grid-cols-2 gap-2">
-                            {paymentMethods.map((pm) => (
-                              <label key={pm.value} className={`flex items-center gap-2 rounded-md border p-2.5 text-sm transition-colors cursor-pointer ${paymentMethod === pm.value ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}>
-                                <RadioGroupItem value={pm.value} className="sr-only" />
-                                {pm.icon}
-                                <span className="font-medium">{pm.label}</span>
-                              </label>
-                            ))}
-                          </RadioGroup>
+                      {isFullyPaidByVoucher && (
+                        <div className="flex items-center gap-3 p-3 rounded-lg border border-primary bg-primary/5">
+                          <Gift className="h-5 w-5 text-primary" />
+                          <div>
+                            <span className="font-medium text-sm">Paid by Gift Voucher</span>
+                            <p className="text-xs text-muted-foreground">Voucher covers the full amount</p>
+                          </div>
                         </div>
                       )}
 
@@ -697,12 +790,15 @@ export default function POS() {
                           <div className="flex justify-between text-red-600"><span>Discount{discountType === "percent" ? ` (${discountValue}%)` : ""}</span><span>-{formatPrice(discountAmount)}</span></div>
                         )}
                         <div className="flex justify-between"><span className="text-muted-foreground">VAT ({Math.round(vatRate * 100)}%)</span><span>{formatPrice(taxAmount)}</span></div>
+                        {voucherDiscount > 0 && (
+                          <div className="flex justify-between text-green-600"><span>Voucher</span><span>-{formatPrice(voucherDiscount)}</span></div>
+                        )}
                         <Separator />
-                        <div className="flex justify-between pt-1 text-lg font-medium"><span>Total</span><span className="font-serif">{formatPrice(total)}</span></div>
+                        <div className="flex justify-between pt-1 text-lg font-medium"><span>Total</span><span className="font-serif">{formatPrice(Math.max(0, total))}</span></div>
                       </div>
 
                       <Button className="h-12 w-full text-base" onClick={handleCheckout} disabled={submitting} variant={isCredit ? "secondary" : "default"}>
-                        {submitting ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</>) : isCredit ? `Sell on Credit — ${formatPrice(total)}` : `Complete Sale — ${formatPrice(total)}`}
+                        {submitting ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</>) : isFullyPaidByVoucher ? `Pay with Voucher` : isCredit ? `Sell on Credit — ${formatPrice(total)}` : `Complete Sale — ${formatPrice(total)}`}
                       </Button>
                     </div>
                   </>
