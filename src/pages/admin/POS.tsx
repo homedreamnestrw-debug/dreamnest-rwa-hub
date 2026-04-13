@@ -69,6 +69,10 @@ export default function POS() {
   // Discount
   const [discountType, setDiscountType] = useState<"none" | "percent" | "amount">("none");
   const [discountValue, setDiscountValue] = useState<string>("");
+  // Voucher
+  const [voucherCode, setVoucherCode] = useState("");
+  const [voucherData, setVoucherData] = useState<{ id: string; code: string; balance: number; expires_at: string } | null>(null);
+  const [voucherLoading, setVoucherLoading] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const customerSearchRef = useRef<HTMLInputElement>(null);
 
