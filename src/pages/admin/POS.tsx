@@ -12,12 +12,12 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { toast } from "sonner";
 import {
   Search, Plus, Minus, Trash2, CreditCard, Smartphone, Banknote,
-  Loader2, Receipt, X, Printer, MapPin, Clock, Percent, Gift,
+  Loader2, Receipt, X, Printer, MapPin, Clock, Percent, Gift, Edit2,
 } from "lucide-react";
 import { format } from "date-fns";
 import type { Database } from "@/integrations/supabase/types";
@@ -27,7 +27,8 @@ type PaymentMethod = Database["public"]["Enums"]["payment_method"];
 interface CartItem {
   product_id: string;
   name: string;
-  price: number;
+  price: number; // original price
+  selling_price: number; // actual selling price (can be modified)
   quantity: number;
   stock: number;
 }
@@ -45,6 +46,7 @@ interface CompletedOrder {
   customer_name?: string | null;
   customer_phone?: string | null;
   amount_paid?: number;
+  served_by_name?: string | null;
 }
 
 export default function POS() {
@@ -68,6 +70,10 @@ export default function POS() {
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [customerResolved, setCustomerResolved] = useState(false);
   const [amountPaid, setAmountPaid] = useState<string>("");
+  const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
+  const [editPriceValue, setEditPriceValue] = useState<string>("");
+  // VAT toggle
+  const [includeVat, setIncludeVat] = useState(false);
   // Discount
   const [discountType, setDiscountType] = useState<"none" | "percent" | "amount">("none");
   const [discountValue, setDiscountValue] = useState<string>("");
@@ -107,6 +113,17 @@ export default function POS() {
     },
   });
 
+  // Get current user's profile name for receipt
+  const { data: sellerProfile } = useQuery({
+    queryKey: ["seller-profile", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data } = await supabase.from("profiles").select("full_name").eq("user_id", user.id).single();
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
   useEffect(() => {
     if (locations && locations.length > 0 && !selectedLocation) {
       setSelectedLocation(locations[0].id);
@@ -122,7 +139,6 @@ export default function POS() {
       setShowCustomerDropdown(false);
       return;
     }
-    // Search both profiles (registered) and contacts (guest)
     const [profilesRes, contactsRes] = await Promise.all([
       supabase
         .from("profiles")
@@ -169,6 +185,7 @@ export default function POS() {
   const receiptLogoUrl = (settings as any)?.receipt_logo_url || settings?.logo_url || "";
   const receiptHeader = (settings as any)?.receipt_header || "";
   const receiptFooter = (settings as any)?.receipt_footer || "";
+  const sellerName = sellerProfile?.full_name || user?.email || "Staff";
 
   const filtered = products?.filter(
     (p: any) =>
@@ -192,7 +209,7 @@ export default function POS() {
         toast.error("Out of stock");
         return prev;
       }
-      return [...prev, { product_id: product.id, name: product.name, price: product.price, quantity: 1, stock: product.stock_quantity }];
+      return [...prev, { product_id: product.id, name: product.name, price: product.price, selling_price: product.price, quantity: 1, stock: product.stock_quantity }];
     });
     setSearch("");
     searchRef.current?.focus();
@@ -210,11 +227,32 @@ export default function POS() {
     );
   };
 
-  const removeFromCart = (productId: string) => setCart((prev) => prev.filter((i) => i.product_id !== productId));
-  const clearCart = () => { setCart([]); setCustomerNote(""); setIsCredit(false); setAmountPaid(""); setDiscountType("none"); setDiscountValue(""); setVoucherCode(""); setVoucherData(null); clearCustomer(); searchRef.current?.focus(); };
+  const updateSellingPrice = (productId: string, newPrice: number) => {
+    setCart((prev) =>
+      prev.map((i) =>
+        i.product_id === productId ? { ...i, selling_price: Math.max(0, newPrice) } : i
+      )
+    );
+  };
 
-  const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
-  
+  const startEditPrice = (item: CartItem) => {
+    setEditingPriceId(item.product_id);
+    setEditPriceValue(String(item.selling_price));
+  };
+
+  const commitEditPrice = () => {
+    if (editingPriceId && editPriceValue) {
+      updateSellingPrice(editingPriceId, Number(editPriceValue));
+    }
+    setEditingPriceId(null);
+    setEditPriceValue("");
+  };
+
+  const removeFromCart = (productId: string) => setCart((prev) => prev.filter((i) => i.product_id !== productId));
+  const clearCart = () => { setCart([]); setCustomerNote(""); setIsCredit(false); setAmountPaid(""); setDiscountType("none"); setDiscountValue(""); setVoucherCode(""); setVoucherData(null); setIncludeVat(false); clearCustomer(); searchRef.current?.focus(); };
+
+  const subtotal = cart.reduce((s, i) => s + i.selling_price * i.quantity, 0);
+
   // Calculate discount
   let discountAmount = 0;
   if (discountType === "percent" && discountValue) {
@@ -222,13 +260,16 @@ export default function POS() {
   } else if (discountType === "amount" && discountValue) {
     discountAmount = Math.min(Number(discountValue), subtotal);
   }
-  
+
   const afterDiscount = subtotal - discountAmount;
-  const taxAmount = Math.round(afterDiscount * vatRate);
+  const taxAmount = includeVat ? Math.round(afterDiscount * vatRate) : 0;
   const preVoucherTotal = afterDiscount + taxAmount;
   const voucherDiscount = voucherData ? Math.min(voucherData.balance, preVoucherTotal) : 0;
   const total = preVoucherTotal - voucherDiscount;
   const isFullyPaidByVoucher = voucherDiscount > 0 && total <= 0;
+
+  // Credit sale eligibility: must be registered customer OR have full mandatory details
+  const creditEligible = !!selectedCustomer?.user_id || (!!customerName && !!customerPhone);
 
   const applyVoucher = async () => {
     if (!voucherCode.trim()) return;
@@ -256,6 +297,13 @@ export default function POS() {
 
   const handleCheckout = async () => {
     if (cart.length === 0) return;
+
+    // Credit sale validation
+    if (isCredit && !creditEligible) {
+      toast.error("Credit sale requires a registered customer or full customer details (name + phone).");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -289,7 +337,7 @@ export default function POS() {
 
       if (orderErr) throw orderErr;
 
-      // Auto-save new POS customer as contact
+      // Auto-save new POS customer as contact (with full details for credit, or any new customer)
       if (!selectedCustomer && (customerPhone || customerEmail)) {
         await supabase.from("contacts").insert({
           full_name: customerName || null,
@@ -301,15 +349,16 @@ export default function POS() {
         });
       }
 
-      if (orderErr) throw orderErr;
-
+      // Calculate per-item discount proportionally
+      const totalItemDiscounts = cart.reduce((sum, i) => sum + (i.price - i.selling_price) * i.quantity, 0);
+      
       const items = cart.map((i) => ({
         order_id: order.id,
         product_id: i.product_id,
         quantity: i.quantity,
-        unit_price: i.price,
-        discount: 0,
-        total: i.price * i.quantity,
+        unit_price: i.selling_price,
+        discount: (i.price - i.selling_price) * i.quantity,
+        total: i.selling_price * i.quantity,
       }));
 
       const { error: itemsErr } = await supabase.from("order_items").insert(items);
@@ -349,7 +398,7 @@ export default function POS() {
         order_id: order.id,
         customer_id: selectedCustomer?.user_id || null,
         subtotal,
-        tax_rate: Math.round(vatRate * 100),
+        tax_rate: includeVat ? Math.round(vatRate * 100) : 0,
         tax_amount: taxAmount,
         discount: discountAmount + voucherDiscount,
         total: Math.max(0, total),
@@ -359,7 +408,6 @@ export default function POS() {
       };
       await supabase.from("invoices").insert(receiptPayload);
 
-      // Auto-create invoice items for the receipt
       const { data: createdReceipt } = await supabase
         .from("invoices")
         .select("id")
@@ -374,9 +422,9 @@ export default function POS() {
           invoice_id: createdReceipt.id,
           description: i.name,
           quantity: i.quantity,
-          unit_price: i.price,
-          tax: Math.round(i.price * i.quantity * vatRate),
-          total: i.price * i.quantity,
+          unit_price: i.selling_price,
+          tax: includeVat ? Math.round(i.selling_price * i.quantity * vatRate) : 0,
+          total: i.selling_price * i.quantity,
         }));
         await supabase.from("invoice_items").insert(invoiceItems);
       }
@@ -394,6 +442,7 @@ export default function POS() {
         customer_name: selectedCustomer?.full_name || customerName || null,
         customer_phone: selectedCustomer?.phone || customerPhone || null,
         amount_paid: paidAmount,
+        served_by_name: sellerName,
       });
 
       toast.success(`Sale #${order.order_number} completed!${isCredit ? " (Credit)" : ""}${voucherDiscount > 0 ? " (Voucher applied)" : ""}`);
@@ -405,6 +454,7 @@ export default function POS() {
       setDiscountValue("");
       setVoucherCode("");
       setVoucherData(null);
+      setIncludeVat(false);
       clearCustomer();
     } catch (err: any) {
       toast.error(err.message || "Failed to process sale");
@@ -433,7 +483,6 @@ export default function POS() {
   // A4 Receipt component
   const A4Receipt = ({ order }: { order: CompletedOrder }) => (
     <div className="p-8 max-w-[210mm] mx-auto bg-white text-black text-sm" style={{ fontFamily: "Inter, sans-serif" }}>
-      {/* Header with logo */}
       <div className="flex items-start justify-between mb-6">
         <div className="flex items-center gap-4">
           {receiptLogoUrl && <img src={receiptLogoUrl} alt="Logo" className="h-16 object-contain" />}
@@ -452,12 +501,12 @@ export default function POS() {
 
       {receiptHeader && <p className="text-center text-xs text-gray-600 mb-4 border-b pb-2">{receiptHeader}</p>}
 
-      {/* Receipt info */}
       <div className="grid grid-cols-2 gap-4 mb-6 text-xs">
         <div>
           <p><span className="text-gray-500">Receipt #:</span> <strong>{order.order_number}</strong></p>
           <p><span className="text-gray-500">Date:</span> {format(new Date(order.created_at), "MMM d, yyyy h:mm a")}</p>
           <p><span className="text-gray-500">Payment:</span> {order.payment_status === "unpaid" ? "Credit" : order.payment_status === "partial" ? "Partial" : order.payment_method.replace("_", " ")}</p>
+          {order.served_by_name && <p><span className="text-gray-500">Served by:</span> {order.served_by_name}</p>}
         </div>
         <div>
           {order.customer_name && <p><span className="text-gray-500">Customer:</span> {order.customer_name}</p>}
@@ -465,7 +514,6 @@ export default function POS() {
         </div>
       </div>
 
-      {/* Items table */}
       <table className="w-full mb-6 text-xs">
         <thead>
           <tr className="border-b-2 border-gray-800">
@@ -480,23 +528,29 @@ export default function POS() {
           {order.items.map((item, idx) => (
             <tr key={item.product_id} className="border-b border-gray-200">
               <td className="py-2">{idx + 1}</td>
-              <td className="py-2">{item.name}</td>
+              <td className="py-2">
+                {item.name}
+                {item.selling_price < item.price && (
+                  <span className="text-gray-400 line-through ml-1 text-[10px]">{formatPrice(item.price)}</span>
+                )}
+              </td>
               <td className="py-2 text-center">{item.quantity}</td>
-              <td className="py-2 text-right">{formatPrice(item.price)}</td>
-              <td className="py-2 text-right">{formatPrice(item.price * item.quantity)}</td>
+              <td className="py-2 text-right">{formatPrice(item.selling_price)}</td>
+              <td className="py-2 text-right">{formatPrice(item.selling_price * item.quantity)}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      {/* Totals */}
       <div className="flex justify-end mb-6">
         <div className="w-64 text-xs space-y-1">
           <div className="flex justify-between"><span className="text-gray-500">Subtotal</span><span>{formatPrice(order.subtotal)}</span></div>
           {order.discount_amount > 0 && (
             <div className="flex justify-between text-red-600"><span>Discount</span><span>-{formatPrice(order.discount_amount)}</span></div>
           )}
-          <div className="flex justify-between"><span className="text-gray-500">VAT ({Math.round(vatRate * 100)}%)</span><span>{formatPrice(order.tax)}</span></div>
+          {order.tax > 0 && (
+            <div className="flex justify-between"><span className="text-gray-500">VAT ({Math.round(vatRate * 100)}%)</span><span>{formatPrice(order.tax)}</span></div>
+          )}
           <div className="flex justify-between border-t-2 border-gray-800 pt-2 text-base font-bold"><span>Total</span><span>{formatPrice(order.total)}</span></div>
           {order.amount_paid != null && order.amount_paid > 0 && (
             <div className="flex justify-between text-green-700 font-medium"><span>Amount Paid</span><span>{formatPrice(order.amount_paid)}</span></div>
@@ -526,12 +580,13 @@ export default function POS() {
       <p>{format(new Date(order.created_at), "MMM d, yyyy h:mm a")}</p>
       {order.customer_name && <p>Customer: {order.customer_name}</p>}
       {order.customer_phone && <p>Phone: {order.customer_phone}</p>}
+      {order.served_by_name && <p>Served by: {order.served_by_name}</p>}
       <p>Payment: {order.payment_status === "unpaid" ? "CREDIT" : order.payment_status === "partial" ? "PARTIAL" : order.payment_method.replace("_", " ")}</p>
       <hr className="my-2" />
       {order.items.map((item) => (
         <div key={item.product_id} className="flex justify-between">
           <span>{item.name} ×{item.quantity}</span>
-          <span>{formatPrice(item.price * item.quantity)}</span>
+          <span>{formatPrice(item.selling_price * item.quantity)}</span>
         </div>
       ))}
       <hr className="my-2" />
@@ -539,7 +594,9 @@ export default function POS() {
       {order.discount_amount > 0 && (
         <div className="flex justify-between text-red-600"><span>Discount</span><span>-{formatPrice(order.discount_amount)}</span></div>
       )}
-      <div className="flex justify-between"><span>VAT</span><span>{formatPrice(order.tax)}</span></div>
+      {order.tax > 0 && (
+        <div className="flex justify-between"><span>VAT</span><span>{formatPrice(order.tax)}</span></div>
+      )}
       <div className="flex justify-between font-bold"><span>Total</span><span>{formatPrice(order.total)}</span></div>
       {order.amount_paid != null && order.amount_paid > 0 && (
         <div className="flex justify-between mt-1"><span>PAID</span><span>{formatPrice(order.amount_paid)}</span></div>
@@ -553,297 +610,354 @@ export default function POS() {
 
   return (
     <>
-      <div className="flex min-h-0 flex-col gap-4 print:hidden lg:h-[calc(100dvh-8rem)] lg:flex-row">
-        {/* Left: Product search + grid */}
-        <div className="flex min-h-0 flex-1 flex-col min-w-0">
-          <div className="flex gap-3 mb-4">
-            {locations && locations.length > 0 && (
-              <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-                <SelectTrigger className="w-48 h-11">
-                  <MapPin className="h-4 w-4 mr-1 text-muted-foreground" />
-                  <SelectValue placeholder="Location" />
-                </SelectTrigger>
-                <SelectContent>
-                  {locations.map((loc: any) => (
-                    <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                ref={searchRef}
-                placeholder="Search products by name or SKU... (F2)"
-                className="pl-9 h-11"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                autoFocus
-              />
-            </div>
-          </div>
+      <div className="print:hidden lg:h-[calc(100dvh-8rem)]">
+        <ResizablePanelGroup direction="horizontal" className="min-h-0 h-full">
+          {/* Left: Product search + grid */}
+          <ResizablePanel defaultSize={60} minSize={35}>
+            <div className="flex min-h-0 flex-1 flex-col h-full p-1">
+              <div className="flex gap-3 mb-4">
+                {locations && locations.length > 0 && (
+                  <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+                    <SelectTrigger className="w-48 h-11">
+                      <MapPin className="h-4 w-4 mr-1 text-muted-foreground" />
+                      <SelectValue placeholder="Location" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {locations.map((loc: any) => (
+                        <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    ref={searchRef}
+                    placeholder="Search products by name or SKU... (F2)"
+                    className="pl-9 h-11"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    autoFocus
+                  />
+                </div>
+              </div>
 
-          <ScrollArea className="flex-1">
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
-              {filtered.map((product: any) => (
-                <button
-                  key={product.id}
-                  onClick={() => addToCart(product)}
-                  disabled={product.stock_quantity <= 0}
-                  className="text-left p-3 border rounded-lg hover:border-primary hover:bg-primary/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <div className="aspect-square rounded-md overflow-hidden bg-muted mb-2">
-                    {product.images?.[0] ? (
-                      <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">No image</div>
+              <ScrollArea className="flex-1">
+                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+                  {filtered.map((product: any) => (
+                    <button
+                      key={product.id}
+                      onClick={() => addToCart(product)}
+                      disabled={product.stock_quantity <= 0}
+                      className="text-left p-3 border rounded-lg hover:border-primary hover:bg-primary/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <div className="aspect-square rounded-md overflow-hidden bg-muted mb-2">
+                        {product.images?.[0] ? (
+                          <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">No image</div>
+                        )}
+                      </div>
+                      <p className="font-medium text-sm truncate">{product.name}</p>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="font-serif text-sm">{formatPrice(product.price)}</span>
+                        <Badge variant={product.stock_quantity <= 0 ? "destructive" : product.stock_quantity <= 5 ? "secondary" : "outline"} className="text-xs">
+                          {product.stock_quantity}
+                        </Badge>
+                      </div>
+                      {product.sku && <p className="text-xs text-muted-foreground mt-1">{product.sku}</p>}
+                    </button>
+                  ))}
+                  {filtered.length === 0 && (
+                    <div className="col-span-full text-center py-12 text-muted-foreground">
+                      {search ? "No products found" : "No products available"}
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            </div>
+          </ResizablePanel>
+
+          <ResizableHandle withHandle />
+
+          {/* Right: Cart + Checkout */}
+          <ResizablePanel defaultSize={40} minSize={28}>
+            <Card className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden border-0 rounded-none">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="font-serif text-lg">Current Sale</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">by {sellerName}</span>
+                    {cart.length > 0 && (
+                      <Button variant="ghost" size="sm" onClick={clearCart}>
+                        <X className="h-4 w-4 mr-1" /> Clear
+                      </Button>
                     )}
                   </div>
-                  <p className="font-medium text-sm truncate">{product.name}</p>
-                  <div className="flex items-center justify-between mt-1">
-                    <span className="font-serif text-sm">{formatPrice(product.price)}</span>
-                    <Badge variant={product.stock_quantity <= 0 ? "destructive" : product.stock_quantity <= 5 ? "secondary" : "outline"} className="text-xs">
-                      {product.stock_quantity}
-                    </Badge>
-                  </div>
-                  {product.sku && <p className="text-xs text-muted-foreground mt-1">{product.sku}</p>}
-                </button>
-              ))}
-              {filtered.length === 0 && (
-                <div className="col-span-full text-center py-12 text-muted-foreground">
-                  {search ? "No products found" : "No products available"}
                 </div>
-              )}
-            </div>
-          </ScrollArea>
-        </div>
+              </CardHeader>
 
-        {/* Right: Cart + Checkout */}
-        <Card className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden lg:w-[380px]">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="font-serif text-lg">Current Sale</CardTitle>
-              {cart.length > 0 && (
-                <Button variant="ghost" size="sm" onClick={clearCart}>
-                  <X className="h-4 w-4 mr-1" /> Clear
-                </Button>
-              )}
-            </div>
-          </CardHeader>
-
-          <CardContent className="min-h-0 flex-1 overflow-hidden px-4 pb-4 pt-0">
-            <ScrollArea className="h-full min-h-0">
-              <div className="space-y-4 pr-3">
-                {cart.length === 0 ? (
-                  <div className="py-12 text-center text-sm text-muted-foreground">
-                    <Receipt className="mx-auto mb-3 h-10 w-10 opacity-50" />
-                    <p>No items in sale</p>
-                    <p className="mt-1 text-xs">Search or click products to add</p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="space-y-2">
-                      {cart.map((item) => (
-                        <div key={item.product_id} className="flex min-w-0 items-center gap-2 rounded-md bg-muted/50 p-2">
-                          <div className="min-w-0 flex-1 overflow-hidden">
-                            <p className="truncate text-sm font-medium">{item.name}</p>
-                            <p className="text-xs text-muted-foreground">{formatPrice(item.price)} each</p>
-                          </div>
-                          <div className="flex shrink-0 items-center gap-1">
-                            <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQty(item.product_id, -1)}><Minus className="h-3 w-3" /></Button>
-                            <span className="w-6 text-center text-sm font-medium">{item.quantity}</span>
-                            <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQty(item.product_id, 1)}><Plus className="h-3 w-3" /></Button>
-                          </div>
-                          <span className="shrink-0 text-right text-sm font-medium">{formatPrice(item.price * item.quantity)}</span>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-destructive" onClick={() => removeFromCart(item.product_id)}><Trash2 className="h-3.5 w-3.5" /></Button>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="space-y-4 pb-1">
-                      <div className="space-y-1.5">
-                        <p className="text-xs font-medium text-muted-foreground">Customer</p>
-                        <div className="relative">
-                          <Input
-                            ref={customerSearchRef}
-                            placeholder="Search phone, name, or TIN..."
-                            value={customerPhone}
-                            onChange={(e) => searchCustomer(e.target.value)}
-                            onFocus={() => customerSearchResults.length > 0 && setShowCustomerDropdown(true)}
-                            onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
-                            className="h-8 text-sm"
-                          />
-                          {showCustomerDropdown && (
-                            <div className="absolute top-full z-50 mt-1 w-full rounded-md border bg-popover shadow-lg max-h-48 overflow-y-auto">
-                              {customerSearchResults.map((c: any) => (
-                                <button
-                                  key={`${c.source}-${c.id}`}
-                                  className="w-full px-3 py-1.5 text-left text-sm hover:bg-muted flex items-center gap-2"
-                                  onMouseDown={() => selectCustomer(c)}
-                                >
-                                  <Badge variant={c.source === "registered" ? "default" : "outline"} className="text-[10px] px-1 py-0 shrink-0">
-                                    {c.source === "registered" ? "Reg" : "Guest"}
-                                  </Badge>
-                                  <span className="truncate">{c.full_name || "—"}</span>
-                                  <span className="text-muted-foreground text-xs ml-auto shrink-0">{c.phone || c.email || ""}</span>
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                          {selectedCustomer && (
-                            <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 h-5 w-5 -translate-y-1/2" onClick={clearCustomer}><X className="h-3 w-3" /></Button>
-                          )}
-                        </div>
-                        <div className="grid grid-cols-2 gap-1.5">
-                          <Input placeholder="Name" value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="h-8 text-sm" disabled={!!selectedCustomer} />
-                          <Input placeholder="Email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} className="h-8 text-sm" disabled={!!selectedCustomer} />
-                          <Input placeholder="Address" value={customerAddress} onChange={(e) => setCustomerAddress(e.target.value)} className="h-8 text-sm" disabled={!!selectedCustomer} />
-                          <Input placeholder="TIN (optional)" value={customerTin} onChange={(e) => setCustomerTin(e.target.value)} className="h-8 text-sm" disabled={!!selectedCustomer} />
-                        </div>
-                        {selectedCustomer && <p className="text-[11px] text-green-600">✓ {selectedCustomer.source === "registered" ? "Registered" : "Guest"} customer</p>}
-                        {!selectedCustomer && customerPhone.length >= 6 && <p className="text-[11px] text-muted-foreground">New — auto-saved on checkout</p>}
+              <CardContent className="min-h-0 flex-1 overflow-hidden px-4 pb-4 pt-0">
+                <ScrollArea className="h-full min-h-0">
+                  <div className="space-y-4 pr-3">
+                    {cart.length === 0 ? (
+                      <div className="py-12 text-center text-sm text-muted-foreground">
+                        <Receipt className="mx-auto mb-3 h-10 w-10 opacity-50" />
+                        <p>No items in sale</p>
+                        <p className="mt-1 text-xs">Search or click products to add</p>
                       </div>
-
-                      <Input placeholder="Sale note (optional)" className="h-8 text-sm" value={customerNote} onChange={(e) => setCustomerNote(e.target.value)} />
-
-                      <div className="space-y-1.5 rounded-md border bg-muted/30 p-2">
-                        <div className="flex items-center gap-2">
-                          <Percent className="h-3.5 w-3.5 text-muted-foreground" />
-                          <p className="text-xs font-medium">Discount</p>
-                        </div>
-                        <div className="flex gap-1.5">
-                          <Select value={discountType} onValueChange={(v) => { setDiscountType(v as any); setDiscountValue(""); }}>
-                            <SelectTrigger className="h-8 w-24 text-xs">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">None</SelectItem>
-                              <SelectItem value="percent">%</SelectItem>
-                              <SelectItem value="amount">Amt</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          {discountType !== "none" && (
-                            <Input
-                              type="number"
-                              placeholder={discountType === "percent" ? "%" : "RWF"}
-                              value={discountValue}
-                              onChange={(e) => setDiscountValue(e.target.value)}
-                              className="h-8 flex-1 text-sm"
-                              min={0}
-                              max={discountType === "percent" ? 100 : subtotal}
-                            />
-                          )}
-                        </div>
-                        {discountAmount > 0 && (
-                          <p className="text-[11px] text-red-600">-{formatPrice(discountAmount)}</p>
-                        )}
-                      </div>
-
-                      {/* Voucher Code */}
-                      <div className="space-y-1.5 rounded-md border bg-muted/30 p-2">
-                        <div className="flex items-center gap-2">
-                          <Gift className="h-3.5 w-3.5 text-muted-foreground" />
-                          <p className="text-xs font-medium">Gift Voucher</p>
-                        </div>
-                        {voucherData ? (
-                          <div className="flex items-center justify-between p-2 rounded-md bg-primary/5 border border-primary/20">
-                            <div className="text-sm">
-                              <span className="font-mono font-bold">{voucherData.code}</span>
-                              <Badge variant="secondary" className="ml-2 text-xs">-{formatPrice(voucherDiscount)}</Badge>
-                            </div>
-                            <Button type="button" variant="ghost" size="sm" onClick={removeVoucher}>
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="flex gap-2">
-                            <Input
-                              placeholder="Enter voucher code"
-                              value={voucherCode}
-                              onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
-                              className="font-mono text-sm h-8"
-                            />
-                            <Button type="button" variant="outline" size="sm" onClick={applyVoucher} disabled={voucherLoading}>
-                              {voucherLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply"}
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-
-                      {!isFullyPaidByVoucher && (
-                        <>
-                          <div className="flex items-center justify-between rounded-md border bg-muted/30 p-3">
-                            <div className="flex items-center gap-2">
-                              <Clock className="h-4 w-4 text-muted-foreground" />
-                              <div>
-                                <p className="text-sm font-medium">Sell on Credit</p>
-                                <p className="text-xs text-muted-foreground">Customer pays later</p>
+                    ) : (
+                      <>
+                        <div className="space-y-2">
+                          {cart.map((item) => (
+                            <div key={item.product_id} className="rounded-md bg-muted/50 p-2 space-y-1">
+                              <div className="flex min-w-0 items-center gap-2">
+                                <div className="min-w-0 flex-1 overflow-hidden">
+                                  <p className="truncate text-sm font-medium">{item.name}</p>
+                                </div>
+                                <div className="flex shrink-0 items-center gap-1">
+                                  <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQty(item.product_id, -1)}><Minus className="h-3 w-3" /></Button>
+                                  <span className="w-6 text-center text-sm font-medium">{item.quantity}</span>
+                                  <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQty(item.product_id, 1)}><Plus className="h-3 w-3" /></Button>
+                                </div>
+                                <span className="shrink-0 text-right text-sm font-medium">{formatPrice(item.selling_price * item.quantity)}</span>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-destructive" onClick={() => removeFromCart(item.product_id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                              </div>
+                              {/* Price edit row */}
+                              <div className="flex items-center gap-2 text-xs">
+                                {editingPriceId === item.product_id ? (
+                                  <div className="flex items-center gap-1">
+                                    <Input
+                                      type="number"
+                                      value={editPriceValue}
+                                      onChange={(e) => setEditPriceValue(e.target.value)}
+                                      className="h-6 w-24 text-xs"
+                                      min={0}
+                                      autoFocus
+                                      onKeyDown={(e) => { if (e.key === "Enter") commitEditPrice(); if (e.key === "Escape") { setEditingPriceId(null); setEditPriceValue(""); } }}
+                                      onBlur={commitEditPrice}
+                                    />
+                                    <span className="text-muted-foreground">/ unit</span>
+                                  </div>
+                                ) : (
+                                  <button
+                                    className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
+                                    onClick={() => startEditPrice(item)}
+                                  >
+                                    <Edit2 className="h-3 w-3" />
+                                    <span>{formatPrice(item.selling_price)} / unit</span>
+                                    {item.selling_price < item.price && (
+                                      <span className="line-through text-[10px] ml-1">{formatPrice(item.price)}</span>
+                                    )}
+                                    {item.selling_price > item.price && (
+                                      <Badge variant="secondary" className="text-[9px] px-1 py-0 ml-1">+{formatPrice(item.selling_price - item.price)}</Badge>
+                                    )}
+                                  </button>
+                                )}
                               </div>
                             </div>
-                            <Switch checked={isCredit} onCheckedChange={(v) => { setIsCredit(v); if (!v) setAmountPaid(""); }} />
-                          </div>
+                          ))}
+                        </div>
 
-                          {isCredit && (
-                            <div className="space-y-2 rounded-md border bg-muted/30 p-3">
-                              <p className="text-xs font-medium text-muted-foreground">Amount Paid Now (optional)</p>
-                              <Input type="number" placeholder="0" value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)} className="h-9 text-sm" min={0} max={total} />
-                              {amountPaid && Number(amountPaid) > 0 && (
-                                <p className="text-xs text-muted-foreground">Balance remaining: {formatPrice(total - Number(amountPaid))}</p>
+                        <div className="space-y-4 pb-1">
+                          <div className="space-y-1.5">
+                            <p className="text-xs font-medium text-muted-foreground">Customer</p>
+                            <div className="relative">
+                              <Input
+                                ref={customerSearchRef}
+                                placeholder="Search phone, name, or TIN..."
+                                value={customerPhone}
+                                onChange={(e) => searchCustomer(e.target.value)}
+                                onFocus={() => customerSearchResults.length > 0 && setShowCustomerDropdown(true)}
+                                onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
+                                className="h-8 text-sm"
+                              />
+                              {showCustomerDropdown && (
+                                <div className="absolute top-full z-50 mt-1 w-full rounded-md border bg-popover shadow-lg max-h-48 overflow-y-auto">
+                                  {customerSearchResults.map((c: any) => (
+                                    <button
+                                      key={`${c.source}-${c.id}`}
+                                      className="w-full px-3 py-1.5 text-left text-sm hover:bg-muted flex items-center gap-2"
+                                      onMouseDown={() => selectCustomer(c)}
+                                    >
+                                      <Badge variant={c.source === "registered" ? "default" : "outline"} className="text-[10px] px-1 py-0 shrink-0">
+                                        {c.source === "registered" ? "Reg" : "Guest"}
+                                      </Badge>
+                                      <span className="truncate">{c.full_name || "—"}</span>
+                                      <span className="text-muted-foreground text-xs ml-auto shrink-0">{c.phone || c.email || ""}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                              {selectedCustomer && (
+                                <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 h-5 w-5 -translate-y-1/2" onClick={clearCustomer}><X className="h-3 w-3" /></Button>
                               )}
                             </div>
+                            <div className="grid grid-cols-2 gap-1.5">
+                              <Input placeholder="Name" value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="h-8 text-sm" disabled={!!selectedCustomer} />
+                              <Input placeholder="Email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} className="h-8 text-sm" disabled={!!selectedCustomer} />
+                              <Input placeholder="Address" value={customerAddress} onChange={(e) => setCustomerAddress(e.target.value)} className="h-8 text-sm" disabled={!!selectedCustomer} />
+                              <Input placeholder="TIN (optional)" value={customerTin} onChange={(e) => setCustomerTin(e.target.value)} className="h-8 text-sm" disabled={!!selectedCustomer} />
+                            </div>
+                            {selectedCustomer && <p className="text-[11px] text-green-600">✓ {selectedCustomer.source === "registered" ? "Registered" : "Guest"} customer</p>}
+                            {!selectedCustomer && customerPhone.length >= 6 && <p className="text-[11px] text-muted-foreground">New — auto-saved on checkout</p>}
+                          </div>
+
+                          <Input placeholder="Sale note (optional)" className="h-8 text-sm" value={customerNote} onChange={(e) => setCustomerNote(e.target.value)} />
+
+                          <div className="space-y-1.5 rounded-md border bg-muted/30 p-2">
+                            <div className="flex items-center gap-2">
+                              <Percent className="h-3.5 w-3.5 text-muted-foreground" />
+                              <p className="text-xs font-medium">Discount</p>
+                            </div>
+                            <div className="flex gap-1.5">
+                              <Select value={discountType} onValueChange={(v) => { setDiscountType(v as any); setDiscountValue(""); }}>
+                                <SelectTrigger className="h-8 w-24 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="none">None</SelectItem>
+                                  <SelectItem value="percent">%</SelectItem>
+                                  <SelectItem value="amount">Amt</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              {discountType !== "none" && (
+                                <Input
+                                  type="number"
+                                  placeholder={discountType === "percent" ? "%" : "RWF"}
+                                  value={discountValue}
+                                  onChange={(e) => setDiscountValue(e.target.value)}
+                                  className="h-8 flex-1 text-sm"
+                                  min={0}
+                                  max={discountType === "percent" ? 100 : subtotal}
+                                />
+                              )}
+                            </div>
+                            {discountAmount > 0 && (
+                              <p className="text-[11px] text-red-600">-{formatPrice(discountAmount)}</p>
+                            )}
+                          </div>
+
+                          {/* Voucher Code */}
+                          <div className="space-y-1.5 rounded-md border bg-muted/30 p-2">
+                            <div className="flex items-center gap-2">
+                              <Gift className="h-3.5 w-3.5 text-muted-foreground" />
+                              <p className="text-xs font-medium">Gift Voucher</p>
+                            </div>
+                            {voucherData ? (
+                              <div className="flex items-center justify-between p-2 rounded-md bg-primary/5 border border-primary/20">
+                                <div className="text-sm">
+                                  <span className="font-mono font-bold">{voucherData.code}</span>
+                                  <Badge variant="secondary" className="ml-2 text-xs">-{formatPrice(voucherDiscount)}</Badge>
+                                </div>
+                                <Button type="button" variant="ghost" size="sm" onClick={removeVoucher}>
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex gap-2">
+                                <Input
+                                  placeholder="Enter voucher code"
+                                  value={voucherCode}
+                                  onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                                  className="font-mono text-sm h-8"
+                                />
+                                <Button type="button" variant="outline" size="sm" onClick={applyVoucher} disabled={voucherLoading}>
+                                  {voucherLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply"}
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* VAT Toggle */}
+                          <div className="flex items-center justify-between rounded-md border bg-muted/30 p-2">
+                            <div className="flex items-center gap-2">
+                              <Receipt className="h-3.5 w-3.5 text-muted-foreground" />
+                              <p className="text-xs font-medium">Add VAT ({Math.round(vatRate * 100)}%)</p>
+                            </div>
+                            <Switch checked={includeVat} onCheckedChange={setIncludeVat} />
+                          </div>
+
+                          {!isFullyPaidByVoucher && (
+                            <>
+                              <div className="flex items-center justify-between rounded-md border bg-muted/30 p-2">
+                                <div className="flex items-center gap-2">
+                                  <Clock className="h-4 w-4 text-muted-foreground" />
+                                  <div>
+                                    <p className="text-xs font-medium">Sell on Credit</p>
+                                    {!creditEligible && isCredit && (
+                                      <p className="text-[10px] text-destructive">Requires registered customer or name + phone</p>
+                                    )}
+                                  </div>
+                                </div>
+                                <Switch checked={isCredit} onCheckedChange={(v) => { setIsCredit(v); if (!v) setAmountPaid(""); }} />
+                              </div>
+
+                              {isCredit && (
+                                <div className="space-y-2 rounded-md border bg-muted/30 p-2">
+                                  <p className="text-xs font-medium text-muted-foreground">Amount Paid Now (optional)</p>
+                                  <Input type="number" placeholder="0" value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)} className="h-8 text-sm" min={0} max={total} />
+                                  {amountPaid && Number(amountPaid) > 0 && (
+                                    <p className="text-xs text-muted-foreground">Balance remaining: {formatPrice(total - Number(amountPaid))}</p>
+                                  )}
+                                </div>
+                              )}
+
+                              {(!isCredit || (isCredit && amountPaid && Number(amountPaid) > 0)) && (
+                                <div>
+                                  <p className="mb-2 text-xs font-medium text-muted-foreground">Payment Method</p>
+                                  <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PaymentMethod)} className="grid grid-cols-2 gap-2">
+                                    {paymentMethods.map((pm) => (
+                                      <label key={pm.value} className={`flex items-center gap-2 rounded-md border p-2.5 text-sm transition-colors cursor-pointer ${paymentMethod === pm.value ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}>
+                                        <RadioGroupItem value={pm.value} className="sr-only" />
+                                        {pm.icon}
+                                        <span className="font-medium">{pm.label}</span>
+                                      </label>
+                                    ))}
+                                  </RadioGroup>
+                                </div>
+                              )}
+                            </>
                           )}
 
-                          {(!isCredit || (isCredit && amountPaid && Number(amountPaid) > 0)) && (
-                            <div>
-                              <p className="mb-2 text-xs font-medium text-muted-foreground">Payment Method</p>
-                              <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PaymentMethod)} className="grid grid-cols-2 gap-2">
-                                {paymentMethods.map((pm) => (
-                                  <label key={pm.value} className={`flex items-center gap-2 rounded-md border p-2.5 text-sm transition-colors cursor-pointer ${paymentMethod === pm.value ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}>
-                                    <RadioGroupItem value={pm.value} className="sr-only" />
-                                    {pm.icon}
-                                    <span className="font-medium">{pm.label}</span>
-                                  </label>
-                                ))}
-                              </RadioGroup>
+                          {isFullyPaidByVoucher && (
+                            <div className="flex items-center gap-3 p-3 rounded-lg border border-primary bg-primary/5">
+                              <Gift className="h-5 w-5 text-primary" />
+                              <div>
+                                <span className="font-medium text-sm">Paid by Gift Voucher</span>
+                                <p className="text-xs text-muted-foreground">Voucher covers the full amount</p>
+                              </div>
                             </div>
                           )}
-                        </>
-                      )}
 
-                      {isFullyPaidByVoucher && (
-                        <div className="flex items-center gap-3 p-3 rounded-lg border border-primary bg-primary/5">
-                          <Gift className="h-5 w-5 text-primary" />
-                          <div>
-                            <span className="font-medium text-sm">Paid by Gift Voucher</span>
-                            <p className="text-xs text-muted-foreground">Voucher covers the full amount</p>
+                          <Separator />
+                          <div className="space-y-1 text-sm">
+                            <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{formatPrice(subtotal)}</span></div>
+                            {discountAmount > 0 && (
+                              <div className="flex justify-between text-red-600"><span>Discount{discountType === "percent" ? ` (${discountValue}%)` : ""}</span><span>-{formatPrice(discountAmount)}</span></div>
+                            )}
+                            {includeVat && (
+                              <div className="flex justify-between"><span className="text-muted-foreground">VAT ({Math.round(vatRate * 100)}%)</span><span>{formatPrice(taxAmount)}</span></div>
+                            )}
+                            {voucherDiscount > 0 && (
+                              <div className="flex justify-between text-green-600"><span>Voucher</span><span>-{formatPrice(voucherDiscount)}</span></div>
+                            )}
+                            <Separator />
+                            <div className="flex justify-between pt-1 text-lg font-medium"><span>Total</span><span className="font-serif">{formatPrice(Math.max(0, total))}</span></div>
                           </div>
+
+                          <Button className="h-12 w-full text-base" onClick={handleCheckout} disabled={submitting || (isCredit && !creditEligible)} variant={isCredit ? "secondary" : "default"}>
+                            {submitting ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</>) : isFullyPaidByVoucher ? `Pay with Voucher` : isCredit ? `Sell on Credit — ${formatPrice(total)}` : `Complete Sale — ${formatPrice(total)}`}
+                          </Button>
                         </div>
-                      )}
-
-                      <Separator />
-                      <div className="space-y-1 text-sm">
-                        <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{formatPrice(subtotal)}</span></div>
-                        {discountAmount > 0 && (
-                          <div className="flex justify-between text-red-600"><span>Discount{discountType === "percent" ? ` (${discountValue}%)` : ""}</span><span>-{formatPrice(discountAmount)}</span></div>
-                        )}
-                        <div className="flex justify-between"><span className="text-muted-foreground">VAT ({Math.round(vatRate * 100)}%)</span><span>{formatPrice(taxAmount)}</span></div>
-                        {voucherDiscount > 0 && (
-                          <div className="flex justify-between text-green-600"><span>Voucher</span><span>-{formatPrice(voucherDiscount)}</span></div>
-                        )}
-                        <Separator />
-                        <div className="flex justify-between pt-1 text-lg font-medium"><span>Total</span><span className="font-serif">{formatPrice(Math.max(0, total))}</span></div>
-                      </div>
-
-                      <Button className="h-12 w-full text-base" onClick={handleCheckout} disabled={submitting} variant={isCredit ? "secondary" : "default"}>
-                        {submitting ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</>) : isFullyPaidByVoucher ? `Pay with Voucher` : isCredit ? `Sell on Credit — ${formatPrice(total)}` : `Complete Sale — ${formatPrice(total)}`}
-                      </Button>
-                    </div>
-                  </>
-                )}
-              </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
+                      </>
+                    )}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
 
       {/* Receipt Dialog */}
@@ -877,6 +991,7 @@ export default function POS() {
                     <div className="flex justify-between"><span className="text-muted-foreground">Date</span><span>{format(new Date(receiptOrder.created_at), "MMM d, yyyy h:mm a")}</span></div>
                     {receiptOrder.customer_name && <div className="flex justify-between"><span className="text-muted-foreground">Customer</span><span>{receiptOrder.customer_name}</span></div>}
                     {receiptOrder.customer_phone && <div className="flex justify-between"><span className="text-muted-foreground">Phone</span><span>{receiptOrder.customer_phone}</span></div>}
+                    {receiptOrder.served_by_name && <div className="flex justify-between"><span className="text-muted-foreground">Served by</span><span>{receiptOrder.served_by_name}</span></div>}
                     <div className="flex justify-between"><span className="text-muted-foreground">Payment</span><span className="capitalize">{receiptOrder.payment_status === "unpaid" ? "Credit (Unpaid)" : receiptOrder.payment_status === "partial" ? "Partial Payment" : receiptOrder.payment_method.replace("_", " ")}</span></div>
                     {(receiptOrder.payment_status === "unpaid" || receiptOrder.payment_status === "partial") && <Badge variant="secondary" className="mt-1">CREDIT SALE</Badge>}
                   </div>
@@ -885,8 +1000,13 @@ export default function POS() {
                   <div className="space-y-2 text-sm">
                     {receiptOrder.items.map((item) => (
                       <div key={item.product_id} className="flex justify-between">
-                        <span>{item.name} × {item.quantity}</span>
-                        <span>{formatPrice(item.price * item.quantity)}</span>
+                        <span>
+                          {item.name} × {item.quantity}
+                          {item.selling_price < item.price && (
+                            <span className="text-muted-foreground line-through text-xs ml-1">{formatPrice(item.price)}</span>
+                          )}
+                        </span>
+                        <span>{formatPrice(item.selling_price * item.quantity)}</span>
                       </div>
                     ))}
                   </div>
@@ -895,7 +1015,7 @@ export default function POS() {
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{formatPrice(receiptOrder.subtotal)}</span></div>
                     {receiptOrder.discount_amount > 0 && <div className="flex justify-between text-red-600"><span>Discount</span><span>-{formatPrice(receiptOrder.discount_amount)}</span></div>}
-                    <div className="flex justify-between"><span className="text-muted-foreground">VAT</span><span>{formatPrice(receiptOrder.tax)}</span></div>
+                    {receiptOrder.tax > 0 && <div className="flex justify-between"><span className="text-muted-foreground">VAT</span><span>{formatPrice(receiptOrder.tax)}</span></div>}
                     <div className="flex justify-between font-medium text-base pt-1"><span>Total</span><span className="font-serif">{formatPrice(receiptOrder.total)}</span></div>
                     {receiptOrder.amount_paid != null && receiptOrder.amount_paid > 0 && <div className="flex justify-between text-green-600 font-medium"><span>Amount Paid</span><span>{formatPrice(receiptOrder.amount_paid)}</span></div>}
                     {(receiptOrder.payment_status === "unpaid" || receiptOrder.payment_status === "partial") && <div className="flex justify-between text-destructive font-medium"><span>Balance Due</span><span>{formatPrice(receiptOrder.total - (receiptOrder.amount_paid || 0))}</span></div>}
