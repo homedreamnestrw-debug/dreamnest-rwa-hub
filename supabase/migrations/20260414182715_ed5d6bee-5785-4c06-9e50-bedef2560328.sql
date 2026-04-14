@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Anon can view own voucher by code" ON public.gift_vouchers;
