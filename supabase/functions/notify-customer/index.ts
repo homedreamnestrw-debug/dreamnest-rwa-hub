@@ -11,6 +11,51 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Authenticate the caller
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    })
+
+    const token = authHeader.replace('Bearer ', '')
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token)
+    if (claimsError || !claimsData?.claims) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const userId = claimsData.claims.sub
+
+    // Verify caller has admin or staff role
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const supabase = createClient(supabaseUrl, serviceKey)
+
+    const { data: roles } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+
+    const userRoles = roles?.map((r: any) => r.role) || []
+    const isAdminOrStaff = userRoles.includes('admin') || userRoles.includes('staff')
+
+    if (!isAdminOrStaff) {
+      return new Response(
+        JSON.stringify({ error: 'Forbidden: admin or staff role required' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const { to, subject, html, text } = await req.json()
 
     if (!to || !subject || (!html && !text)) {
@@ -21,10 +66,6 @@ Deno.serve(async (req) => {
     }
 
     // Read SMTP settings from business_settings
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const supabase = createClient(supabaseUrl, serviceKey)
-
     const { data: settings, error: settingsError } = await supabase
       .from('business_settings')
       .select('smtp_host, smtp_port, smtp_user, email, business_name')
@@ -41,7 +82,7 @@ Deno.serve(async (req) => {
     const smtpPassword = Deno.env.get('ZOHO_SMTP_PASSWORD')
 
     if (!smtpPassword) {
-      throw new Error('ZOHO_SMTP_PASSWORD secret is not configured')
+      throw new Error('SMTP password is not configured')
     }
 
     const fromName = settings.business_name || 'DreamNest'
@@ -74,7 +115,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Email send error:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: 'Failed to send email' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
