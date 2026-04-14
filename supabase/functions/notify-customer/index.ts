@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Authenticate the caller
+    // Authenticate the caller - require a valid user JWT
     const authHeader = req.headers.get('Authorization')
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
@@ -28,31 +28,10 @@ Deno.serve(async (req) => {
 
     const token = authHeader.replace('Bearer ', '')
     const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token)
-    if (claimsError || !claimsData?.claims) {
+    if (claimsError || !claimsData?.claims?.sub) {
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    const userId = claimsData.claims.sub
-
-    // Verify caller has admin or staff role
-    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const supabase = createClient(supabaseUrl, serviceKey)
-
-    const { data: roles } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId)
-
-    const userRoles = roles?.map((r: any) => r.role) || []
-    const isAdminOrStaff = userRoles.includes('admin') || userRoles.includes('staff')
-
-    if (!isAdminOrStaff) {
-      return new Response(
-        JSON.stringify({ error: 'Forbidden: admin or staff role required' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
@@ -65,7 +44,10 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Read SMTP settings from business_settings
+    // Read SMTP settings from business_settings using service role
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const supabase = createClient(supabaseUrl, serviceKey)
+
     const { data: settings, error: settingsError } = await supabase
       .from('business_settings')
       .select('smtp_host, smtp_port, smtp_user, email, business_name')
