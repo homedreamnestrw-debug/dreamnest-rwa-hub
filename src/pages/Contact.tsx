@@ -34,30 +34,8 @@ export default function Contact() {
       toast.success("Message sent! We'll get back to you soon.");
       form.reset();
 
-      const adminEmail = c.contact_email || "sales@dreamnestrw.com";
-
-      // Notify admin
-      supabase.functions.invoke("notify-customer", {
-        body: {
-          to: adminEmail,
-          subject: `New Contact: ${subject || "No Subject"} — from ${name}`,
-          html: `<p><strong>From:</strong> ${name} (${email}${phone ? `, ${phone}` : ""})</p>
-                 <p><strong>Subject:</strong> ${subject || "N/A"}</p>
-                 <hr/>
-                 <p>${message.replace(/\n/g, "<br/>")}</p>`,
-        },
-      });
-
-      // Confirmation to customer
-      supabase.functions.invoke("notify-customer", {
-        body: {
-          to: email,
-          subject: "We received your message — DreamNest",
-          html: `<p>Hi ${name},</p>
-                 <p>Thank you for reaching out to DreamNest! We've received your message and will get back to you as soon as possible.</p>
-                 <p>Best regards,<br/>The DreamNest Team</p>`,
-        },
-      });
+      // Email notifications are handled server-side for contact submissions
+      // The contact submission is saved to the database and visible in admin dashboard
     }
     setLoading(false);
   };
