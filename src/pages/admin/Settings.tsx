@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Save, Building2, CreditCard, Mail, Heart, FileText, Upload, Loader2, Globe } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -43,6 +44,7 @@ export default function Settings() {
     receipt_header: "",
     receipt_footer: "",
     receipt_logo_url: "",
+    shop_enabled: true,
   });
 
   const fetchSettings = async () => {
@@ -69,6 +71,7 @@ export default function Settings() {
         receipt_header: (data as any).receipt_header || "",
         receipt_footer: (data as any).receipt_footer || "",
         receipt_logo_url: (data as any).receipt_logo_url || "",
+        shop_enabled: (data as any).shop_enabled ?? true,
       });
     }
     setLoading(false);
@@ -113,6 +116,7 @@ export default function Settings() {
       receipt_header: form.receipt_header || null,
       receipt_footer: form.receipt_footer || null,
       receipt_logo_url: form.receipt_logo_url || null,
+      shop_enabled: form.shop_enabled,
     } as any).eq("id", settings.id);
 
     setSaving(false);
@@ -196,6 +200,14 @@ export default function Settings() {
               <div className="grid grid-cols-2 gap-4">
                 <div><Label>City</Label><Input value={form.city} onChange={(e) => f("city", e.target.value)} /></div>
                 <div><Label>Country</Label><Input value={form.country} onChange={(e) => f("country", e.target.value)} /></div>
+              </div>
+              <Separator />
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Enable Online Shopping</Label>
+                  <p className="text-sm text-muted-foreground">Turn off to show a Coming Soon page to visitors</p>
+                </div>
+                <Switch checked={form.shop_enabled} onCheckedChange={(v) => setForm({ ...form, shop_enabled: v })} />
               </div>
             </CardContent>
           </Card>

@@ -16,6 +16,8 @@ import { toast } from "sonner";
 import { Loader2, CreditCard, Smartphone, Banknote, Gift, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { Database } from "@/integrations/supabase/types";
+import { useShopEnabled } from "@/hooks/useShopEnabled";
+import { ComingSoon } from "@/components/layout/ComingSoon";
 
 type PaymentMethod = Database["public"]["Enums"]["payment_method"];
 
@@ -23,6 +25,7 @@ export default function Checkout() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { cartItems, isLoading, clearCart } = useCart();
+  const { shopEnabled, isLoading: shopLoading } = useShopEnabled();
   const [submitting, setSubmitting] = useState(false);
   const [voucherCode, setVoucherCode] = useState("");
   const [voucherData, setVoucherData] = useState<{ id: string; code: string; balance: number; expires_at: string } | null>(null);
@@ -71,6 +74,8 @@ export default function Checkout() {
       return data?.[0] ?? null;
     },
   });
+
+  if (!shopLoading && !shopEnabled) return <ComingSoon />;
 
   const vatRate = settings?.vat_percentage ? Number(settings.vat_percentage) / 100 : 0.18;
 

@@ -5,12 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/hooks/useCart";
+import { useShopEnabled } from "@/hooks/useShopEnabled";
 import { useState } from "react";
 
 export function Header() {
   const { user, isAdmin, isStaff, signOut } = useAuth();
   const { itemCount } = useCart();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { shopEnabled } = useShopEnabled();
 
   return (
     <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
@@ -22,10 +24,10 @@ export function Header() {
 
           <nav className="hidden md:flex items-center gap-8">
             <Link to="/" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">Home</Link>
-            <Link to="/shop" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">Shop</Link>
+            {shopEnabled && <Link to="/shop" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">Shop</Link>}
             <Link to="/about" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">About</Link>
             <Link to="/contact" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">Contact</Link>
-            <Link to="/gift-vouchers" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">Gift Vouchers</Link>
+            {shopEnabled && <Link to="/gift-vouchers" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">Gift Vouchers</Link>}
           </nav>
 
           <div className="flex items-center gap-2">
@@ -72,10 +74,10 @@ export function Header() {
         {mobileOpen && (
           <div className="md:hidden border-t py-4 space-y-3">
             <Link to="/" className="block py-2 text-sm font-medium" onClick={() => setMobileOpen(false)}>Home</Link>
-            <Link to="/shop" className="block py-2 text-sm font-medium" onClick={() => setMobileOpen(false)}>Shop</Link>
+            {shopEnabled && <Link to="/shop" className="block py-2 text-sm font-medium" onClick={() => setMobileOpen(false)}>Shop</Link>}
             <Link to="/about" className="block py-2 text-sm font-medium" onClick={() => setMobileOpen(false)}>About</Link>
             <Link to="/contact" className="block py-2 text-sm font-medium" onClick={() => setMobileOpen(false)}>Contact</Link>
-            <Link to="/gift-vouchers" className="block py-2 text-sm font-medium" onClick={() => setMobileOpen(false)}>Gift Vouchers</Link>
+            {shopEnabled && <Link to="/gift-vouchers" className="block py-2 text-sm font-medium" onClick={() => setMobileOpen(false)}>Gift Vouchers</Link>}
             {user ? (
               <>
                 <Link to="/account" className="block py-2 text-sm font-medium" onClick={() => setMobileOpen(false)}>My Account</Link>

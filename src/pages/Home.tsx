@@ -7,9 +7,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { ArrowRight, Star, Truck, Shield, Leaf } from "lucide-react";
 import heroBedroom from "@/assets/hero-bedroom.jpg";
 import { useWebsiteContent } from "@/hooks/useWebsiteContent";
+import { useShopEnabled } from "@/hooks/useShopEnabled";
 
 export default function Home() {
   const { content: c } = useWebsiteContent();
+  const { shopEnabled } = useShopEnabled();
 
   const { data: featuredProducts } = useQuery({
     queryKey: ["featured-products"],
@@ -62,11 +64,13 @@ export default function Home() {
               {c.hero_description ?? "Discover handcrafted bedding and decor pieces that transform your home into a sanctuary of warmth and style."}
             </p>
             <div className="flex gap-4 pt-2">
-              <Link to="/shop">
-                <Button size="lg" className="font-medium">
-                  Shop Collection <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
+              {shopEnabled && (
+                <Link to="/shop">
+                  <Button size="lg" className="font-medium">
+                    Shop Collection <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+              )}
               <Link to="/about">
                 <Button variant="outline" size="lg" className="font-medium">Our Story</Button>
               </Link>

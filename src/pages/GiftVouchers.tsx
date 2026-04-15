@@ -11,6 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { Loader2, Gift, Smartphone, CreditCard } from "lucide-react";
+import { useShopEnabled } from "@/hooks/useShopEnabled";
+import { ComingSoon } from "@/components/layout/ComingSoon";
 
 const PRESET_AMOUNTS = [100000, 150000, 300000];
 
@@ -19,11 +21,11 @@ const formatPrice = (price: number) =>
 
 export default function GiftVouchers() {
   const navigate = useNavigate();
+  const { shopEnabled, isLoading: shopLoading } = useShopEnabled();
   const [submitting, setSubmitting] = useState(false);
   const [selectedPreset, setSelectedPreset] = useState<number | null>(100000);
   const [customAmount, setCustomAmount] = useState("");
   const [isCustom, setIsCustom] = useState(false);
-
   const [form, setForm] = useState({
     buyer_name: "",
     buyer_email: "",
@@ -34,6 +36,8 @@ export default function GiftVouchers() {
     personal_message: "",
     payment_method: "mtn_momo",
   });
+
+  if (!shopLoading && !shopEnabled) return <ComingSoon />;
 
   const amount = isCustom ? parseInt(customAmount) || 0 : (selectedPreset ?? 0);
 
