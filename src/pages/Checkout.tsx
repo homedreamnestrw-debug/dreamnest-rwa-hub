@@ -16,10 +16,14 @@ import { toast } from "sonner";
 import { Loader2, CreditCard, Smartphone, Banknote, Gift, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { Database } from "@/integrations/supabase/types";
+import { useShopEnabled } from "@/hooks/useShopEnabled";
+import { ComingSoon } from "@/components/layout/ComingSoon";
 
 type PaymentMethod = Database["public"]["Enums"]["payment_method"];
 
 export default function Checkout() {
+  const { shopEnabled, isLoading: shopLoading } = useShopEnabled();
+  if (!shopLoading && !shopEnabled) return <ComingSoon />;
   const { user } = useAuth();
   const navigate = useNavigate();
   const { cartItems, isLoading, clearCart } = useCart();

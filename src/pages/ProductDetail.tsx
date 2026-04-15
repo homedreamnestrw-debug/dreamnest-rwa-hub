@@ -9,8 +9,12 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Heart, Minus, Plus, ShoppingCart, Star } from "lucide-react";
 import { ReviewForm } from "@/components/product/ReviewForm";
+import { useShopEnabled } from "@/hooks/useShopEnabled";
+import { ComingSoon } from "@/components/layout/ComingSoon";
 
 export default function ProductDetail() {
+  const { shopEnabled, isLoading: shopLoading } = useShopEnabled();
+  if (!shopLoading && !shopEnabled) return <ComingSoon />;
   const { slug } = useParams<{ slug: string }>();
   const { user } = useAuth();
   const [quantity, setQuantity] = useState(1);

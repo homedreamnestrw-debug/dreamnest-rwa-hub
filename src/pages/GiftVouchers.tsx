@@ -11,6 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { Loader2, Gift, Smartphone, CreditCard } from "lucide-react";
+import { useShopEnabled } from "@/hooks/useShopEnabled";
+import { ComingSoon } from "@/components/layout/ComingSoon";
 
 const PRESET_AMOUNTS = [100000, 150000, 300000];
 

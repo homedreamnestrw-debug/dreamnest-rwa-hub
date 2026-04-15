@@ -7,8 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
+import { useShopEnabled } from "@/hooks/useShopEnabled";
+import { ComingSoon } from "@/components/layout/ComingSoon";
 
 export default function Shop() {
+  const { shopEnabled, isLoading: shopLoading } = useShopEnabled();
+  if (!shopLoading && !shopEnabled) return <ComingSoon />;
   const [searchParams, setSearchParams] = useSearchParams();
   const categorySlug = searchParams.get("category");
   const [search, setSearch] = useState("");
