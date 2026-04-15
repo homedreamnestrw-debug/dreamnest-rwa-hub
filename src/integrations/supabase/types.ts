@@ -32,6 +32,7 @@ export type Database = {
           receipt_footer: string | null
           receipt_header: string | null
           receipt_logo_url: string | null
+          shop_enabled: boolean
           smtp_host: string | null
           smtp_port: number | null
           smtp_user: string | null
@@ -57,6 +58,7 @@ export type Database = {
           receipt_footer?: string | null
           receipt_header?: string | null
           receipt_logo_url?: string | null
+          shop_enabled?: boolean
           smtp_host?: string | null
           smtp_port?: number | null
           smtp_user?: string | null
@@ -82,6 +84,7 @@ export type Database = {
           receipt_footer?: string | null
           receipt_header?: string | null
           receipt_logo_url?: string | null
+          shop_enabled?: boolean
           smtp_host?: string | null
           smtp_port?: number | null
           smtp_user?: string | null
@@ -1337,6 +1340,7 @@ export type Database = {
           receipt_footer: string
           receipt_header: string
           receipt_logo_url: string
+          shop_enabled: boolean
           tagline: string
           updated_at: string
           vat_percentage: number
