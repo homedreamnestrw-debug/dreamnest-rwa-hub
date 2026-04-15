@@ -26,9 +26,6 @@ export default function GiftVouchers() {
   const [selectedPreset, setSelectedPreset] = useState<number | null>(100000);
   const [customAmount, setCustomAmount] = useState("");
   const [isCustom, setIsCustom] = useState(false);
-
-  if (!shopLoading && !shopEnabled) return <ComingSoon />;
-
   const [form, setForm] = useState({
     buyer_name: "",
     buyer_email: "",
@@ -39,6 +36,8 @@ export default function GiftVouchers() {
     personal_message: "",
     payment_method: "mtn_momo",
   });
+
+  if (!shopLoading && !shopEnabled) return <ComingSoon />;
 
   const amount = isCustom ? parseInt(customAmount) || 0 : (selectedPreset ?? 0);
 
