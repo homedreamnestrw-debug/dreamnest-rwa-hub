@@ -75,6 +75,8 @@ export default function Checkout() {
     },
   });
 
+  if (!shopLoading && !shopEnabled) return <ComingSoon />;
+
   const vatRate = settings?.vat_percentage ? Number(settings.vat_percentage) / 100 : 0.18;
 
   const subtotal = cartItems.reduce((sum, item) => sum + (item.product?.price ?? 0) * item.quantity, 0);
