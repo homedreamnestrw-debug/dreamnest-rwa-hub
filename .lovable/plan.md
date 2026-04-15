@@ -1,81 +1,41 @@
 
 
-## Plan: Gift Voucher / Shopping Voucher System
+## Plan: Add "Shop Enabled" Toggle in Settings
 
-### Overview
-Add a gift voucher feature where customers can purchase digital shopping vouchers for friends and family, with preset packages (100,000 / 150,000 / 300,000 RWF) and custom amounts. Vouchers expire after 1 year, are delivered via email + WhatsApp + downloadable PDF, and can be redeemed at checkout.
+### What
+Add a switch in the admin Settings page (Business tab) that lets you disable the public shopping experience. When off, visitors see a "Coming Soon" message instead of the shop, product pages, and cart.
 
-### Database Changes (2 new tables + 1 migration)
+### How
 
-**`gift_vouchers` table:**
-- `id`, `code` (unique 8-char alphanumeric), `amount`, `balance` (remaining), `status` (active/redeemed/expired)
-- `buyer_name`, `buyer_email`, `buyer_phone`
-- `recipient_name`, `recipient_email`, `recipient_phone`
-- `personal_message` (optional gift message)
-- `payment_method`, `payment_status`
-- `expires_at` (purchase date + 1 year)
-- `created_at`, `redeemed_at`
-- RLS: anyone can insert (purchase), admin can view all, buyer/recipient can view own
+**1. Database migration** — Add `shop_enabled` column to `business_settings`:
+```sql
+ALTER TABLE public.business_settings
+  ADD COLUMN shop_enabled boolean NOT NULL DEFAULT true;
+```
 
-**`voucher_redemptions` table:**
-- `id`, `voucher_id`, `order_id`, `amount_used`, `created_at`
-- Tracks partial redemptions against orders
+Update `get_public_business_settings()` function to include `shop_enabled` in its return type and SELECT.
 
-### New Pages & Components
+**2. Settings page** (`src/pages/admin/Settings.tsx`) — Add a Switch toggle in the Business tab:
+- Label: "Enable Online Shopping"
+- Description: "Turn off to show a 'Coming Soon' page to visitors"
+- Wired to `form.shop_enabled`
 
-1. **`/gift-vouchers`** — Public page to browse and purchase vouchers
-   - Three preset cards (100K, 150K, 300K RWF) with attractive design
-   - Custom amount input option
-   - Buyer info, recipient info, personal message form
-   - Payment method selector (MTN MoMo, Airtel Money, Card only)
-   - Order summary and purchase button
+**3. Public layout gate** — Create a hook or query that checks `shop_enabled` from `get_public_business_settings()`. In the pages that should be blocked when shopping is off (`Shop`, `ProductDetail`, `Cart`, `Checkout`, `GiftVouchers`), redirect to a "Coming Soon" view or show a branded placeholder message. The `Home` page can remain visible but hide "Shop Now" CTAs and product sections.
 
-2. **`/gift-vouchers/confirmation/:code`** — Purchase confirmation page
-   - Shows voucher details, PDF download button
-   - Confirmation that email/WhatsApp were sent
+**4. Coming Soon page** — A simple branded page within `PublicLayout` showing:
+- DreamNest logo
+- "We're launching soon" heading
+- Brief message
+- Contact info / WhatsApp link
 
-3. **Admin: Gift Vouchers management** — New admin page
-   - List all vouchers with status, balance, buyer/recipient
-   - Approve/reject voucher payments (same flow as orders)
-   - View redemption history
-
-### Checkout Integration
-
-- Add "Apply Voucher" input field on the checkout page
-- Validate voucher code, check balance and expiry
-- Deduct voucher amount from order total (partial use allowed, remaining balance preserved)
-- Record redemption in `voucher_redemptions`
-
-### Delivery (Edge Function)
-
-- **Email**: Send voucher details + PDF attachment to recipient via existing `notify-customer` function
-- **WhatsApp**: Send voucher link via WhatsApp using the existing WhatsApp number in business settings
-- **PDF**: Generate a branded voucher PDF (voucher code, amount, expiry, personal message) — served as downloadable link
-
-### Edge Function: `generate-voucher-pdf`
-- Generates a branded PDF voucher with the DreamNest logo, voucher code, amount, recipient name, personal message, and expiry date
-- Returns PDF as downloadable file
-
-### Navigation
-- Add "Gift Vouchers" link to the main header navigation
-- Add "Gift Vouchers" to admin sidebar
-
-### Files to Create
-- `supabase/migrations/...` — gift_vouchers + voucher_redemptions tables, RLS, voucher code generator function
-- `src/pages/GiftVouchers.tsx` — public purchase page
-- `src/pages/GiftVoucherConfirmation.tsx` — confirmation page
-- `src/pages/admin/GiftVouchers.tsx` — admin management page
-- `supabase/functions/generate-voucher-pdf/index.ts` — PDF generation
-
-### Files to Edit
-- `src/App.tsx` — add routes
-- `src/pages/Checkout.tsx` — add voucher code redemption field
-- `src/components/layout/Header.tsx` — add nav link
-- `src/components/admin/AdminSidebar.tsx` — add admin nav link
-
-### Technical Details
-- Voucher codes: 8-character uppercase alphanumeric, generated via DB function
-- Partial redemption supported (balance tracked)
-- Expired vouchers checked at redemption time
-- Payment approval follows same pattern as online orders (admin approves before voucher activates)
+### Files to change
+- **Migration**: new SQL file for `shop_enabled` column + updated RPC
+- `src/integrations/supabase/types.ts` — auto-updated
+- `src/pages/admin/Settings.tsx` — add Switch toggle
+- `src/pages/Shop.tsx` — check `shop_enabled`, show Coming Soon if off
+- `src/pages/ProductDetail.tsx` — same guard
+- `src/pages/Cart.tsx` — same guard
+- `src/pages/Checkout.tsx` — same guard
+- `src/pages/Home.tsx` — conditionally hide shop CTAs
+- `src/components/layout/Header.tsx` — optionally hide "Shop" nav link when disabled
 
