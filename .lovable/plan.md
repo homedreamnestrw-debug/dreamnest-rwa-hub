@@ -1,41 +1,55 @@
 
 
-## Plan: Add "Shop Enabled" Toggle in Settings
+## Plan: Add "Shop Enabled" Toggle (Including Gift Vouchers)
 
-### What
-Add a switch in the admin Settings page (Business tab) that lets you disable the public shopping experience. When off, visitors see a "Coming Soon" message instead of the shop, product pages, and cart.
+### Summary
+Add a `shop_enabled` boolean to `business_settings` so the admin can disable all public shopping pages — including Gift Vouchers — before the business launches. When off, visitors see a branded "Coming Soon" message.
 
-### How
+### 1. Database Migration
+- Add `shop_enabled boolean NOT NULL DEFAULT true` to `business_settings`
+- Drop and recreate `get_public_business_settings()` to include `shop_enabled` in its return type
 
-**1. Database migration** — Add `shop_enabled` column to `business_settings`:
-```sql
-ALTER TABLE public.business_settings
-  ADD COLUMN shop_enabled boolean NOT NULL DEFAULT true;
-```
+### 2. Create `useShopEnabled` Hook
+A small hook that calls `get_public_business_settings` RPC and returns `{ shopEnabled, isLoading }`. Used by all gated pages.
 
-Update `get_public_business_settings()` function to include `shop_enabled` in its return type and SELECT.
+**File**: `src/hooks/useShopEnabled.ts`
 
-**2. Settings page** (`src/pages/admin/Settings.tsx`) — Add a Switch toggle in the Business tab:
+### 3. Create `ComingSoon` Component
+A branded placeholder shown when shop is disabled — DreamNest logo, "We're launching soon" heading, brief message, WhatsApp/contact link.
+
+**File**: `src/components/layout/ComingSoon.tsx`
+
+### 4. Gate Public Shopping Pages
+Add the `useShopEnabled` check at the top of these pages. If `shopEnabled === false`, render `<ComingSoon />` instead of the page content:
+- `src/pages/Shop.tsx`
+- `src/pages/ProductDetail.tsx`
+- `src/pages/Cart.tsx`
+- `src/pages/Checkout.tsx`
+- `src/pages/GiftVouchers.tsx`
+
+### 5. Admin Settings Toggle
+Add a Switch in the Business tab of `src/pages/admin/Settings.tsx`:
 - Label: "Enable Online Shopping"
-- Description: "Turn off to show a 'Coming Soon' page to visitors"
-- Wired to `form.shop_enabled`
+- Description: "Turn off to show a Coming Soon page to visitors"
+- Wire to `form.shop_enabled`
 
-**3. Public layout gate** — Create a hook or query that checks `shop_enabled` from `get_public_business_settings()`. In the pages that should be blocked when shopping is off (`Shop`, `ProductDetail`, `Cart`, `Checkout`, `GiftVouchers`), redirect to a "Coming Soon" view or show a branded placeholder message. The `Home` page can remain visible but hide "Shop Now" CTAs and product sections.
+### 6. Conditionally Hide Nav Links
+In `src/components/layout/Header.tsx`, hide "Shop" and "Gift Vouchers" nav links when `shopEnabled` is false.
 
-**4. Coming Soon page** — A simple branded page within `PublicLayout` showing:
-- DreamNest logo
-- "We're launching soon" heading
-- Brief message
-- Contact info / WhatsApp link
+Optionally hide "Shop Now" CTAs on the Home page.
 
-### Files to change
-- **Migration**: new SQL file for `shop_enabled` column + updated RPC
-- `src/integrations/supabase/types.ts` — auto-updated
-- `src/pages/admin/Settings.tsx` — add Switch toggle
-- `src/pages/Shop.tsx` — check `shop_enabled`, show Coming Soon if off
-- `src/pages/ProductDetail.tsx` — same guard
-- `src/pages/Cart.tsx` — same guard
-- `src/pages/Checkout.tsx` — same guard
-- `src/pages/Home.tsx` — conditionally hide shop CTAs
-- `src/components/layout/Header.tsx` — optionally hide "Shop" nav link when disabled
+### Files to Create
+- Migration SQL (1 file)
+- `src/hooks/useShopEnabled.ts`
+- `src/components/layout/ComingSoon.tsx`
+
+### Files to Edit
+- `src/pages/admin/Settings.tsx` — add toggle
+- `src/pages/Shop.tsx` — add gate
+- `src/pages/ProductDetail.tsx` — add gate
+- `src/pages/Cart.tsx` — add gate
+- `src/pages/Checkout.tsx` — add gate
+- `src/pages/GiftVouchers.tsx` — add gate
+- `src/components/layout/Header.tsx` — conditionally hide links
+- `src/pages/Home.tsx` — optionally hide shop CTAs
 
