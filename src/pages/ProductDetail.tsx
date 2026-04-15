@@ -13,14 +13,15 @@ import { useShopEnabled } from "@/hooks/useShopEnabled";
 import { ComingSoon } from "@/components/layout/ComingSoon";
 
 export default function ProductDetail() {
-  const { shopEnabled, isLoading: shopLoading } = useShopEnabled();
-  if (!shopLoading && !shopEnabled) return <ComingSoon />;
   const { slug } = useParams<{ slug: string }>();
   const { user } = useAuth();
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const queryClient = useQueryClient();
   const { addItem } = useCart();
+  const { shopEnabled, isLoading: shopLoading } = useShopEnabled();
+
+  if (!shopLoading && !shopEnabled) return <ComingSoon />;
 
   const { data: product, isLoading } = useQuery({
     queryKey: ["product", slug],

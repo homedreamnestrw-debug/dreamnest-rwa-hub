@@ -22,11 +22,10 @@ import { ComingSoon } from "@/components/layout/ComingSoon";
 type PaymentMethod = Database["public"]["Enums"]["payment_method"];
 
 export default function Checkout() {
-  const { shopEnabled, isLoading: shopLoading } = useShopEnabled();
-  if (!shopLoading && !shopEnabled) return <ComingSoon />;
   const { user } = useAuth();
   const navigate = useNavigate();
   const { cartItems, isLoading, clearCart } = useCart();
+  const { shopEnabled, isLoading: shopLoading } = useShopEnabled();
   const [submitting, setSubmitting] = useState(false);
   const [voucherCode, setVoucherCode] = useState("");
   const [voucherData, setVoucherData] = useState<{ id: string; code: string; balance: number; expires_at: string } | null>(null);

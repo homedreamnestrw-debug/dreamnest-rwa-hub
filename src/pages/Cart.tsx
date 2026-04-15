@@ -8,10 +8,11 @@ import { useShopEnabled } from "@/hooks/useShopEnabled";
 import { ComingSoon } from "@/components/layout/ComingSoon";
 
 export default function Cart() {
-  const { shopEnabled, isLoading: shopLoading } = useShopEnabled();
-  if (!shopLoading && !shopEnabled) return <ComingSoon />;
   const navigate = useNavigate();
   const { cartItems, isLoading, updateQuantity, removeItem } = useCart();
+  const { shopEnabled, isLoading: shopLoading } = useShopEnabled();
+
+  if (!shopLoading && !shopEnabled) return <ComingSoon />;
 
   const formatPrice = (price: number) =>
     new Intl.NumberFormat("en-RW", { style: "currency", currency: "RWF", minimumFractionDigits: 0 }).format(price);
