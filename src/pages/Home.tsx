@@ -131,44 +131,46 @@ export default function Home() {
       )}
 
       {/* Featured Products */}
-      <section className="py-20 bg-secondary">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground mb-3">Curated for You</p>
-            <h2 className="text-3xl lg:text-4xl font-serif">Featured Products</h2>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredProducts && featuredProducts.length > 0 ? (
-              featuredProducts.map((product: any) => (
-                <Link key={product.id} to={`/product/${product.slug}`} className="group">
-                  <div className="aspect-square rounded-lg overflow-hidden bg-muted mb-4">
-                    {product.images?.[0] ? (
-                      <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-muted-foreground font-serif">DreamNest</div>
-                    )}
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider">{product.categories?.name}</p>
-                    <h3 className="font-medium text-foreground group-hover:text-soft-gold transition-colors">{product.name}</h3>
-                    <p className="font-serif text-lg">{formatPrice(product.price)}</p>
-                  </div>
-                </Link>
-              ))
-            ) : (
-              <div className="col-span-full text-center py-12">
-                <p className="text-muted-foreground font-serif text-lg">New arrivals coming soon</p>
-                <Link to="/shop"><Button variant="outline" className="mt-4">Browse Shop</Button></Link>
+      {shopEnabled && (
+        <section className="py-20 bg-secondary">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground mb-3">Curated for You</p>
+              <h2 className="text-3xl lg:text-4xl font-serif">Featured Products</h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {featuredProducts && featuredProducts.length > 0 ? (
+                featuredProducts.map((product: any) => (
+                  <Link key={product.id} to={`/product/${product.slug}`} className="group">
+                    <div className="aspect-square rounded-lg overflow-hidden bg-muted mb-4">
+                      {product.images?.[0] ? (
+                        <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-muted-foreground font-serif">DreamNest</div>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider">{product.categories?.name}</p>
+                      <h3 className="font-medium text-foreground group-hover:text-soft-gold transition-colors">{product.name}</h3>
+                      <p className="font-serif text-lg">{formatPrice(product.price)}</p>
+                    </div>
+                  </Link>
+                ))
+              ) : (
+                <div className="col-span-full text-center py-12">
+                  <p className="text-muted-foreground font-serif text-lg">New arrivals coming soon</p>
+                  <Link to="/shop"><Button variant="outline" className="mt-4">Browse Shop</Button></Link>
+                </div>
+              )}
+            </div>
+            {featuredProducts && featuredProducts.length > 0 && (
+              <div className="text-center mt-10">
+                <Link to="/shop"><Button variant="outline" size="lg">View All Products <ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
               </div>
             )}
           </div>
-          {featuredProducts && featuredProducts.length > 0 && (
-            <div className="text-center mt-10">
-              <Link to="/shop"><Button variant="outline" size="lg">View All Products <ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
-            </div>
-          )}
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Newsletter */}
       <section className="py-20">
