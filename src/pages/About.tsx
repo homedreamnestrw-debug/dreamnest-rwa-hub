@@ -44,18 +44,18 @@ export default function About() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 max-w-4xl mx-auto text-center">
             <div className="space-y-4">
               <Leaf className="h-10 w-10 text-soft-gold mx-auto" />
-              <h3 className="font-serif text-xl">Sustainable</h3>
-              <p className="text-muted-foreground text-sm">We prioritize eco-friendly materials and ethical sourcing in every product we offer.</p>
+              <h3 className="font-serif text-xl">{c.about_value_1_title ?? "Sustainable"}</h3>
+              <p className="text-muted-foreground text-sm">{c.about_value_1_desc ?? "We prioritize eco-friendly materials and ethical sourcing in every product we offer."}</p>
             </div>
             <div className="space-y-4">
               <Heart className="h-10 w-10 text-soft-gold mx-auto" />
-              <h3 className="font-serif text-xl">Community</h3>
-              <p className="text-muted-foreground text-sm">Supporting local artisans and empowering Rwandan craftsmanship.</p>
+              <h3 className="font-serif text-xl">{c.about_value_2_title ?? "Community"}</h3>
+              <p className="text-muted-foreground text-sm">{c.about_value_2_desc ?? "Supporting local artisans and empowering Rwandan craftsmanship."}</p>
             </div>
             <div className="space-y-4">
               <Star className="h-10 w-10 text-soft-gold mx-auto" />
-              <h3 className="font-serif text-xl">Quality</h3>
-              <p className="text-muted-foreground text-sm">Every piece meets our exacting standards for comfort and durability.</p>
+              <h3 className="font-serif text-xl">{c.about_value_3_title ?? "Quality"}</h3>
+              <p className="text-muted-foreground text-sm">{c.about_value_3_desc ?? "Every piece meets our exacting standards for comfort and durability."}</p>
             </div>
           </div>
         </div>
