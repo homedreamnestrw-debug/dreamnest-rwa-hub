@@ -387,6 +387,14 @@ export default function Settings() {
             <CardContent className="space-y-4">
               {contentField("about_title", "Title")}
               {contentField("about_description", "Description", true)}
+              <Separator />
+              <p className="text-sm font-medium text-muted-foreground">Values Section</p>
+              {contentField("about_value_1_title", "Value 1 Title (e.g. Sustainable)")}
+              {contentField("about_value_1_desc", "Value 1 Description", true)}
+              {contentField("about_value_2_title", "Value 2 Title (e.g. Community)")}
+              {contentField("about_value_2_desc", "Value 2 Description", true)}
+              {contentField("about_value_3_title", "Value 3 Title (e.g. Quality)")}
+              {contentField("about_value_3_desc", "Value 3 Description", true)}
             </CardContent>
           </Card>
 
