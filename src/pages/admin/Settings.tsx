@@ -128,7 +128,10 @@ export default function Settings() {
   const handleSaveContent = async () => {
     setSavingContent(true);
     const promises = Object.entries(websiteContent).map(([key, value]) =>
-      supabase.from("website_content").update({ content_value: value }).eq("content_key", key)
+      supabase.from("website_content").upsert(
+        { content_key: key, content_value: value },
+        { onConflict: "content_key" }
+      )
     );
     const results = await Promise.all(promises);
     const failed = results.find((r) => r.error);
