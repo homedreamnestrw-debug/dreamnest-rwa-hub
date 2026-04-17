@@ -50,6 +50,8 @@ export default function Shop() {
   const formatPrice = (price: number) =>
     new Intl.NumberFormat("en-RW", { style: "currency", currency: "RWF", minimumFractionDigits: 0 }).format(price);
 
+  if (!shopLoading && !shopEnabled) return <ComingSoon />;
+
   return (
     <PublicLayout>
       <div className="container mx-auto px-4 py-10">
