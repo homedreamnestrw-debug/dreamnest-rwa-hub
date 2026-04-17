@@ -196,27 +196,48 @@ export default function POS() {
       (p.sku && p.sku.toLowerCase().includes(search.toLowerCase()))
   ) ?? [];
 
-  const addToCart = useCallback((product: any) => {
+  const addToCart = useCallback((product: any, qty: number = 1) => {
+    if (product.stock_quantity <= 0) {
+      toast.error("Out of stock");
+      return;
+    }
     setCart((prev) => {
       const existing = prev.find((i) => i.product_id === product.id);
       if (existing) {
-        if (existing.quantity >= product.stock_quantity) {
+        const newQty = existing.quantity + qty;
+        if (newQty > product.stock_quantity) {
           toast.error("Not enough stock");
           return prev;
         }
         return prev.map((i) =>
-          i.product_id === product.id ? { ...i, quantity: i.quantity + 1 } : i
+          i.product_id === product.id ? { ...i, quantity: newQty } : i
         );
       }
-      if (product.stock_quantity <= 0) {
-        toast.error("Out of stock");
+      if (qty > product.stock_quantity) {
+        toast.error("Not enough stock");
         return prev;
       }
-      return [...prev, { product_id: product.id, name: product.name, price: product.price, selling_price: product.price, quantity: 1, stock: product.stock_quantity }];
+      return [...prev, { product_id: product.id, name: product.name, price: product.price, selling_price: product.price, quantity: qty, stock: product.stock_quantity }];
     });
     setSearch("");
     searchRef.current?.focus();
   }, []);
+
+  const openQtyPrompt = useCallback((product: any) => {
+    if (product.stock_quantity <= 0) {
+      toast.error("Out of stock");
+      return;
+    }
+    setQtyPromptProduct(product);
+    setQtyPromptValue("1");
+  }, []);
+
+  const confirmQtyPrompt = () => {
+    if (!qtyPromptProduct) return;
+    const qty = Math.max(1, Math.floor(Number(qtyPromptValue) || 1));
+    addToCart(qtyPromptProduct, qty);
+    setQtyPromptProduct(null);
+  };
 
   const updateQty = (productId: string, delta: number) => {
     setCart((prev) =>
