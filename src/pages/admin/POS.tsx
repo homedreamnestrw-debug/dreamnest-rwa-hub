@@ -509,7 +509,7 @@ export default function POS() {
     <div className="p-8 max-w-[210mm] mx-auto bg-white text-black text-sm" style={{ fontFamily: "Inter, sans-serif" }}>
       <div className="flex items-start justify-between mb-6">
         <div className="flex items-center gap-4">
-          {receiptLogoUrl && <img src={receiptLogoUrl} alt="Logo" className="h-16 object-contain" />}
+          {receiptLogoUrl && <img src={receiptLogoUrl} alt="Logo" className="h-28 object-contain" />}
           <div>
             <h1 className="text-2xl font-bold">{businessName}</h1>
             {settings?.tagline && <p className="text-gray-500 text-xs">{settings.tagline}</p>}
@@ -594,7 +594,7 @@ export default function POS() {
   const ThermalReceipt = ({ order }: { order: CompletedOrder }) => (
     <div className="p-4 max-w-[300px] mx-auto text-sm">
       <div className="text-center mb-4">
-        {receiptLogoUrl && <img src={receiptLogoUrl} alt="Logo" className="h-10 mx-auto mb-2 object-contain" />}
+        {receiptLogoUrl && <img src={receiptLogoUrl} alt="Logo" className="h-20 mx-auto mb-2 object-contain" />}
         <h2 className="font-bold text-lg">{businessName}</h2>
         {settings?.address && <p className="text-xs">{settings.address}, {settings?.city}</p>}
         {settings?.phone && <p className="text-xs">{settings.phone}</p>}
@@ -1025,7 +1025,7 @@ export default function POS() {
           <DialogHeader>
             <DialogTitle className="font-serif text-xl flex items-center justify-between">
               <span>Sale Receipt</span>
-              <div className="flex gap-2">
+              <div className="flex gap-2 print:hidden">
                 <Button variant={receiptFormat === "thermal" ? "default" : "outline"} size="sm" onClick={() => setReceiptFormat("thermal")}>Thermal</Button>
                 <Button variant={receiptFormat === "a4" ? "default" : "outline"} size="sm" onClick={() => setReceiptFormat("a4")}>A4</Button>
               </div>
