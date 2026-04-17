@@ -984,6 +984,41 @@ export default function POS() {
         </ResizablePanelGroup>
       </div>
 
+      {/* Quantity Prompt Dialog */}
+      <Dialog open={!!qtyPromptProduct} onOpenChange={(o) => { if (!o) setQtyPromptProduct(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Add {qtyPromptProduct?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="text-sm text-muted-foreground">
+              Available stock: <span className="font-medium text-foreground">{qtyPromptProduct?.stock_quantity ?? 0}</span>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="qty-prompt">Quantity</Label>
+              <Input
+                id="qty-prompt"
+                type="number"
+                min={1}
+                max={qtyPromptProduct?.stock_quantity}
+                value={qtyPromptValue}
+                autoFocus
+                onChange={(e) => setQtyPromptValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") { e.preventDefault(); confirmQtyPrompt(); }
+                  if (e.key === "Escape") setQtyPromptProduct(null);
+                }}
+                onFocus={(e) => e.currentTarget.select()}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setQtyPromptProduct(null)}>Cancel</Button>
+              <Button onClick={confirmQtyPrompt}>Add to Sale</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Receipt Dialog */}
       <Dialog open={!!receiptOrder} onOpenChange={() => setReceiptOrder(null)}>
         <DialogContent className={receiptFormat === "a4" ? "max-w-3xl max-h-[90vh] overflow-y-auto" : "max-w-md"}>
