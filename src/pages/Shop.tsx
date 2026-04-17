@@ -12,7 +12,6 @@ import { ComingSoon } from "@/components/layout/ComingSoon";
 
 export default function Shop() {
   const { shopEnabled, isLoading: shopLoading } = useShopEnabled();
-  if (!shopLoading && !shopEnabled) return <ComingSoon />;
   const [searchParams, setSearchParams] = useSearchParams();
   const categorySlug = searchParams.get("category");
   const [search, setSearch] = useState("");
