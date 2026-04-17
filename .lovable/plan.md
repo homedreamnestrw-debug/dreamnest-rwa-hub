@@ -1,55 +1,81 @@
 
 
-## Plan: Add "Shop Enabled" Toggle (Including Gift Vouchers)
+Looking at the inventory list, I need to group these 14 items into logical, customer-friendly categories that fit DreamNest's "Premium Bedding & Home Decor" brand.
 
-### Summary
-Add a `shop_enabled` boolean to `business_settings` so the admin can disable all public shopping pages — including Gift Vouchers — before the business launches. When off, visitors see a branded "Coming Soon" message.
+**Items to group:**
+1. Bedsheets with duvet cover
+2. Throw pillow
+3. Pillows
+4. Duvets
+5. Bathrobe
+6. Towels
+7. Hair Towels
+8. Throw Blanket
+9. Mattress Topper
+10. Storage Humper (hamper)
+11. Storage Rack
+12. Storage boxes
+13. Laundry Humper (hamper)
+14. Disposable towels
 
-### 1. Database Migration
-- Add `shop_enabled boolean NOT NULL DEFAULT true` to `business_settings`
-- Drop and recreate `get_public_business_settings()` to include `shop_enabled` in its return type
+## Proposed Categories (4 categories)
 
-### 2. Create `useShopEnabled` Hook
-A small hook that calls `get_public_business_settings` RPC and returns `{ shopEnabled, isLoading }`. Used by all gated pages.
+### 1. Bedding
+Core sleep essentials — what goes on the bed.
+- Bedsheets with duvet cover
+- Duvets
+- Pillows
+- Mattress Topper
 
-**File**: `src/hooks/useShopEnabled.ts`
+### 2. Throws & Cushions
+Decorative soft layers that add warmth and style.
+- Throw pillow
+- Throw Blanket
 
-### 3. Create `ComingSoon` Component
-A branded placeholder shown when shop is disabled — DreamNest logo, "We're launching soon" heading, brief message, WhatsApp/contact link.
+### 3. Bath & Body
+Everything for the bathroom and personal care.
+- Bathrobe
+- Towels
+- Hair Towels
+- Disposable towels
 
-**File**: `src/components/layout/ComingSoon.tsx`
+### 4. Storage & Organization
+Tidy-up essentials for bedroom, bathroom, and laundry.
+- Storage Hamper
+- Storage Rack
+- Storage Boxes
+- Laundry Hamper
 
-### 4. Gate Public Shopping Pages
-Add the `useShopEnabled` check at the top of these pages. If `shopEnabled === false`, render `<ComingSoon />` instead of the page content:
-- `src/pages/Shop.tsx`
-- `src/pages/ProductDetail.tsx`
-- `src/pages/Cart.tsx`
-- `src/pages/Checkout.tsx`
-- `src/pages/GiftVouchers.tsx`
+---
 
-### 5. Admin Settings Toggle
-Add a Switch in the Business tab of `src/pages/admin/Settings.tsx`:
-- Label: "Enable Online Shopping"
-- Description: "Turn off to show a Coming Soon page to visitors"
-- Wire to `form.shop_enabled`
+## Alternative: 5-Category Split
 
-### 6. Conditionally Hide Nav Links
-In `src/components/layout/Header.tsx`, hide "Shop" and "Gift Vouchers" nav links when `shopEnabled` is false.
+If you'd prefer finer granularity, split Bath & Body into two:
 
-Optionally hide "Shop Now" CTAs on the Home page.
+- **Bath Linens** — Towels, Hair Towels, Disposable Towels
+- **Robes & Loungewear** — Bathrobe (room to grow with slippers, pajamas, etc.)
 
-### Files to Create
-- Migration SQL (1 file)
-- `src/hooks/useShopEnabled.ts`
-- `src/components/layout/ComingSoon.tsx`
+---
 
-### Files to Edit
-- `src/pages/admin/Settings.tsx` — add toggle
-- `src/pages/Shop.tsx` — add gate
-- `src/pages/ProductDetail.tsx` — add gate
-- `src/pages/Cart.tsx` — add gate
-- `src/pages/Checkout.tsx` — add gate
-- `src/pages/GiftVouchers.tsx` — add gate
-- `src/components/layout/Header.tsx` — conditionally hide links
-- `src/pages/Home.tsx` — optionally hide shop CTAs
+## Suggested Slugs (for URLs & seeding)
+
+| Category | Slug |
+|---|---|
+| Bedding | `bedding` |
+| Throws & Cushions | `throws-cushions` |
+| Bath & Body | `bath-body` |
+| Storage & Organization | `storage-organization` |
+
+Note: `bedding` and `bath-body` already have hero images mapped in `src/lib/categoryImages.ts`. The two new ones (`throws-cushions`, `storage-organization`) would need images added — or we can reuse `home-decor.jpg` and `bedroom-essentials.jpg` as fallbacks.
+
+---
+
+## Next Step Options
+
+If you approve, I can:
+- **Seed these categories** into the database via migration (insert into `categories` table with slugs + descriptions)
+- **Add matching hero images** for the two new categories
+- **Pre-create the 14 products** as inactive drafts under the right categories so you only need to add prices, SKUs, and photos
+
+Let me know which option(s) you want and I'll proceed.
 
