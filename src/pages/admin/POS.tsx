@@ -671,7 +671,7 @@ export default function POS() {
                   {filtered.map((product: any) => (
                     <button
                       key={product.id}
-                      onClick={() => addToCart(product)}
+                      onClick={() => openQtyPrompt(product)}
                       disabled={product.stock_quantity <= 0}
                       className="text-left p-3 border rounded-lg hover:border-primary hover:bg-primary/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
