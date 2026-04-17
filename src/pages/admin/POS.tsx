@@ -72,6 +72,9 @@ export default function POS() {
   const [amountPaid, setAmountPaid] = useState<string>("");
   const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
   const [editPriceValue, setEditPriceValue] = useState<string>("");
+  // Quantity prompt dialog
+  const [qtyPromptProduct, setQtyPromptProduct] = useState<any | null>(null);
+  const [qtyPromptValue, setQtyPromptValue] = useState<string>("1");
   // VAT toggle
   const [includeVat, setIncludeVat] = useState(false);
   // Discount
