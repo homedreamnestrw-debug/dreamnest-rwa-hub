@@ -85,25 +85,19 @@ export default function Staff() {
 
   const addStaff = useMutation({
     mutationFn: async () => {
-      // Look up user by email via profiles — we need to find the user_id
-      // Since we can't query auth.users, we search profiles by full_name matching the email
-      // Actually, we need a different approach. Let's search all profiles and match.
-      // The simplest approach: the admin enters the user_id or we look up via a known method.
-      // For now, we'll invite by creating the role if the user exists.
-      
-      // We'll use a workaround: query profiles where full_name matches (since handle_new_user sets full_name to email)
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, full_name")
-        .ilike("full_name", newEmail);
+      const email = newEmail.trim().toLowerCase();
+      if (!email) throw new Error("Please enter an email");
 
-      if (!profiles || profiles.length === 0) {
+      const { data: userId, error: lookupError } = await (supabase.rpc as any)(
+        "get_user_id_by_email",
+        { _email: email }
+      );
+
+      if (lookupError) throw lookupError;
+      if (!userId) {
         throw new Error("No user found with that email. They must sign up first.");
       }
 
-      const userId = profiles[0].user_id;
-
-      // Check if already has the role
       const { data: existing } = await supabase
         .from("user_roles")
         .select("id")
