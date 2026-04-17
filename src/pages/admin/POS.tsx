@@ -72,6 +72,9 @@ export default function POS() {
   const [amountPaid, setAmountPaid] = useState<string>("");
   const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
   const [editPriceValue, setEditPriceValue] = useState<string>("");
+  // Quantity prompt dialog
+  const [qtyPromptProduct, setQtyPromptProduct] = useState<any | null>(null);
+  const [qtyPromptValue, setQtyPromptValue] = useState<string>("1");
   // VAT toggle
   const [includeVat, setIncludeVat] = useState(false);
   // Discount
@@ -193,27 +196,48 @@ export default function POS() {
       (p.sku && p.sku.toLowerCase().includes(search.toLowerCase()))
   ) ?? [];
 
-  const addToCart = useCallback((product: any) => {
+  const addToCart = useCallback((product: any, qty: number = 1) => {
+    if (product.stock_quantity <= 0) {
+      toast.error("Out of stock");
+      return;
+    }
     setCart((prev) => {
       const existing = prev.find((i) => i.product_id === product.id);
       if (existing) {
-        if (existing.quantity >= product.stock_quantity) {
+        const newQty = existing.quantity + qty;
+        if (newQty > product.stock_quantity) {
           toast.error("Not enough stock");
           return prev;
         }
         return prev.map((i) =>
-          i.product_id === product.id ? { ...i, quantity: i.quantity + 1 } : i
+          i.product_id === product.id ? { ...i, quantity: newQty } : i
         );
       }
-      if (product.stock_quantity <= 0) {
-        toast.error("Out of stock");
+      if (qty > product.stock_quantity) {
+        toast.error("Not enough stock");
         return prev;
       }
-      return [...prev, { product_id: product.id, name: product.name, price: product.price, selling_price: product.price, quantity: 1, stock: product.stock_quantity }];
+      return [...prev, { product_id: product.id, name: product.name, price: product.price, selling_price: product.price, quantity: qty, stock: product.stock_quantity }];
     });
     setSearch("");
     searchRef.current?.focus();
   }, []);
+
+  const openQtyPrompt = useCallback((product: any) => {
+    if (product.stock_quantity <= 0) {
+      toast.error("Out of stock");
+      return;
+    }
+    setQtyPromptProduct(product);
+    setQtyPromptValue("1");
+  }, []);
+
+  const confirmQtyPrompt = () => {
+    if (!qtyPromptProduct) return;
+    const qty = Math.max(1, Math.floor(Number(qtyPromptValue) || 1));
+    addToCart(qtyPromptProduct, qty);
+    setQtyPromptProduct(null);
+  };
 
   const updateQty = (productId: string, delta: number) => {
     setCart((prev) =>
@@ -647,7 +671,7 @@ export default function POS() {
                   {filtered.map((product: any) => (
                     <button
                       key={product.id}
-                      onClick={() => addToCart(product)}
+                      onClick={() => openQtyPrompt(product)}
                       disabled={product.stock_quantity <= 0}
                       className="text-left p-3 border rounded-lg hover:border-primary hover:bg-primary/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
@@ -959,6 +983,41 @@ export default function POS() {
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>
+
+      {/* Quantity Prompt Dialog */}
+      <Dialog open={!!qtyPromptProduct} onOpenChange={(o) => { if (!o) setQtyPromptProduct(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Add {qtyPromptProduct?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="text-sm text-muted-foreground">
+              Available stock: <span className="font-medium text-foreground">{qtyPromptProduct?.stock_quantity ?? 0}</span>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="qty-prompt">Quantity</Label>
+              <Input
+                id="qty-prompt"
+                type="number"
+                min={1}
+                max={qtyPromptProduct?.stock_quantity}
+                value={qtyPromptValue}
+                autoFocus
+                onChange={(e) => setQtyPromptValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") { e.preventDefault(); confirmQtyPrompt(); }
+                  if (e.key === "Escape") setQtyPromptProduct(null);
+                }}
+                onFocus={(e) => e.currentTarget.select()}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setQtyPromptProduct(null)}>Cancel</Button>
+              <Button onClick={confirmQtyPrompt}>Add to Sale</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Receipt Dialog */}
       <Dialog open={!!receiptOrder} onOpenChange={() => setReceiptOrder(null)}>
