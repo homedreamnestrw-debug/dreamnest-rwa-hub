@@ -34,8 +34,8 @@ export function Footer() {
           <div className="space-y-4">
             <h4 className="font-serif text-lg">Customer Care</h4>
             <div className="flex flex-col gap-2 text-sm text-primary-foreground/70">
-              <Link to="/account" className="hover:text-primary-foreground transition-colors">My Account</Link>
-              <Link to="/account/orders" className="hover:text-primary-foreground transition-colors">Track Orders</Link>
+              <Link to={accountHref} className="hover:text-primary-foreground transition-colors">My Account</Link>
+              <Link to={accountHref} className="hover:text-primary-foreground transition-colors">Track Orders</Link>
               <span>Returns & Exchanges</span>
             </div>
           </div>
