@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Search, Eye, Pencil, History } from "lucide-react";
+import { Plus, Search, Eye, Pencil, History, Download, Share2 } from "lucide-react";
+import { downloadInvoicePdf, shareInvoiceOnWhatsApp } from "@/lib/receiptUtils";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import type { Tables, TablesInsert } from "@/integrations/supabase/types";
@@ -302,11 +303,13 @@ export default function Invoices() {
                 </TableCell>
                 <TableCell>{formatRWF(inv.total)}</TableCell>
                 <TableCell>{inv.due_date ? format(new Date(inv.due_date), "MMM d, yyyy") : "—"}</TableCell>
-                <TableCell>{format(new Date(inv.created_at), "MMM d, yyyy")}</TableCell>
+                <TableCell className="text-sm">{format(new Date(inv.created_at), "MMM d, yyyy HH:mm")}</TableCell>
                 <TableCell>
-                  <div className="flex gap-1">
+                  <div className="flex gap-1 flex-wrap">
                     <Button variant="ghost" size="icon" onClick={() => setViewing(inv)} title="View"><Eye className="h-4 w-4" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => openEdit(inv)} title="Edit"><Pencil className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => downloadInvoicePdf(inv.id)} title="Download PDF"><Download className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => shareInvoiceOnWhatsApp(inv.id)} title="Share via WhatsApp"><Share2 className="h-4 w-4" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => fetchAuditLog(inv.id)} title="Audit trail"><History className="h-4 w-4" /></Button>
                     {inv.status === "draft" && (
                       <Button variant="ghost" size="sm" onClick={() => updateStatus(inv.id, "sent")}>Send</Button>
@@ -341,8 +344,10 @@ export default function Invoices() {
               {viewing.due_date && <p><span className="text-muted-foreground">Due:</span> {format(new Date(viewing.due_date), "MMM d, yyyy")}</p>}
               {viewing.paid_at && <p><span className="text-muted-foreground">Paid:</span> {format(new Date(viewing.paid_at), "MMM d, yyyy")}</p>}
               {viewing.notes && <p><span className="text-muted-foreground">Notes:</span> {viewing.notes}</p>}
-              <div className="flex gap-2 pt-2">
+              <div className="flex gap-2 pt-2 flex-wrap">
                 <Button size="sm" variant="outline" onClick={() => { openEdit(viewing); setViewing(null); }}><Pencil className="h-3.5 w-3.5 mr-1" /> Edit</Button>
+                <Button size="sm" variant="outline" onClick={() => downloadInvoicePdf(viewing.id)}><Download className="h-3.5 w-3.5 mr-1" /> PDF</Button>
+                <Button size="sm" variant="outline" onClick={() => shareInvoiceOnWhatsApp(viewing.id)}><Share2 className="h-3.5 w-3.5 mr-1" /> WhatsApp</Button>
                 {viewing.status === "draft" && <Button size="sm" onClick={() => { updateStatus(viewing.id, "sent"); setViewing(null); }}>Mark as Sent</Button>}
                 {(viewing.status === "sent" || viewing.status === "overdue") && <Button size="sm" onClick={() => { updateStatus(viewing.id, "paid"); setViewing(null); }}>Mark as Paid</Button>}
                 {viewing.status !== "cancelled" && viewing.status !== "paid" && (

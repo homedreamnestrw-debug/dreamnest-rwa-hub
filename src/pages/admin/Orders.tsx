@@ -147,7 +147,7 @@ export default function Orders() {
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="text-muted-foreground text-sm">{new Date(o.created_at).toLocaleDateString()}</TableCell>
+                <TableCell className="text-muted-foreground text-sm whitespace-nowrap">{new Date(o.created_at).toLocaleString(undefined, { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</TableCell>
                 <TableCell onClick={(e) => e.stopPropagation()}>
                   <Select value={o.status} onValueChange={(v) => updateStatus(o.id, v)}>
                     <SelectTrigger className="h-8 w-32"><SelectValue /></SelectTrigger>
