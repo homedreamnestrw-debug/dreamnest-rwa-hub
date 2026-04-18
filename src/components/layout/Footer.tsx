@@ -1,9 +1,12 @@
 import { Link } from "react-router-dom";
 import logo from "@/assets/logo.png";
 import { useWebsiteContent } from "@/hooks/useWebsiteContent";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function Footer() {
   const { content: c } = useWebsiteContent();
+  const { user } = useAuth();
+  const accountHref = user ? "/account" : "/auth/login";
 
   return (
     <footer className="bg-primary text-primary-foreground">
