@@ -73,6 +73,7 @@ const App = () => (
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/order-confirmation/:orderNumber" element={<OrderConfirmation />} />
             <Route path="/account" element={<Account />} />
+            <Route path="/wishlist" element={<Account />} />
             <Route path="/gift-vouchers" element={<GiftVouchers />} />
             <Route path="/gift-vouchers/confirmation/:code" element={<GiftVoucherConfirmation />} />
 
