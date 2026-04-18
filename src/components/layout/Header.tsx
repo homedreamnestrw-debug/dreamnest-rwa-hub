@@ -83,6 +83,22 @@ export function Header() {
           </div>
         </div>
 
+        {searchOpen && (
+          <form onSubmit={handleSearch} className="hidden md:flex border-t py-3 gap-2 items-center">
+            <Search className="h-4 w-4 text-muted-foreground ml-2" />
+            <input
+              autoFocus
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search products..."
+              className="flex-1 bg-transparent outline-none text-sm px-2"
+            />
+            <Button type="submit" size="sm">Search</Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setSearchOpen(false)}>Cancel</Button>
+          </form>
+        )}
+
         {mobileOpen && (
           <div className="md:hidden border-t py-4 space-y-3">
             <Link to="/" className="block py-2 text-sm font-medium" onClick={() => setMobileOpen(false)}>Home</Link>
