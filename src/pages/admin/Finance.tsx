@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Search, CheckCircle2, XCircle, Eye, Clock, ShieldCheck } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { OrderDetailDialog } from "@/components/admin/OrderDetailDialog";
+import { autoCreateReceiptForOrder } from "@/lib/receiptUtils";
 
 export default function Finance() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -77,7 +78,9 @@ export default function Finance() {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Payment approved", description: "Order moved to processing and stock deducted." });
+      // Auto-generate receipt document
+      try { await autoCreateReceiptForOrder(orderId); } catch (e) { console.error("Receipt auto-create failed", e); }
+      toast({ title: "Payment approved", description: "Order moved to processing, stock deducted, and receipt created." });
       if (order) sendNotification(order, "approved");
     }
     setProcessing(null);
