@@ -113,6 +113,39 @@ export default function Contact() {
             </div>
           </div>
         </div>
+
+        {/* Map */}
+        <div className="mt-16 max-w-5xl mx-auto">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl lg:text-3xl font-serif mb-2">Find Us on the Map</h2>
+            <p className="text-muted-foreground text-sm">
+              {c.contact_address ?? "31 KG 1 Ave, Kigali, Rwanda"}
+            </p>
+          </div>
+          <div className="rounded-lg overflow-hidden shadow-lg border border-border aspect-[16/9]">
+            <iframe
+              title="DreamNest Location"
+              src="https://www.google.com/maps?q=31+KG+1+Ave,+Kigali,+Rwanda&output=embed"
+              width="100%"
+              height="100%"
+              style={{ border: 0 }}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              allowFullScreen
+            />
+          </div>
+          <div className="text-center mt-4">
+            <a
+              href="https://www.google.com/maps/dir/?api=1&destination=31+KG+1+Ave,+Kigali,+Rwanda"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-soft-gold hover:underline text-sm font-medium"
+            >
+              <MapPin className="h-4 w-4" />
+              Get Directions
+            </a>
+          </div>
+        </div>
       </div>
     </PublicLayout>
   );
