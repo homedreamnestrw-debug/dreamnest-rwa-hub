@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ShoppingCart, Heart, User, Menu, X, Search } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,19 @@ export function Header() {
   const { user, isAdmin, isStaff, signOut } = useAuth();
   const { itemCount } = useCart();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const { shopEnabled } = useShopEnabled();
+  const navigate = useNavigate();
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = searchQuery.trim();
+    if (!q) return;
+    navigate(`/shop?search=${encodeURIComponent(q)}`);
+    setSearchOpen(false);
+    setSearchQuery("");
+  };
 
   return (
     <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
@@ -31,7 +43,7 @@ export function Header() {
           </nav>
 
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="hidden md:flex">
+            <Button variant="ghost" size="icon" className="hidden md:flex" onClick={() => setSearchOpen((v) => !v)} aria-label="Search">
               <Search className="h-5 w-5" />
             </Button>
             {user && (
@@ -70,6 +82,22 @@ export function Header() {
             </Button>
           </div>
         </div>
+
+        {searchOpen && (
+          <form onSubmit={handleSearch} className="hidden md:flex border-t py-3 gap-2 items-center">
+            <Search className="h-4 w-4 text-muted-foreground ml-2" />
+            <input
+              autoFocus
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search products..."
+              className="flex-1 bg-transparent outline-none text-sm px-2"
+            />
+            <Button type="submit" size="sm">Search</Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setSearchOpen(false)}>Cancel</Button>
+          </form>
+        )}
 
         {mobileOpen && (
           <div className="md:hidden border-t py-4 space-y-3">

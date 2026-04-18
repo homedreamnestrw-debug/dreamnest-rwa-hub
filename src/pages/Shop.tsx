@@ -14,7 +14,7 @@ export default function Shop() {
   const { shopEnabled, isLoading: shopLoading } = useShopEnabled();
   const [searchParams, setSearchParams] = useSearchParams();
   const categorySlug = searchParams.get("category");
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(searchParams.get("search") ?? "");
   const [sortBy, setSortBy] = useState("newest");
 
   const { data: categories } = useQuery({
