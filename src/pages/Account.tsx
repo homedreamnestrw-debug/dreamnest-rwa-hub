@@ -10,20 +10,25 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Package, User, Heart, LogOut, Trash2, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 
 export default function Account() {
-  const { user, signOut } = useAuth();
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const { user, loading, signOut } = useAuth();
 
-  if (!user) {
-    navigate("/auth/login");
-    return null;
+  if (loading) {
+    return (
+      <PublicLayout>
+        <div className="container mx-auto px-4 py-20 text-center">
+          <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+        </div>
+      </PublicLayout>
+    );
   }
+
+  if (!user) return <Navigate to="/auth/login" replace />;
 
   return (
     <PublicLayout>
