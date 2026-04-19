@@ -6,6 +6,7 @@ import { useWebsiteContent } from "@/hooks/useWebsiteContent";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useShopEnabled } from "@/hooks/useShopEnabled";
+import { SEO } from "@/components/SEO";
 
 export default function About() {
   const { content: c } = useWebsiteContent();
@@ -29,6 +30,10 @@ export default function About() {
 
   return (
     <PublicLayout>
+      <SEO
+        title="About DreamNest — Premium Bedding Crafted in Rwanda"
+        description="Discover the story of DreamNest. Based in Kigali, we curate premium bedding and home decor blending Rwandan craftsmanship with modern elegance."
+      />
       <section className="py-20 bg-secondary">
         <div className="container mx-auto px-4 text-center max-w-3xl">
           <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground mb-3">Our Story</p>

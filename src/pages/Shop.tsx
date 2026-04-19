@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { useShopEnabled } from "@/hooks/useShopEnabled";
 import { ComingSoon } from "@/components/layout/ComingSoon";
+import { SEO } from "@/components/SEO";
 
 export default function Shop() {
   const { shopEnabled, isLoading: shopLoading } = useShopEnabled();
@@ -52,8 +53,17 @@ export default function Shop() {
 
   if (!shopLoading && !shopEnabled) return <ComingSoon />;
 
+  const currentCategoryName = categorySlug ? categories?.find((c: any) => c.slug === categorySlug)?.name : null;
+  const seoTitle = currentCategoryName
+    ? `${currentCategoryName} — Shop DreamNest`
+    : "Shop Premium Bedding & Home Decor — DreamNest";
+  const seoDesc = currentCategoryName
+    ? `Browse our ${currentCategoryName} collection. Premium quality bedding and home decor delivered in Kigali, Rwanda.`
+    : "Shop our curated collection of premium bedding, linens and home decor. Quality craftsmanship delivered across Rwanda.";
+
   return (
     <PublicLayout>
+      <SEO title={seoTitle} description={seoDesc} />
       <div className="container mx-auto px-4 py-10">
         {/* Header */}
         <div className="mb-10">
