@@ -41,6 +41,17 @@ export default function Home() {
 
   return (
     <PublicLayout>
+      <SEO
+        title="DreamNest — Premium Bedding & Home Decor in Kigali"
+        description="Discover DreamNest's curated collection of premium bedding, linens and home decor. Crafted with care, delivered across Rwanda."
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: "DreamNest",
+          url: "https://dreamnestrw.com",
+          address: { "@type": "PostalAddress", streetAddress: "31 KG 1 Ave", addressLocality: "Kigali", addressCountry: "RW" },
+        }}
+      />
       {/* Hero */}
       <section className="relative min-h-[70vh] lg:min-h-[80vh] flex items-center overflow-hidden">
         <img
