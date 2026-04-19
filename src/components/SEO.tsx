@@ -7,11 +7,12 @@ interface SEOProps {
   image?: string;
   type?: string;
   jsonLd?: Record<string, any>;
+  keywords?: string;
 }
 
 const SITE_URL = "https://dreamnestrw.com";
 
-export function SEO({ title, description, canonical, image, type = "website", jsonLd }: SEOProps) {
+export function SEO({ title, description, canonical, image, type = "website", jsonLd, keywords }: SEOProps) {
   const url = canonical ?? (typeof window !== "undefined" ? window.location.href : SITE_URL);
   const img = image ?? `${SITE_URL}/og-image.jpg`;
   const truncDesc = description.length > 160 ? description.slice(0, 157) + "..." : description;
@@ -21,6 +22,7 @@ export function SEO({ title, description, canonical, image, type = "website", js
     <Helmet>
       <title>{truncTitle}</title>
       <meta name="description" content={truncDesc} />
+      {keywords && <meta name="keywords" content={keywords} />}
       <link rel="canonical" href={url} />
 
       <meta property="og:title" content={truncTitle} />

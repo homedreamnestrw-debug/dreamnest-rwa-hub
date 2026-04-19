@@ -55,22 +55,25 @@ export default function Shop() {
 
   const currentCategoryName = categorySlug ? categories?.find((c: any) => c.slug === categorySlug)?.name : null;
   const seoTitle = currentCategoryName
-    ? `${currentCategoryName} — Shop DreamNest`
-    : "Shop Premium Bedding & Home Decor — DreamNest";
+    ? `${currentCategoryName} in Kigali — Shop DreamNest Rwanda`
+    : "Shop Premium Bedding & Home Decor in Kigali, Rwanda | DreamNest";
   const seoDesc = currentCategoryName
-    ? `Browse our ${currentCategoryName} collection. Premium quality bedding and home decor delivered in Kigali, Rwanda.`
-    : "Shop our curated collection of premium bedding, linens and home decor. Quality craftsmanship delivered across Rwanda.";
+    ? `Browse ${currentCategoryName} in Kigali — premium bedding Rwanda trusts. Bedroom sets, pillows, storage boxes and home decor delivered across Rwanda.`
+    : "Shop bedding Kigali — premium bedding Rwanda, bedroom sets Kigali, pillows, storage boxes and home decor delivered across Rwanda.";
+  const seoKeywords = "bedding Kigali, premium bedding Rwanda, home decor Rwanda, home decor Kigali, bedroom sets Kigali, pillows Kigali, storage box Kigali";
 
   return (
     <PublicLayout>
-      <SEO title={seoTitle} description={seoDesc} />
+      <SEO title={seoTitle} description={seoDesc} keywords={seoKeywords} />
       <div className="container mx-auto px-4 py-10">
         {/* Header */}
         <div className="mb-10">
           <h1 className="text-3xl lg:text-4xl font-serif mb-2">
             {categorySlug ? categories?.find((c: any) => c.slug === categorySlug)?.name ?? "Shop" : "Shop All"}
           </h1>
-          <p className="text-muted-foreground">Explore our curated collection of premium home essentials</p>
+          <p className="text-muted-foreground max-w-2xl">
+            Explore our curated collection of premium bedding in Kigali — bedroom sets, pillows, storage boxes and home decor delivered across Rwanda.
+          </p>
         </div>
 
         {/* Filters */}
