@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Mail, Phone, MapPin } from "lucide-react";
 import { useWebsiteContent } from "@/hooks/useWebsiteContent";
+import { SEO } from "@/components/SEO";
 
 export default function Contact() {
   const [loading, setLoading] = useState(false);
@@ -42,6 +43,10 @@ export default function Contact() {
 
   return (
     <PublicLayout>
+      <SEO
+        title="Contact DreamNest — Visit Us in Kigali, Rwanda"
+        description="Get in touch with DreamNest. Visit our showroom at 31 KG 1 Ave, Kigali, call +250 788 000 000, or message us about our premium bedding collection."
+      />
       <div className="container mx-auto px-4 py-16">
         <div className="text-center mb-12">
           <h1 className="text-3xl lg:text-4xl font-serif mb-3">
