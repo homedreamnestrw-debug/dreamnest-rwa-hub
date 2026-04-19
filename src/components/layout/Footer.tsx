@@ -16,7 +16,7 @@ export function Footer() {
           <div className="md:col-span-1 space-y-4">
             <img src={logo} alt="DreamNest" className="h-14 w-auto brightness-0 invert" />
             <p className="text-primary-foreground/70 text-sm leading-relaxed">
-              {c.footer_description ?? "Premium bedding & home decor, crafted with care in Kigali, Rwanda."}
+              {c.footer_description ?? "Premium bedding, bedroom sets, pillows, storage boxes and home decor — crafted with care in Kigali, Rwanda."}
             </p>
           </div>
 

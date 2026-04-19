@@ -127,9 +127,11 @@ export default function ProductDetail() {
     : null;
 
   const productImage = product.images?.[0];
+  const categoryName = product.categories?.name ?? "home decor";
   const seoDesc = product.description
     ? product.description.replace(/<[^>]*>/g, "").slice(0, 160)
-    : `Buy ${product.name} at DreamNest. Premium ${product.categories?.name ?? "home decor"} delivered in Kigali, Rwanda.`;
+    : `Buy ${product.name} at DreamNest — premium bedding Kigali, ${categoryName} in Rwanda. Quality home decor delivered across Kigali.`;
+  const seoKeywords = `${product.name}, ${categoryName} Kigali, bedding Kigali, premium bedding Rwanda, home decor Rwanda, DreamNest`;
   const jsonLd = {
     "@context": "https://schema.org/",
     "@type": "Product",
@@ -158,8 +160,9 @@ export default function ProductDetail() {
   return (
     <PublicLayout>
       <SEO
-        title={`${product.name} — DreamNest`}
+        title={`${product.name} — DreamNest Kigali, Rwanda`}
         description={seoDesc}
+        keywords={seoKeywords}
         image={productImage}
         type="product"
         jsonLd={jsonLd}

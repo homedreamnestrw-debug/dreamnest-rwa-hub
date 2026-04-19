@@ -42,8 +42,9 @@ export default function Home() {
   return (
     <PublicLayout>
       <SEO
-        title="DreamNest — Premium Bedding & Home Decor in Kigali"
-        description="Discover DreamNest's curated collection of premium bedding, linens and home decor. Crafted with care, delivered across Rwanda."
+        title="DreamNest — Premium Bedding & Home Decor in Kigali, Rwanda"
+        description="Premium bedding Kigali — shop bedroom sets, pillows, storage boxes and home decor in Rwanda. Curated linens delivered across Kigali."
+        keywords="bedding Kigali, premium bedding Rwanda, home decor Rwanda, home decor Kigali, bedroom sets Kigali, pillows Kigali, storage box Kigali"
         jsonLd={{
           "@context": "https://schema.org",
           "@type": "Organization",
@@ -65,7 +66,7 @@ export default function Home() {
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-2xl space-y-6 animate-fade-in">
             <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground font-medium">
-              {c.hero_subtitle ?? "Premium Bedding & Home Decor"}
+              {c.hero_subtitle ?? "Premium Bedding & Home Decor in Kigali, Rwanda"}
             </p>
             <h1 className="text-4xl lg:text-6xl font-serif text-foreground leading-tight">
               {(c.hero_title ?? "Comfort Meets Elegance").split("\n").map((line, i) => (
@@ -97,18 +98,18 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
             <div className="flex flex-col items-center gap-3">
               <Truck className="h-8 w-8 text-soft-gold" />
-              <h3 className="font-serif text-lg">{c.feature_1_title ?? "Free Delivery in Kigali"}</h3>
-              <p className="text-sm text-muted-foreground">{c.feature_1_desc ?? "On orders above 50,000 RWF"}</p>
+              <h3 className="font-serif text-lg">{c.feature_1_title ?? "Free Delivery across Kigali"}</h3>
+              <p className="text-sm text-muted-foreground">{c.feature_1_desc ?? "Free delivery in Kigali on orders above 50,000 RWF"}</p>
             </div>
             <div className="flex flex-col items-center gap-3">
               <Shield className="h-8 w-8 text-soft-gold" />
               <h3 className="font-serif text-lg">{c.feature_2_title ?? "Quality Guaranteed"}</h3>
-              <p className="text-sm text-muted-foreground">{c.feature_2_desc ?? "30-day return policy"}</p>
+              <p className="text-sm text-muted-foreground">{c.feature_2_desc ?? "Premium bedding Rwanda trusts — 30-day return policy"}</p>
             </div>
             <div className="flex flex-col items-center gap-3">
               <Leaf className="h-8 w-8 text-soft-gold" />
               <h3 className="font-serif text-lg">{c.feature_3_title ?? "Sustainably Made"}</h3>
-              <p className="text-sm text-muted-foreground">{c.feature_3_desc ?? "Eco-friendly materials"}</p>
+              <p className="text-sm text-muted-foreground">{c.feature_3_desc ?? "Eco-friendly materials, ethically crafted"}</p>
             </div>
           </div>
         </div>
@@ -121,6 +122,9 @@ export default function Home() {
             <div className="text-center mb-12">
               <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground mb-3">Browse</p>
               <h2 className="text-3xl lg:text-4xl font-serif">Shop by Category</h2>
+              <p className="text-muted-foreground mt-3 max-w-2xl mx-auto">
+                From premium bedding and bedroom sets to pillows, storage boxes and home decor — discover pieces curated for homes across Kigali and Rwanda.
+              </p>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 lg:gap-6">
               {categories.map((cat: any) => (
@@ -188,7 +192,7 @@ export default function Home() {
       <section className="py-20">
         <div className="container mx-auto px-4 text-center max-w-xl">
           <h2 className="text-3xl font-serif mb-4">{c.newsletter_title ?? "Stay in the Loop"}</h2>
-          <p className="text-muted-foreground mb-8">{c.newsletter_desc ?? "Subscribe for exclusive offers, new arrivals, and home styling tips."}</p>
+          <p className="text-muted-foreground mb-8">{c.newsletter_desc ?? "Subscribe for exclusive offers on premium bedding in Rwanda, new arrivals, and home styling tips from Kigali."}</p>
           <form
             onSubmit={async (e) => {
               e.preventDefault();

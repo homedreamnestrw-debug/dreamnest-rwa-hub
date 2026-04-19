@@ -44,8 +44,9 @@ export default function Contact() {
   return (
     <PublicLayout>
       <SEO
-        title="Contact DreamNest — Visit Us in Kigali, Rwanda"
-        description="Get in touch with DreamNest. Visit our showroom at 31 KG 1 Ave, Kigali, call +250 788 000 000, or message us about our premium bedding collection."
+        title="Contact DreamNest — Bedding & Home Decor Store in Kigali, Rwanda"
+        description="Contact DreamNest in Kigali for premium bedding Rwanda, bedroom sets, pillows, storage boxes and home decor. Visit 31 KG 1 Ave, Kigali, or call +250 788 000 000."
+        keywords="contact DreamNest, bedding Kigali, home decor Kigali, premium bedding Rwanda, bedroom sets Kigali"
       />
       <div className="container mx-auto px-4 py-16">
         <div className="text-center mb-12">

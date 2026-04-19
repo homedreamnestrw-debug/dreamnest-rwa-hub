@@ -31,15 +31,16 @@ export default function About() {
   return (
     <PublicLayout>
       <SEO
-        title="About DreamNest — Premium Bedding Crafted in Rwanda"
-        description="Discover the story of DreamNest. Based in Kigali, we curate premium bedding and home decor blending Rwandan craftsmanship with modern elegance."
+        title="About DreamNest — Premium Bedding Rwanda, Crafted in Kigali"
+        description="DreamNest is Kigali's home for premium bedding Rwanda loves — bedroom sets, pillows, storage boxes and home decor blending artisan craft with modern elegance."
+        keywords="premium bedding Rwanda, bedding Kigali, home decor Kigali, home decor Rwanda, bedroom sets Kigali, DreamNest about"
       />
       <section className="py-20 bg-secondary">
         <div className="container mx-auto px-4 text-center max-w-3xl">
           <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground mb-3">Our Story</p>
           <h1 className="text-4xl lg:text-5xl font-serif mb-6">{c.about_title ?? "Crafted with Love in Rwanda"}</h1>
           <p className="text-lg text-muted-foreground leading-relaxed">
-            {c.about_description ?? "DreamNest was born from a simple belief — everyone deserves to come home to comfort and beauty. Based in Kigali, we curate premium bedding and home decor pieces that blend artisan craftsmanship with modern elegance."}
+            {c.about_description ?? "DreamNest was born from a simple belief — everyone deserves to come home to comfort and beauty. Based in Kigali, we curate premium bedding and home decor in Kigali, Rwanda — from bedroom sets and pillows to storage boxes — blending artisan craftsmanship with modern elegance."}
           </p>
         </div>
       </section>
