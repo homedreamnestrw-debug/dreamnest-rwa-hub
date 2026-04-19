@@ -8,6 +8,7 @@ import { ArrowRight, Star, Truck, Shield, Leaf } from "lucide-react";
 import heroBedroom from "@/assets/hero-bedroom.jpg";
 import { useWebsiteContent } from "@/hooks/useWebsiteContent";
 import { useShopEnabled } from "@/hooks/useShopEnabled";
+import { SEO } from "@/components/SEO";
 
 export default function Home() {
   const { content: c } = useWebsiteContent();

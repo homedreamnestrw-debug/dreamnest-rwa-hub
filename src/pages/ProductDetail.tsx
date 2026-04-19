@@ -11,6 +11,7 @@ import { Heart, Minus, Plus, ShoppingCart, Star } from "lucide-react";
 import { ReviewForm } from "@/components/product/ReviewForm";
 import { useShopEnabled } from "@/hooks/useShopEnabled";
 import { ComingSoon } from "@/components/layout/ComingSoon";
+import { SEO } from "@/components/SEO";
 
 export default function ProductDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -125,8 +126,44 @@ export default function ProductDetail() {
     ? (reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / reviews.length).toFixed(1)
     : null;
 
+  const productImage = product.images?.[0];
+  const seoDesc = product.description
+    ? product.description.replace(/<[^>]*>/g, "").slice(0, 160)
+    : `Buy ${product.name} at DreamNest. Premium ${product.categories?.name ?? "home decor"} delivered in Kigali, Rwanda.`;
+  const jsonLd = {
+    "@context": "https://schema.org/",
+    "@type": "Product",
+    name: product.name,
+    image: product.images ?? [],
+    description: seoDesc,
+    sku: product.sku ?? undefined,
+    category: product.categories?.name,
+    offers: {
+      "@type": "Offer",
+      priceCurrency: "RWF",
+      price: product.price,
+      availability: product.stock_quantity > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+    },
+    ...(avgRating && reviews && reviews.length > 0
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: avgRating,
+            reviewCount: reviews.length,
+          },
+        }
+      : {}),
+  };
+
   return (
     <PublicLayout>
+      <SEO
+        title={`${product.name} — DreamNest`}
+        description={seoDesc}
+        image={productImage}
+        type="product"
+        jsonLd={jsonLd}
+      />
       <div className="container mx-auto px-4 py-10">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-8">
