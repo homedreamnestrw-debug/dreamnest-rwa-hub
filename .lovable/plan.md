@@ -1,81 +1,60 @@
 
+## Goal
+Naturally weave Rwanda/Kigali-focused SEO keywords into existing page copy and meta tags so search rankings improve without making the content feel stuffed or robotic.
 
-Looking at the inventory list, I need to group these 14 items into logical, customer-friendly categories that fit DreamNest's "Premium Bedding & Home Decor" brand.
+## Target Keywords
+- bedding Kigali
+- home decor Rwanda / home decor Kigali
+- premium bedding Rwanda
+- bedroom sets Kigali
+- storage box Kigali
+- pillows Kigali
 
-**Items to group:**
-1. Bedsheets with duvet cover
-2. Throw pillow
-3. Pillows
-4. Duvets
-5. Bathrobe
-6. Towels
-7. Hair Towels
-8. Throw Blanket
-9. Mattress Topper
-10. Storage Humper (hamper)
-11. Storage Rack
-12. Storage boxes
-13. Laundry Humper (hamper)
-14. Disposable towels
+## Where to add them
 
-## Proposed Categories (4 categories)
+### 1. `index.html` (default meta)
+Update the default `<title>` and `<meta name="description">` plus OG/Twitter descriptions to include "Kigali, Rwanda" and 2–3 core keywords. This is the fallback for crawlers before React renders.
 
-### 1. Bedding
-Core sleep essentials — what goes on the bed.
-- Bedsheets with duvet cover
-- Duvets
-- Pillows
-- Mattress Topper
+### 2. `src/pages/Home.tsx`
+- **SEO title/description**: Expand to include "bedding Kigali" and "home decor Rwanda".
+- **Hero subtitle fallback**: Already says "Premium Bedding & Home Decor" — extend default fallback to "Premium Bedding & Home Decor in Kigali, Rwanda" (only when DB content is empty, so admin overrides remain respected).
+- **Features section fallback copy**: Mention Kigali delivery naturally.
+- **Newsletter fallback copy**: Mention Rwanda.
+- Add a short intro paragraph above the Categories section: "From premium bedding and bedroom sets to pillows, storage boxes and home decor — discover pieces curated for homes across Kigali and Rwanda." (only renders as static copy, helps crawlers).
 
-### 2. Throws & Cushions
-Decorative soft layers that add warmth and style.
-- Throw pillow
-- Throw Blanket
+### 3. `src/pages/Shop.tsx`
+- SEO title: "Shop Premium Bedding & Home Decor in Kigali, Rwanda | DreamNest"
+- SEO description: include "bedding Kigali", "bedroom sets", "pillows", "storage boxes", "home decor Rwanda".
+- Add a small intro paragraph under the page heading describing the catalog with keywords woven in.
 
-### 3. Bath & Body
-Everything for the bathroom and personal care.
-- Bathrobe
-- Towels
-- Hair Towels
-- Disposable towels
+### 4. `src/pages/About.tsx`
+- SEO title/description: include "premium bedding Rwanda" and "Kigali".
+- Adjust default fallback of `about_description` to mention "premium bedding and home decor in Kigali, Rwanda" (only the default — admin-edited content still wins).
 
-### 4. Storage & Organization
-Tidy-up essentials for bedroom, bathroom, and laundry.
-- Storage Hamper
-- Storage Rack
-- Storage Boxes
-- Laundry Hamper
+### 5. `src/pages/Contact.tsx`
+- SEO title/description: "Contact DreamNest — Bedding & Home Decor Store in Kigali, Rwanda".
+- Ensure address line emphasizes Kigali (already does).
 
----
+### 6. `src/pages/ProductDetail.tsx`
+- Append " — Kigali, Rwanda" to SEO title and include "premium bedding Kigali / home decor Rwanda" in the description template.
 
-## Alternative: 5-Category Split
+### 7. `src/components/layout/Footer.tsx`
+- Default fallback for `footer_description` already mentions Kigali. Extend slightly: "Premium bedding, bedroom sets, pillows, storage boxes and home decor — crafted with care in Kigali, Rwanda." (default fallback only.)
 
-If you'd prefer finer granularity, split Bath & Body into two:
+### 8. `src/components/SEO.tsx`
+- Add an optional `keywords` prop that renders `<meta name="keywords" content="...">`. Pass Rwanda/Kigali keyword sets per page. (Modern SEO weights this lightly, but it's harmless and useful for some regional engines.)
 
-- **Bath Linens** — Towels, Hair Towels, Disposable Towels
-- **Robes & Loungewear** — Bathrobe (room to grow with slippers, pajamas, etc.)
+## Principles
+- All admin-editable content (`useWebsiteContent` values) is left intact — only the **fallback defaults** are enriched, so the admin can still override.
+- Keywords are added in natural sentences, never as comma-separated stuffing in body copy.
+- No layout, design, or behavior changes.
 
----
-
-## Suggested Slugs (for URLs & seeding)
-
-| Category | Slug |
-|---|---|
-| Bedding | `bedding` |
-| Throws & Cushions | `throws-cushions` |
-| Bath & Body | `bath-body` |
-| Storage & Organization | `storage-organization` |
-
-Note: `bedding` and `bath-body` already have hero images mapped in `src/lib/categoryImages.ts`. The two new ones (`throws-cushions`, `storage-organization`) would need images added — or we can reuse `home-decor.jpg` and `bedroom-essentials.jpg` as fallbacks.
-
----
-
-## Next Step Options
-
-If you approve, I can:
-- **Seed these categories** into the database via migration (insert into `categories` table with slugs + descriptions)
-- **Add matching hero images** for the two new categories
-- **Pre-create the 14 products** as inactive drafts under the right categories so you only need to add prices, SKUs, and photos
-
-Let me know which option(s) you want and I'll proceed.
-
+## Files to edit
+- `index.html`
+- `src/components/SEO.tsx`
+- `src/pages/Home.tsx`
+- `src/pages/Shop.tsx`
+- `src/pages/About.tsx`
+- `src/pages/Contact.tsx`
+- `src/pages/ProductDetail.tsx`
+- `src/components/layout/Footer.tsx`
