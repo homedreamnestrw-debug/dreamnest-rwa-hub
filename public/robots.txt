@@ -7,3 +7,4 @@ Disallow: /cart
 Disallow: /auth/
 
 Sitemap: https://dreamnestrw.com/sitemap.xml
+Sitemap: https://mreuawvrjanwcolbathu.supabase.co/functions/v1/sitemap
