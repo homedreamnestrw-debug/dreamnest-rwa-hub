@@ -86,23 +86,26 @@ const App = () => (
                 </ProtectedRoute>
               }
             >
-              <Route index element={<Dashboard />} />
+              <Route index element={<POS />} />
+              <Route path="pos" element={<POS />} />
               <Route path="products" element={<Products />} />
               <Route path="orders" element={<Orders />} />
               <Route path="customers" element={<Customers />} />
               <Route path="categories" element={<Categories />} />
-              <Route path="analytics" element={<Analytics />} />
               <Route path="stock" element={<StockManagement />} />
-              <Route path="suppliers" element={<Suppliers />} />
-              <Route path="purchase-orders" element={<PurchaseOrders />} />
               <Route path="invoices" element={<Invoices />} />
-              <Route path="expenses" element={<Expenses />} />
-              <Route path="settings" element={<Settings />} />
-              <Route path="pos" element={<POS />} />
-              <Route path="staff" element={<Staff />} />
-              <Route path="finance" element={<Finance />} />
               <Route path="messages" element={<Messages />} />
               <Route path="gift-vouchers" element={<AdminGiftVouchers />} />
+
+              {/* Admin-only */}
+              <Route path="dashboard" element={<ProtectedRoute requiredRole="admin"><Dashboard /></ProtectedRoute>} />
+              <Route path="analytics" element={<ProtectedRoute requiredRole="admin"><Analytics /></ProtectedRoute>} />
+              <Route path="suppliers" element={<ProtectedRoute requiredRole="admin"><Suppliers /></ProtectedRoute>} />
+              <Route path="purchase-orders" element={<ProtectedRoute requiredRole="admin"><PurchaseOrders /></ProtectedRoute>} />
+              <Route path="expenses" element={<ProtectedRoute requiredRole="admin"><Expenses /></ProtectedRoute>} />
+              <Route path="settings" element={<ProtectedRoute requiredRole="admin"><Settings /></ProtectedRoute>} />
+              <Route path="staff" element={<ProtectedRoute requiredRole="admin"><Staff /></ProtectedRoute>} />
+              <Route path="finance" element={<ProtectedRoute requiredRole="admin"><Finance /></ProtectedRoute>} />
             </Route>
 
             {/* Catch-all */}
