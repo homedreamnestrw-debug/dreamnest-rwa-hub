@@ -273,12 +273,85 @@ export default function Invoices() {
     setShowAudit(true);
   };
 
+  // Materialise a virtual row (an order without an invoice yet) into a real DB record
+  const generateFromOrder = async (row: InvoiceRow) => {
+    if (!row._order_id) return;
+    setGeneratingId(row.id);
+    const isOnline = row._order_channel === "online";
+    const docType: Invoice["document_type"] = isOnline ? "invoice" : "receipt";
+
+    const { data: orderItems } = await supabase
+      .from("order_items")
+      .select("quantity, unit_price, total, products(name)")
+      .eq("order_id", row._order_id);
+
+    const payload: TablesInsert<"invoices"> = {
+      document_number: "TEMP",
+      document_type: docType,
+      order_id: row._order_id,
+      customer_id: row.customer_id,
+      subtotal: row.subtotal,
+      tax_rate: Number(row.tax_rate),
+      tax_amount: row.tax_amount,
+      discount: row.discount,
+      total: row.total,
+      status: row.status,
+      paid_at: row.paid_at,
+      notes: row.notes,
+    };
+    const { error } = await supabase.from("invoices").insert(payload);
+    if (error) {
+      setGeneratingId(null);
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+
+    const { data: created } = await supabase
+      .from("invoices")
+      .select("id")
+      .eq("order_id", row._order_id)
+      .eq("document_type", docType)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (created && orderItems && orderItems.length > 0) {
+      const items = orderItems.map((it: any) => ({
+        invoice_id: created.id,
+        description: it.products?.name || "Item",
+        quantity: it.quantity,
+        unit_price: it.unit_price,
+        tax: 0,
+        total: it.total,
+      }));
+      await supabase.from("invoice_items").insert(items);
+    }
+
+    setGeneratingId(null);
+    toast({ title: `${isOnline ? "Invoice" : "Receipt"} generated` });
+    fetchData();
+  };
+
   const filtered = invoices.filter((inv) => {
     if (filterType !== "all" && inv.document_type !== filterType) return false;
     if (filterStatus !== "all" && inv.status !== filterStatus) return false;
+    if (filterSource !== "all") {
+      const source = inv._virtual
+        ? (inv._order_channel === "online" ? "online" : "pos")
+        : (inv.order_id ? "linked" : "manual");
+      if (filterSource === "online" && source !== "online") return false;
+      if (filterSource === "pos" && source !== "pos") return false;
+      if (filterSource === "manual" && source === "online") return false;
+      if (filterSource === "manual" && source === "pos") return false;
+    }
     if (search && !inv.document_number.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
+
+  const counts = {
+    online: invoices.filter(i => i._virtual && i._order_channel === "online").length,
+    pos: invoices.filter(i => i._virtual && i._order_channel === "in_store").length,
+  };
 
   return (
     <div className="space-y-6">
