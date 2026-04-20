@@ -391,6 +391,37 @@ export default function Invoices() {
         </Dialog>
       </div>
 
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant={filterSource === "all" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setFilterSource("all")}
+        >
+          All ({invoices.length})
+        </Button>
+        <Button
+          variant={filterSource === "online" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setFilterSource("online")}
+        >
+          <Globe className="h-3.5 w-3.5 mr-1" /> Online Orders ({counts.online})
+        </Button>
+        <Button
+          variant={filterSource === "pos" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setFilterSource("pos")}
+        >
+          <Store className="h-3.5 w-3.5 mr-1" /> POS Receipts ({counts.pos})
+        </Button>
+        <Button
+          variant={filterSource === "manual" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setFilterSource("manual")}
+        >
+          <FileText className="h-3.5 w-3.5 mr-1" /> Generated
+        </Button>
+      </div>
+
       <div className="flex flex-wrap gap-3">
         <div className="relative max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -417,10 +448,10 @@ export default function Invoices() {
           <TableHeader>
             <TableRow>
               <TableHead>Number</TableHead>
+              <TableHead>Source</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Total</TableHead>
-              <TableHead>Due Date</TableHead>
               <TableHead>Created</TableHead>
               <TableHead className="w-40">Actions</TableHead>
             </TableRow>
@@ -430,33 +461,69 @@ export default function Invoices() {
               <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
             ) : filtered.length === 0 ? (
               <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No documents found</TableCell></TableRow>
-            ) : filtered.map((inv) => (
-              <TableRow key={inv.id}>
-                <TableCell className="font-medium font-mono">{inv.document_number}</TableCell>
-                <TableCell className="capitalize">{inv.document_type}</TableCell>
-                <TableCell>
-                  <Badge variant={statusColors[inv.status] || "secondary"} className="capitalize">{inv.status}</Badge>
-                </TableCell>
-                <TableCell>{formatRWF(inv.total)}</TableCell>
-                <TableCell>{inv.due_date ? format(new Date(inv.due_date), "MMM d, yyyy") : "—"}</TableCell>
-                <TableCell className="text-sm">{format(new Date(inv.created_at), "MMM d, yyyy HH:mm")}</TableCell>
-                <TableCell>
-                  <div className="flex gap-1 flex-wrap">
-                    <Button variant="ghost" size="icon" onClick={() => setViewing(inv)} title="View"><Eye className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(inv)} title="Edit"><Pencil className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => downloadInvoicePdf(inv.id)} title="Download PDF"><Download className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => shareInvoiceOnWhatsApp(inv.id)} title="Share via WhatsApp"><Share2 className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => fetchAuditLog(inv.id)} title="Audit trail"><History className="h-4 w-4" /></Button>
-                    {inv.status === "draft" && (
-                      <Button variant="ghost" size="sm" onClick={() => updateStatus(inv.id, "sent")}>Send</Button>
-                    )}
-                    {(inv.status === "sent" || inv.status === "overdue") && (
-                      <Button variant="ghost" size="sm" onClick={() => updateStatus(inv.id, "paid")}>Mark Paid</Button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
+            ) : filtered.map((inv) => {
+              const isVirtual = inv._virtual;
+              const sourceIcon = inv._order_channel === "online"
+                ? <Globe className="h-3.5 w-3.5 text-primary" />
+                : inv._order_channel === "in_store"
+                ? <Store className="h-3.5 w-3.5 text-accent-foreground" />
+                : <FileText className="h-3.5 w-3.5 text-muted-foreground" />;
+              const sourceLabel = inv._order_channel === "online"
+                ? `Online #${inv._order_number ?? ""}`
+                : inv._order_channel === "in_store"
+                ? `POS #${inv._order_number ?? ""}`
+                : inv.order_id ? "Linked" : "Manual";
+              return (
+                <TableRow key={inv.id} className={isVirtual ? "bg-muted/20" : undefined}>
+                  <TableCell className="font-medium font-mono">
+                    {inv.document_number}
+                    {isVirtual && <span className="ml-2 text-[9px] uppercase tracking-wide rounded px-1 py-0.5 bg-amber-500/15 text-amber-700 dark:text-amber-400">Pending</span>}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1.5 text-xs">
+                      {sourceIcon}
+                      <span className="text-muted-foreground">{sourceLabel}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="capitalize">{inv.document_type}</TableCell>
+                  <TableCell>
+                    <Badge variant={statusColors[inv.status] || "secondary"} className="capitalize">{inv.status}</Badge>
+                  </TableCell>
+                  <TableCell>{formatRWF(inv.total)}</TableCell>
+                  <TableCell className="text-sm">{format(new Date(inv.created_at), "MMM d, yyyy HH:mm")}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-1 flex-wrap">
+                      <Button variant="ghost" size="icon" onClick={() => setViewing(inv)} title="View"><Eye className="h-4 w-4" /></Button>
+                      {isVirtual ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => generateFromOrder(inv)}
+                          disabled={generatingId === inv.id}
+                          title="Generate document from this order"
+                        >
+                          <FileText className="h-3.5 w-3.5 mr-1" />
+                          {generatingId === inv.id ? "Generating..." : "Generate"}
+                        </Button>
+                      ) : (
+                        <>
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(inv)} title="Edit"><Pencil className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" onClick={() => downloadInvoicePdf(inv.id)} title="Download PDF"><Download className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" onClick={() => shareInvoiceOnWhatsApp(inv.id)} title="Share via WhatsApp"><Share2 className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" onClick={() => fetchAuditLog(inv.id)} title="Audit trail"><History className="h-4 w-4" /></Button>
+                          {inv.status === "draft" && (
+                            <Button variant="ghost" size="sm" onClick={() => updateStatus(inv.id, "sent")}>Send</Button>
+                          )}
+                          {(inv.status === "sent" || inv.status === "overdue") && (
+                            <Button variant="ghost" size="sm" onClick={() => updateStatus(inv.id, "paid")}>Mark Paid</Button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </div>
