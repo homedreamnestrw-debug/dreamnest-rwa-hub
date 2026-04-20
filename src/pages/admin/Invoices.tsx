@@ -477,7 +477,7 @@ export default function Invoices() {
                 <TableRow key={inv.id} className={isVirtual ? "bg-muted/20" : undefined}>
                   <TableCell className="font-medium font-mono">
                     {inv.document_number}
-                    {isVirtual && <span className="ml-2 text-[9px] uppercase tracking-wide rounded px-1 py-0.5 bg-amber-500/15 text-amber-700 dark:text-amber-400">Pending</span>}
+                    {isVirtual && <span className="ml-2 text-[9px] uppercase tracking-wide rounded px-1 py-0.5 bg-secondary text-secondary-foreground">Pending</span>}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1.5 text-xs">
