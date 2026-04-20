@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Search, Eye, Pencil, History, Download, Share2 } from "lucide-react";
+import { Plus, Search, Eye, Pencil, History, Download, Share2, FileText, Store, Globe } from "lucide-react";
 import { downloadInvoicePdf, shareInvoiceOnWhatsApp } from "@/lib/receiptUtils";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -19,6 +19,14 @@ import type { Tables, TablesInsert } from "@/integrations/supabase/types";
 import { Constants } from "@/integrations/supabase/types";
 
 type Invoice = Tables<"invoices">;
+
+// A row that represents either a real invoice OR an unbilled order (auto-listed)
+type InvoiceRow = Invoice & {
+  _virtual?: boolean;
+  _order_channel?: "online" | "in_store" | null;
+  _order_number?: number | null;
+  _order_id?: string | null;
+};
 
 const docTypes = Constants.public.Enums.document_type;
 const docStatuses = Constants.public.Enums.document_status;
