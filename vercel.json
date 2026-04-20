@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/sitemap-dynamic.xml", "destination": "https://mreuawvrjanwcolbathu.supabase.co/functions/v1/sitemap" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
