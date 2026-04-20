@@ -32,43 +32,62 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
+type Visibility = "admin" | "staff" | "both";
+
 type NavItem = {
   title: string;
   url: string;
   icon: typeof LayoutDashboard;
-  adminOnly?: boolean;
+  visibility: Visibility;
 };
 
 const salesItems: NavItem[] = [
-  { title: "POS Terminal", url: "/admin/pos", icon: Monitor },
-  { title: "Orders", url: "/admin/orders", icon: ShoppingCart },
-  { title: "Invoices", url: "/admin/invoices", icon: FileText },
-  { title: "Gift Vouchers", url: "/admin/gift-vouchers", icon: Gift },
+  { title: "POS Terminal", url: "/admin/pos", icon: Monitor, visibility: "both" },
+  { title: "Orders", url: "/admin/orders", icon: ShoppingCart, visibility: "both" },
+  { title: "Invoices", url: "/admin/invoices", icon: FileText, visibility: "both" },
+  { title: "Gift Vouchers", url: "/admin/gift-vouchers", icon: Gift, visibility: "both" },
 ];
 
 const catalogItems: NavItem[] = [
-  { title: "Products", url: "/admin/products", icon: Package },
-  { title: "Categories", url: "/admin/categories", icon: FolderTree },
-  { title: "Stock", url: "/admin/stock", icon: Warehouse },
+  { title: "Products", url: "/admin/products", icon: Package, visibility: "both" },
+  { title: "Categories", url: "/admin/categories", icon: FolderTree, visibility: "both" },
+  { title: "Stock", url: "/admin/stock", icon: Warehouse, visibility: "both" },
 ];
 
 const peopleItems: NavItem[] = [
-  { title: "Customers", url: "/admin/customers", icon: Users },
-  { title: "Messages", url: "/admin/messages", icon: MessageSquare },
-  { title: "Staff", url: "/admin/staff", icon: Users, adminOnly: true },
+  { title: "Customers", url: "/admin/customers", icon: Users, visibility: "both" },
+  { title: "Messages", url: "/admin/messages", icon: MessageSquare, visibility: "both" },
+  { title: "Staff", url: "/admin/staff", icon: Users, visibility: "admin" },
 ];
 
 const operationsItems: NavItem[] = [
-  { title: "Suppliers", url: "/admin/suppliers", icon: Truck, adminOnly: true },
-  { title: "Purchase Orders", url: "/admin/purchase-orders", icon: FileText, adminOnly: true },
-  { title: "Expenses", url: "/admin/expenses", icon: DollarSign, adminOnly: true },
+  { title: "Suppliers", url: "/admin/suppliers", icon: Truck, visibility: "admin" },
+  { title: "Purchase Orders", url: "/admin/purchase-orders", icon: FileText, visibility: "admin" },
+  { title: "Expenses", url: "/admin/expenses", icon: DollarSign, visibility: "admin" },
 ];
 
 const insightsItems: NavItem[] = [
-  { title: "Dashboard", url: "/admin/dashboard", icon: LayoutDashboard, adminOnly: true },
-  { title: "Analytics", url: "/admin/analytics", icon: BarChart3, adminOnly: true },
-  { title: "Payment Approvals", url: "/admin/finance", icon: DollarSign, adminOnly: true },
+  { title: "Dashboard", url: "/admin/dashboard", icon: LayoutDashboard, visibility: "admin" },
+  { title: "Analytics", url: "/admin/analytics", icon: BarChart3, visibility: "admin" },
+  { title: "Payment Approvals", url: "/admin/finance", icon: DollarSign, visibility: "admin" },
 ];
+
+function VisibilityTag({ visibility }: { visibility: Visibility }) {
+  const label = visibility === "admin" ? "Ad" : visibility === "staff" ? "St" : "Ad+St";
+  const cls =
+    visibility === "admin"
+      ? "bg-primary/15 text-primary"
+      : visibility === "staff"
+      ? "bg-accent/30 text-accent-foreground"
+      : "bg-muted text-muted-foreground";
+  return (
+    <span
+      className={`ml-auto rounded px-1 py-0.5 text-[9px] font-medium uppercase tracking-wide ${cls}`}
+    >
+      {label}
+    </span>
+  );
+}
 
 export function AdminSidebar() {
   const { state } = useSidebar();
@@ -84,7 +103,7 @@ export function AdminSidebar() {
   };
 
   const filterItems = (items: NavItem[]) =>
-    items.filter((item) => !item.adminOnly || isAdmin);
+    items.filter((item) => item.visibility !== "admin" || isAdmin);
 
   const renderGroup = (label: string, items: NavItem[]) => {
     const visible = filterItems(items);
@@ -99,7 +118,12 @@ export function AdminSidebar() {
                 <SidebarMenuButton asChild isActive={isActive(item.url)}>
                   <NavLink to={item.url}>
                     <item.icon className="h-4 w-4" />
-                    {!collapsed && <span>{item.title}</span>}
+                    {!collapsed && (
+                      <>
+                        <span>{item.title}</span>
+                        <VisibilityTag visibility={item.visibility} />
+                      </>
+                    )}
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -135,7 +159,12 @@ export function AdminSidebar() {
               <SidebarMenuButton asChild isActive={isActive("/admin/settings")}>
                 <NavLink to="/admin/settings">
                   <Settings className="h-4 w-4" />
-                  {!collapsed && <span>Settings</span>}
+                  {!collapsed && (
+                    <>
+                      <span>Settings</span>
+                      <VisibilityTag visibility="admin" />
+                    </>
+                  )}
                 </NavLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
