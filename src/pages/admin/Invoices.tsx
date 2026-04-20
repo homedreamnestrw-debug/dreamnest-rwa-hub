@@ -47,17 +47,19 @@ const formatRWF = (n: number) =>
 
 export default function Invoices() {
   const { user } = useAuth();
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterSource, setFilterSource] = useState<string>("all");
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [viewing, setViewing] = useState<Invoice | null>(null);
+  const [viewing, setViewing] = useState<InvoiceRow | null>(null);
   const [editing, setEditing] = useState<Invoice | null>(null);
   const [auditLog, setAuditLog] = useState<any[]>([]);
   const [showAudit, setShowAudit] = useState(false);
   const [invoiceItems, setInvoiceItems] = useState<any[]>([]);
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     document_type: "invoice" as Invoice["document_type"],
@@ -83,8 +85,61 @@ export default function Invoices() {
   });
 
   const fetchData = async () => {
-    const { data } = await supabase.from("invoices").select("*").order("created_at", { ascending: false });
-    setInvoices(data || []);
+    setLoading(true);
+    // Fetch all real invoices/receipts
+    const { data: invoiceData } = await supabase
+      .from("invoices")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    // Fetch orders so we can auto-list those without an invoice/receipt yet
+    const { data: orderData } = await supabase
+      .from("orders")
+      .select("id, order_number, channel, total, subtotal, tax_amount, discount_amount, status, payment_status, payment_approved, notes, created_at, customer_id")
+      .order("created_at", { ascending: false });
+
+    const billedOrderIds = new Set((invoiceData || []).filter(i => i.order_id).map(i => i.order_id as string));
+
+    const virtualRows: InvoiceRow[] = (orderData || [])
+      .filter(o => !billedOrderIds.has(o.id))
+      .map((o) => {
+        const isOnline = o.channel === "online";
+        const docType: Invoice["document_type"] = isOnline ? "invoice" : "receipt";
+        const status: Invoice["status"] =
+          o.status === "cancelled" ? "cancelled" :
+          o.payment_status === "paid" ? "paid" :
+          isOnline ? "sent" : "draft";
+        return {
+          id: `virtual-${o.id}`,
+          document_number: `${isOnline ? "INV" : "REC"}-#${o.order_number}`,
+          document_type: docType,
+          status,
+          subtotal: o.subtotal,
+          tax_rate: 18,
+          tax_amount: o.tax_amount,
+          discount: o.discount_amount,
+          total: o.total,
+          due_date: null,
+          paid_at: o.payment_status === "paid" ? o.created_at : null,
+          notes: o.notes,
+          customer_id: o.customer_id,
+          order_id: o.id,
+          created_at: o.created_at,
+          updated_at: o.created_at,
+          _virtual: true,
+          _order_channel: o.channel,
+          _order_number: o.order_number,
+          _order_id: o.id,
+        } as InvoiceRow;
+      });
+
+    const realRows: InvoiceRow[] = (invoiceData || []).map((inv) => ({ ...inv } as InvoiceRow));
+
+    // Merge & sort by created_at desc
+    const merged = [...realRows, ...virtualRows].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+    setInvoices(merged);
     setLoading(false);
   };
 
