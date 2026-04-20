@@ -1,60 +1,77 @@
 
 ## Goal
-Naturally weave Rwanda/Kigali-focused SEO keywords into existing page copy and meta tags so search rankings improve without making the content feel stuffed or robotic.
+Reorganize the admin sidebar into clearer groups, make POS Terminal the default landing page, and hide admin-only pages from staff users.
 
-## Target Keywords
-- bedding Kigali
-- home decor Rwanda / home decor Kigali
-- premium bedding Rwanda
-- bedroom sets Kigali
-- storage box Kigali
-- pillows Kigali
+## Admin-only vs Staff-accessible (based on RLS policies)
 
-## Where to add them
+**Admin-only** (hidden from staff):
+- Staff (manages user_roles — admin only)
+- Suppliers (RLS: admin only)
+- Purchase Orders (RLS: admin only)
+- Expenses (RLS: admin only)
+- Payment Approvals / Finance (approves orders — admin only)
+- Analytics (financial insights — admin only)
+- Settings (business_settings — admin only)
+- Dashboard (financial overview — admin only)
 
-### 1. `index.html` (default meta)
-Update the default `<title>` and `<meta name="description">` plus OG/Twitter descriptions to include "Kigali, Rwanda" and 2–3 core keywords. This is the fallback for crawlers before React renders.
+**Staff + Admin**:
+- POS Terminal, Orders, Invoices, Gift Vouchers, Products, Categories, Stock, Customers, Messages
 
-### 2. `src/pages/Home.tsx`
-- **SEO title/description**: Expand to include "bedding Kigali" and "home decor Rwanda".
-- **Hero subtitle fallback**: Already says "Premium Bedding & Home Decor" — extend default fallback to "Premium Bedding & Home Decor in Kigali, Rwanda" (only when DB content is empty, so admin overrides remain respected).
-- **Features section fallback copy**: Mention Kigali delivery naturally.
-- **Newsletter fallback copy**: Mention Rwanda.
-- Add a short intro paragraph above the Categories section: "From premium bedding and bedroom sets to pillows, storage boxes and home decor — discover pieces curated for homes across Kigali and Rwanda." (only renders as static copy, helps crawlers).
+## New Menu Structure
 
-### 3. `src/pages/Shop.tsx`
-- SEO title: "Shop Premium Bedding & Home Decor in Kigali, Rwanda | DreamNest"
-- SEO description: include "bedding Kigali", "bedroom sets", "pillows", "storage boxes", "home decor Rwanda".
-- Add a small intro paragraph under the page heading describing the catalog with keywords woven in.
+```text
+DreamNest
+─────────────────────
+SALES
+  • POS Terminal      (default landing — staff + admin)
+  • Orders            (staff + admin)
+  • Invoices          (staff + admin)
+  • Gift Vouchers     (staff + admin)
 
-### 4. `src/pages/About.tsx`
-- SEO title/description: include "premium bedding Rwanda" and "Kigali".
-- Adjust default fallback of `about_description` to mention "premium bedding and home decor in Kigali, Rwanda" (only the default — admin-edited content still wins).
+CATALOG
+  • Products          (staff + admin)
+  • Categories        (staff + admin)
+  • Stock             (staff + admin)
 
-### 5. `src/pages/Contact.tsx`
-- SEO title/description: "Contact DreamNest — Bedding & Home Decor Store in Kigali, Rwanda".
-- Ensure address line emphasizes Kigali (already does).
+PEOPLE
+  • Customers         (staff + admin)
+  • Messages          (staff + admin)
+  • Staff             (admin only)
 
-### 6. `src/pages/ProductDetail.tsx`
-- Append " — Kigali, Rwanda" to SEO title and include "premium bedding Kigali / home decor Rwanda" in the description template.
+OPERATIONS              (admin only — entire group hidden from staff)
+  • Suppliers
+  • Purchase Orders
+  • Expenses
 
-### 7. `src/components/layout/Footer.tsx`
-- Default fallback for `footer_description` already mentions Kigali. Extend slightly: "Premium bedding, bedroom sets, pillows, storage boxes and home decor — crafted with care in Kigali, Rwanda." (default fallback only.)
+INSIGHTS                (admin only — entire group hidden from staff)
+  • Dashboard
+  • Analytics
+  • Payment Approvals
+─────────────────────
+Footer:
+  • Settings (admin only)
+  • View Store (everyone)
+  • Sign Out (everyone)
+```
 
-### 8. `src/components/SEO.tsx`
-- Add an optional `keywords` prop that renders `<meta name="keywords" content="...">`. Pass Rwanda/Kigali keyword sets per page. (Modern SEO weights this lightly, but it's harmless and useful for some regional engines.)
+## Changes
 
-## Principles
-- All admin-editable content (`useWebsiteContent` values) is left intact — only the **fallback defaults** are enriched, so the admin can still override.
-- Keywords are added in natural sentences, never as comma-separated stuffing in body copy.
-- No layout, design, or behavior changes.
+### 1. `src/App.tsx`
+- Change `/admin` index route from `<Dashboard />` to `<POS />`.
+- Add new route `<Route path="dashboard" element={<Dashboard />} />` so Dashboard is reachable at `/admin/dashboard`.
+- Wrap admin-only child routes (`dashboard`, `analytics`, `suppliers`, `purchase-orders`, `expenses`, `finance`, `staff`, `settings`) in `<ProtectedRoute requiredRole="admin">` so direct URL access is blocked for staff.
 
-## Files to edit
-- `index.html`
-- `src/components/SEO.tsx`
-- `src/pages/Home.tsx`
-- `src/pages/Shop.tsx`
-- `src/pages/About.tsx`
-- `src/pages/Contact.tsx`
-- `src/pages/ProductDetail.tsx`
-- `src/components/layout/Footer.tsx`
+### 2. `src/components/admin/AdminSidebar.tsx`
+- Replace current 3 groups with the 5 new groups above.
+- Each item gets an optional `adminOnly: true` flag.
+- Read `isAdmin` from `useAuth()`; filter items where `adminOnly` is true and the user is not admin.
+- If a whole group becomes empty after filtering, hide the entire group (label + content).
+- Update active-route logic so POS is highlighted at both `/admin` and `/admin/pos`.
+- Footer: hide Settings link when not admin.
+
+### 3. No other files need changes
+- `Dashboard.tsx`, `POS.tsx`, etc. remain untouched.
+
+## Notes
+- Sidebar visibility is UX only; the **route guard** in step 1 is what actually enforces access.
+- Existing deep links keep working; only `/admin` (now POS) and `/admin/dashboard` (new) shift.
