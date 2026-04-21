@@ -130,6 +130,31 @@ export default function Checkout() {
 
     setSubmitting(true);
     try {
+      // Final live stock check to prevent overselling
+      const productIds = cartItems.map((i) => i.product?.id ?? i.product_id).filter(Boolean) as string[];
+      const { data: liveProducts, error: stockError } = await supabase
+        .from("products")
+        .select("id, name, stock_quantity")
+        .in("id", productIds);
+      if (stockError) throw stockError;
+
+      const stockMap = new Map(liveProducts?.map((p) => [p.id, p]) ?? []);
+      const insufficient = cartItems
+        .map((item) => {
+          const pid = item.product?.id ?? item.product_id;
+          const live = stockMap.get(pid);
+          if (!live) return `${item.product?.name ?? "Item"} is no longer available`;
+          if (live.stock_quantity <= 0) return `${live.name} is out of stock`;
+          if (item.quantity > live.stock_quantity) return `${live.name}: only ${live.stock_quantity} left (you requested ${item.quantity})`;
+          return null;
+        })
+        .filter(Boolean);
+      if (insufficient.length > 0) {
+        toast.error(insufficient.join(" • "));
+        setSubmitting(false);
+        return;
+      }
+
       const effectivePaymentMethod = isFullyPaidByVoucher ? "voucher" : form.payment_method;
       const orderPayload: any = {
         channel: "online" as const,

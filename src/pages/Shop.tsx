@@ -137,7 +137,7 @@ export default function Shop() {
                   {product.stock_quantity <= product.low_stock_threshold && product.stock_quantity > 0 && (
                     <p className="text-xs text-destructive">Low stock</p>
                   )}
-                  {product.stock_quantity === 0 && <p className="text-xs text-destructive">Out of stock</p>}
+                  {product.stock_quantity <= 0 && <p className="text-xs text-destructive">Out of stock</p>}
                 </div>
               </Link>
             ))}
