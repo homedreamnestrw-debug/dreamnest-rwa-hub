@@ -422,7 +422,7 @@ export default function StockManagement() {
               <Select value={transferProduct} onValueChange={setTransferProduct}>
                 <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
                 <SelectContent>
-                  {products.map((p) => <SelectItem key={p.id} value={p.id}>{p.name} (Stock: {p.stock_quantity})</SelectItem>)}
+                  {products.map((p) => <SelectItem key={p.id} value={p.id}>{p.name} (Total: {p.stock_quantity})</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -432,7 +432,11 @@ export default function StockManagement() {
                 <Select value={transferFrom} onValueChange={setTransferFrom}>
                   <SelectTrigger><SelectValue placeholder="Source" /></SelectTrigger>
                   <SelectContent>
-                    {locations.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
+                    {locations.map((l) => (
+                      <SelectItem key={l.id} value={l.id}>
+                        {l.name}{transferProduct ? ` (${stockAtLocation(transferProduct, l.id)})` : ""}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -441,7 +445,11 @@ export default function StockManagement() {
                 <Select value={transferTo} onValueChange={setTransferTo}>
                   <SelectTrigger><SelectValue placeholder="Destination" /></SelectTrigger>
                   <SelectContent>
-                    {locations.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
+                    {locations.map((l) => (
+                      <SelectItem key={l.id} value={l.id}>
+                        {l.name}{transferProduct ? ` (${stockAtLocation(transferProduct, l.id)})` : ""}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
