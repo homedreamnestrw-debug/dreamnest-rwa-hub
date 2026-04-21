@@ -21,10 +21,12 @@ type StockLocation = Tables<"stock_locations">;
 export default function Products() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [locations, setLocations] = useState<StockLocation[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
+  const [locationStock, setLocationStock] = useState<Record<string, number>>({});
 
   const [form, setForm] = useState({
     name: "",
@@ -33,7 +35,6 @@ export default function Products() {
     price: 0,
     cost_price: 0,
     sku: "",
-    stock_quantity: 0,
     low_stock_threshold: 5,
     category_id: "",
     tax_enabled: true,
@@ -43,12 +44,14 @@ export default function Products() {
   });
 
   const fetchData = async () => {
-    const [prodRes, catRes] = await Promise.all([
+    const [prodRes, catRes, locRes] = await Promise.all([
       supabase.from("products").select("*").order("created_at", { ascending: false }),
       supabase.from("categories").select("*").order("name"),
+      supabase.from("stock_locations").select("*").eq("is_active", true).order("name"),
     ]);
     setProducts(prodRes.data || []);
     setCategories(catRes.data || []);
+    setLocations(locRes.data || []);
     setLoading(false);
   };
 
