@@ -16,14 +16,17 @@ import type { Tables, TablesInsert } from "@/integrations/supabase/types";
 
 type Product = Tables<"products">;
 type Category = Tables<"categories">;
+type StockLocation = Tables<"stock_locations">;
 
 export default function Products() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [locations, setLocations] = useState<StockLocation[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
+  const [locationStock, setLocationStock] = useState<Record<string, number>>({});
 
   const [form, setForm] = useState({
     name: "",
@@ -32,7 +35,6 @@ export default function Products() {
     price: 0,
     cost_price: 0,
     sku: "",
-    stock_quantity: 0,
     low_stock_threshold: 5,
     category_id: "",
     tax_enabled: true,
@@ -42,23 +44,26 @@ export default function Products() {
   });
 
   const fetchData = async () => {
-    const [prodRes, catRes] = await Promise.all([
+    const [prodRes, catRes, locRes] = await Promise.all([
       supabase.from("products").select("*").order("created_at", { ascending: false }),
       supabase.from("categories").select("*").order("name"),
+      supabase.from("stock_locations").select("*").eq("is_active", true).order("name"),
     ]);
     setProducts(prodRes.data || []);
     setCategories(catRes.data || []);
+    setLocations(locRes.data || []);
     setLoading(false);
   };
 
   useEffect(() => { fetchData(); }, []);
 
   const resetForm = () => {
-    setForm({ name: "", slug: "", description: "", price: 0, cost_price: 0, sku: "", stock_quantity: 0, low_stock_threshold: 5, category_id: "", tax_enabled: true, is_active: true, featured: false, images: [] });
+    setForm({ name: "", slug: "", description: "", price: 0, cost_price: 0, sku: "", low_stock_threshold: 5, category_id: "", tax_enabled: true, is_active: true, featured: false, images: [] });
+    setLocationStock({});
     setEditing(null);
   };
 
-  const openEdit = (p: Product) => {
+  const openEdit = async (p: Product) => {
     setEditing(p);
     setForm({
       name: p.name,
@@ -67,7 +72,6 @@ export default function Products() {
       price: p.price,
       cost_price: p.cost_price,
       sku: p.sku || "",
-      stock_quantity: p.stock_quantity,
       low_stock_threshold: p.low_stock_threshold,
       category_id: p.category_id || "",
       tax_enabled: p.tax_enabled,
@@ -75,23 +79,49 @@ export default function Products() {
       featured: p.featured,
       images: p.images || [],
     });
+    // Load per-location stock
+    const { data } = await supabase
+      .from("product_stock")
+      .select("location_id, quantity")
+      .eq("product_id", p.id);
+    const map: Record<string, number> = {};
+    (data || []).forEach((r) => { map[r.location_id] = r.quantity; });
+    setLocationStock(map);
     setDialogOpen(true);
   };
+
+  const totalStock = Object.values(locationStock).reduce((a, b) => a + (b || 0), 0);
 
   const handleSave = async () => {
     const slug = form.slug || form.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
     const { images, ...rest } = form;
     const payload: TablesInsert<"products"> = { ...rest, slug, category_id: form.category_id || null, images: images.length > 0 ? images : null };
 
+    let productId: string;
     if (editing) {
       const { error } = await supabase.from("products").update(payload).eq("id", editing.id);
       if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+      productId = editing.id;
       toast({ title: "Product updated" });
     } else {
-      const { error } = await supabase.from("products").insert(payload);
-      if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+      const { data, error } = await supabase.from("products").insert(payload).select("id").single();
+      if (error || !data) { toast({ title: "Error", description: error?.message, variant: "destructive" }); return; }
+      productId = data.id;
       toast({ title: "Product created" });
     }
+
+    // Upsert per-location stock (only when editing — new products get auto-seeded rows by trigger;
+    // user can edit them to set quantities afterwards, OR if they entered values during create, we set them now)
+    const upserts = Object.entries(locationStock)
+      .filter(([locId]) => locId)
+      .map(([location_id, quantity]) => ({ product_id: productId, location_id, quantity: quantity || 0 }));
+    if (upserts.length > 0) {
+      const { error: stockErr } = await supabase
+        .from("product_stock")
+        .upsert(upserts, { onConflict: "product_id,location_id" });
+      if (stockErr) { toast({ title: "Stock save failed", description: stockErr.message, variant: "destructive" }); }
+    }
+
     setDialogOpen(false);
     resetForm();
     fetchData();
@@ -139,7 +169,34 @@ export default function Products() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div><Label>SKU</Label><Input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} /></div>
-                <div><Label>Stock Qty</Label><Input type="number" value={form.stock_quantity} onChange={(e) => setForm({ ...form, stock_quantity: +e.target.value })} /></div>
+                <div><Label>Low Stock Threshold</Label><Input type="number" value={form.low_stock_threshold} onChange={(e) => setForm({ ...form, low_stock_threshold: +e.target.value })} /></div>
+              </div>
+              <div className="rounded-md border p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Stock per Location</Label>
+                  <span className="text-xs text-muted-foreground">Total: <span className="font-semibold text-foreground">{totalStock}</span></span>
+                </div>
+                {locations.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No active locations. Create one in Locations first.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {locations.map((l) => (
+                      <div key={l.id} className="flex items-center gap-3">
+                        <span className="text-sm flex-1 truncate">{l.name}</span>
+                        <Input
+                          type="number"
+                          min={0}
+                          className="w-28"
+                          value={locationStock[l.id] ?? 0}
+                          onChange={(e) => setLocationStock({ ...locationStock, [l.id]: +e.target.value })}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {!editing && (
+                  <p className="text-xs text-muted-foreground">Tip: stock rows are auto-created at qty 0 for new products. Edit them here or in Stock Management.</p>
+                )}
               </div>
               <div>
                 <Label>Category</Label>

@@ -735,6 +735,48 @@ export type Database = {
           },
         ]
       }
+      product_stock: {
+        Row: {
+          created_at: string
+          id: string
+          location_id: string
+          product_id: string
+          quantity: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          location_id: string
+          product_id: string
+          quantity?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          location_id?: string
+          product_id?: string
+          quantity?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_stock_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "stock_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_variants: {
         Row: {
           attributes: Json | null
@@ -1364,6 +1406,15 @@ export type Database = {
       }
       reject_order_payment: {
         Args: { order_id: string; rejection_note?: string }
+        Returns: undefined
+      }
+      transfer_stock: {
+        Args: {
+          p_from_location: string
+          p_product_id: string
+          p_quantity: number
+          p_to_location: string
+        }
         Returns: undefined
       }
       validate_voucher: {
