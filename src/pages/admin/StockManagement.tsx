@@ -19,13 +19,17 @@ type Product = DbTables<"products">;
 type StockMovement = DbTables<"stock_movements">;
 type StockLocation = DbTables<"stock_locations">;
 
+type ProductStock = { product_id: string; location_id: string; quantity: number };
+
 export default function StockManagement() {
   const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [movements, setMovements] = useState<(StockMovement & { product_name?: string; location_name?: string })[]>([]);
   const [locations, setLocations] = useState<StockLocation[]>([]);
+  const [productStock, setProductStock] = useState<ProductStock[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [overviewLocation, setOverviewLocation] = useState<string>("all");
 
   // Adjust stock dialog
   const [adjustOpen, setAdjustOpen] = useState(false);
@@ -43,17 +47,18 @@ export default function StockManagement() {
   const [transferQty, setTransferQty] = useState(1);
 
   const fetchAll = useCallback(async () => {
-    const [prodRes, movRes, locRes] = await Promise.all([
+    const [prodRes, movRes, locRes, stockRes] = await Promise.all([
       supabase.from("products").select("*").order("stock_quantity", { ascending: true }),
       supabase.from("stock_movements").select("*").order("created_at", { ascending: false }).limit(100),
       supabase.from("stock_locations").select("*").order("name"),
+      supabase.from("product_stock").select("product_id, location_id, quantity"),
     ]);
     const prods = prodRes.data || [];
     const locs = locRes.data || [];
     setProducts(prods);
     setLocations(locs);
+    setProductStock(stockRes.data || []);
 
-    // Enrich movements with product/location names
     const movs = (movRes.data || []).map((m) => ({
       ...m,
       product_name: prods.find((p) => p.id === m.product_id)?.name || "Unknown",
@@ -65,8 +70,19 @@ export default function StockManagement() {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
+  // Stock at currently selected location (or global if "all")
+  const stockFor = (productId: string): number => {
+    if (overviewLocation === "all") {
+      return products.find((p) => p.id === productId)?.stock_quantity ?? 0;
+    }
+    return productStock.find((s) => s.product_id === productId && s.location_id === overviewLocation)?.quantity ?? 0;
+  };
+
+  const stockAtLocation = (productId: string, locationId: string): number =>
+    productStock.find((s) => s.product_id === productId && s.location_id === locationId)?.quantity ?? 0;
+
   const lowStockProducts = products.filter((p) => p.stock_quantity <= p.low_stock_threshold);
-  const outOfStock = products.filter((p) => p.stock_quantity === 0);
+  const outOfStock = products.filter((p) => p.stock_quantity <= 0);
   const filtered = products.filter((p) =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||
     (p.sku || "").toLowerCase().includes(search.toLowerCase())
@@ -74,18 +90,25 @@ export default function StockManagement() {
 
   const handleAdjust = async () => {
     if (!adjustProduct || adjustQty === 0) return;
-    const prev = adjustProduct.stock_quantity;
+    if (!adjustLocation) {
+      toast({ title: "Select a location", variant: "destructive" });
+      return;
+    }
+    const prev = stockAtLocation(adjustProduct.id, adjustLocation);
     const newStock = prev + adjustQty;
     if (newStock < 0) {
-      toast({ title: "Error", description: "Stock cannot go below 0", variant: "destructive" });
+      toast({ title: "Error", description: "Stock at this location cannot go below 0", variant: "destructive" });
       return;
     }
 
-    const { error: updateErr } = await supabase
-      .from("products")
-      .update({ stock_quantity: newStock })
-      .eq("id", adjustProduct.id);
-    if (updateErr) { toast({ title: "Error", description: updateErr.message, variant: "destructive" }); return; }
+    // Upsert per-location stock; the DB trigger will sync products.stock_quantity
+    const { error: upErr } = await supabase
+      .from("product_stock")
+      .upsert(
+        { product_id: adjustProduct.id, location_id: adjustLocation, quantity: newStock },
+        { onConflict: "product_id,location_id" }
+      );
+    if (upErr) { toast({ title: "Error", description: upErr.message, variant: "destructive" }); return; }
 
     await supabase.from("stock_movements").insert({
       product_id: adjustProduct.id,
@@ -95,7 +118,7 @@ export default function StockManagement() {
       new_stock: newStock,
       reason: adjustReason || null,
       performed_by: user?.id || null,
-      location_id: adjustLocation || null,
+      location_id: adjustLocation,
     });
 
     toast({ title: "Stock adjusted", description: `${adjustProduct.name}: ${prev} → ${newStock}` });
@@ -112,37 +135,20 @@ export default function StockManagement() {
       toast({ title: "Error", description: "Source and destination must be different", variant: "destructive" });
       return;
     }
+    const { error } = await supabase.rpc("transfer_stock", {
+      p_product_id: transferProduct,
+      p_from_location: transferFrom,
+      p_to_location: transferTo,
+      p_quantity: transferQty,
+    });
+    if (error) { toast({ title: "Transfer failed", description: error.message, variant: "destructive" }); return; }
 
-    // For simplicity, log two movements (out from source, in to destination)
-    const product = products.find((p) => p.id === transferProduct);
-    if (!product) return;
-
-    await supabase.from("stock_movements").insert([
-      {
-        product_id: transferProduct,
-        movement_type: "transfer" as const,
-        quantity: -transferQty,
-        previous_stock: product.stock_quantity,
-        new_stock: product.stock_quantity,
-        reason: `Transfer to ${locations.find((l) => l.id === transferTo)?.name}`,
-        performed_by: user?.id || null,
-        location_id: transferFrom,
-      },
-      {
-        product_id: transferProduct,
-        movement_type: "transfer" as const,
-        quantity: transferQty,
-        previous_stock: product.stock_quantity,
-        new_stock: product.stock_quantity,
-        reason: `Transfer from ${locations.find((l) => l.id === transferFrom)?.name}`,
-        performed_by: user?.id || null,
-        location_id: transferTo,
-      },
-    ]);
-
-    toast({ title: "Transfer recorded" });
+    toast({ title: "Stock transferred" });
     setTransferOpen(false);
     setTransferQty(1);
+    setTransferProduct("");
+    setTransferFrom("");
+    setTransferTo("");
     fetchAll();
   };
 
