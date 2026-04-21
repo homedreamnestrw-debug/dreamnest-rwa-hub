@@ -234,9 +234,18 @@ export default function StockManagement() {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-4">
-          <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search by name or SKU..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+          <div className="flex flex-wrap gap-3 items-center">
+            <div className="relative max-w-sm flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Search by name or SKU..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+            </div>
+            <Select value={overviewLocation} onValueChange={setOverviewLocation}>
+              <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Locations (total)</SelectItem>
+                {locations.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
           <div className="rounded-md border">
             <Table>
@@ -244,7 +253,7 @@ export default function StockManagement() {
                 <TableRow>
                   <TableHead>Product</TableHead>
                   <TableHead>SKU</TableHead>
-                  <TableHead>Stock</TableHead>
+                  <TableHead>Stock {overviewLocation === "all" ? "(total)" : `at ${locations.find(l => l.id === overviewLocation)?.name || ""}`}</TableHead>
                   <TableHead>Threshold</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="w-24">Actions</TableHead>
@@ -253,20 +262,23 @@ export default function StockManagement() {
               <TableBody>
                 {filtered.length === 0 ? (
                   <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No products found</TableCell></TableRow>
-                ) : filtered.map((p) => (
-                  <TableRow key={p.id}>
-                    <TableCell className="font-medium">{p.name}</TableCell>
-                    <TableCell className="text-muted-foreground">{p.sku || "—"}</TableCell>
-                    <TableCell className={p.stock_quantity <= p.low_stock_threshold ? "text-destructive font-semibold" : ""}>{p.stock_quantity}</TableCell>
-                    <TableCell>{p.low_stock_threshold}</TableCell>
-                    <TableCell>{stockBadge(p)}</TableCell>
-                    <TableCell>
-                      <Button variant="outline" size="sm" onClick={() => openAdjust(p)}>
-                        <Plus className="h-3 w-3 mr-1" /> Adjust
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                ) : filtered.map((p) => {
+                  const qty = stockFor(p.id);
+                  return (
+                    <TableRow key={p.id}>
+                      <TableCell className="font-medium">{p.name}</TableCell>
+                      <TableCell className="text-muted-foreground">{p.sku || "—"}</TableCell>
+                      <TableCell className={qty <= p.low_stock_threshold ? "text-destructive font-semibold" : ""}>{qty}</TableCell>
+                      <TableCell>{p.low_stock_threshold}</TableCell>
+                      <TableCell>{stockBadge(qty, p.low_stock_threshold)}</TableCell>
+                      <TableCell>
+                        <Button variant="outline" size="sm" onClick={() => openAdjust(p)}>
+                          <Plus className="h-3 w-3 mr-1" /> Adjust
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
