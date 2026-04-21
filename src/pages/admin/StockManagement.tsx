@@ -161,9 +161,9 @@ export default function StockManagement() {
     setAdjustOpen(true);
   };
 
-  const stockBadge = (p: Product) => {
-    if (p.stock_quantity === 0) return <Badge variant="destructive">Out of Stock</Badge>;
-    if (p.stock_quantity <= p.low_stock_threshold) return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Low Stock</Badge>;
+  const stockBadge = (qty: number, threshold: number) => {
+    if (qty <= 0) return <Badge variant="destructive">Out of Stock</Badge>;
+    if (qty <= threshold) return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Low Stock</Badge>;
     return <Badge variant="secondary">In Stock</Badge>;
   };
 
