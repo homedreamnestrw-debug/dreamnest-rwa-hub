@@ -43,6 +43,7 @@ import Messages from "./pages/admin/Messages";
 import GiftVouchers from "./pages/GiftVouchers";
 import GiftVoucherConfirmation from "./pages/GiftVoucherConfirmation";
 import AdminGiftVouchers from "./pages/admin/GiftVouchers";
+import Locations from "./pages/admin/Locations";
 
 const queryClient = new QueryClient();
 
