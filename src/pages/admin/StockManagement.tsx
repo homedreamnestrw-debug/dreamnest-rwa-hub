@@ -367,7 +367,19 @@ export default function StockManagement() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="text-sm text-muted-foreground">
-              Current stock: <span className="font-semibold text-foreground">{adjustProduct?.stock_quantity}</span>
+              Total stock: <span className="font-semibold text-foreground">{adjustProduct?.stock_quantity}</span>
+              {adjustLocation && adjustProduct && (
+                <span className="ml-2">· At {locations.find(l => l.id === adjustLocation)?.name}: <span className="font-semibold text-foreground">{stockAtLocation(adjustProduct.id, adjustLocation)}</span></span>
+              )}
+            </div>
+            <div>
+              <Label>Location *</Label>
+              <Select value={adjustLocation} onValueChange={setAdjustLocation}>
+                <SelectTrigger><SelectValue placeholder="Select location" /></SelectTrigger>
+                <SelectContent>
+                  {locations.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label>Movement Type</Label>
@@ -383,23 +395,12 @@ export default function StockManagement() {
             <div>
               <Label>Quantity Change</Label>
               <Input type="number" value={adjustQty} onChange={(e) => setAdjustQty(+e.target.value)} placeholder="e.g. +10 or -3" />
-              {adjustProduct && (
+              {adjustProduct && adjustLocation && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  New stock will be: {adjustProduct.stock_quantity + adjustQty}
+                  New stock at this location will be: {stockAtLocation(adjustProduct.id, adjustLocation) + adjustQty}
                 </p>
               )}
             </div>
-            {locations.length > 0 && (
-              <div>
-                <Label>Location</Label>
-                <Select value={adjustLocation} onValueChange={setAdjustLocation}>
-                  <SelectTrigger><SelectValue placeholder="Select location" /></SelectTrigger>
-                  <SelectContent>
-                    {locations.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
             <div>
               <Label>Reason (optional)</Label>
               <Textarea value={adjustReason} onChange={(e) => setAdjustReason(e.target.value)} placeholder="e.g. Received from supplier" />
