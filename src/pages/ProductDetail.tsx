@@ -69,6 +69,14 @@ export default function ProductDetail() {
 
   const addToCart = async () => {
     if (!product) return;
+    if (product.stock_quantity <= 0) {
+      toast.error("This product is out of stock");
+      return;
+    }
+    if (quantity > product.stock_quantity) {
+      toast.error(`Only ${product.stock_quantity} available in stock`);
+      return;
+    }
     await addItem({
       id: product.id,
       name: product.name,
@@ -248,17 +256,17 @@ export default function ProductDetail() {
             {/* Quantity + Add to Cart */}
             <div className="flex items-center gap-4 pt-4">
               <div className="flex items-center border rounded-md">
-                <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => setQuantity(Math.max(1, quantity - 1))}>
+                <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => setQuantity(Math.max(1, quantity - 1))} disabled={product.stock_quantity <= 0}>
                   <Minus className="h-4 w-4" />
                 </Button>
                 <span className="w-12 text-center font-medium">{quantity}</span>
-                <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => setQuantity(quantity + 1)}>
+                <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => setQuantity(Math.min(product.stock_quantity, quantity + 1))} disabled={product.stock_quantity <= 0 || quantity >= product.stock_quantity}>
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
-              <Button className="flex-1" size="lg" disabled={product.stock_quantity === 0} onClick={addToCart}>
+              <Button className="flex-1" size="lg" disabled={product.stock_quantity <= 0} onClick={addToCart}>
                 <ShoppingCart className="mr-2 h-5 w-5" />
-                {product.stock_quantity === 0 ? "Out of Stock" : "Add to Cart"}
+                {product.stock_quantity <= 0 ? "Out of Stock" : "Add to Cart"}
               </Button>
               <Button variant="outline" size="icon" className="h-11 w-11" onClick={addToWishlist}>
                 <Heart className="h-5 w-5" />

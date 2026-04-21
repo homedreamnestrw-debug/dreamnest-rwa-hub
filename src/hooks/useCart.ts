@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 export interface CartItemData {
   id: string;
@@ -91,6 +92,17 @@ export function useCart() {
 
   const addItem = useCallback(
     async (product: { id: string; name: string; price: number; slug: string; images: string[] | null; stock_quantity: number }, quantity = 1) => {
+      if (product.stock_quantity <= 0) {
+        toast.error("This product is out of stock");
+        return;
+      }
+      const currentInCart = user
+        ? (authItems?.find((i) => i.product_id === product.id)?.quantity ?? 0)
+        : (guestItems.find((i) => i.product_id === product.id)?.quantity ?? 0);
+      if (currentInCart + quantity > product.stock_quantity) {
+        toast.error(`Only ${product.stock_quantity} available (you already have ${currentInCart} in cart)`);
+        return;
+      }
       if (user) {
         const existing = authItems?.find((i) => i.product_id === product.id);
         if (existing) {
@@ -109,11 +121,19 @@ export function useCart() {
         });
       }
     },
-    [user, authItems, queryClient]
+    [user, authItems, guestItems, queryClient]
   );
 
   const updateQuantity = useCallback(
     async (itemId: string, quantity: number) => {
+      const currentItem = user
+        ? authItems?.find((i) => i.id === itemId)
+        : guestItems.find((i) => i.id === itemId);
+      const stockMax = currentItem?.product?.stock_quantity ?? 0;
+      if (quantity > 0 && quantity > stockMax) {
+        toast.error(`Only ${stockMax} available in stock`);
+        return;
+      }
       if (user) {
         if (quantity <= 0) {
           await supabase.from("cart_items").delete().eq("id", itemId);
@@ -127,7 +147,7 @@ export function useCart() {
         );
       }
     },
-    [user, queryClient]
+    [user, authItems, guestItems, queryClient]
   );
 
   const removeItem = useCallback(
