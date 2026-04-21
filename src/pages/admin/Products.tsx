@@ -58,11 +58,12 @@ export default function Products() {
   useEffect(() => { fetchData(); }, []);
 
   const resetForm = () => {
-    setForm({ name: "", slug: "", description: "", price: 0, cost_price: 0, sku: "", stock_quantity: 0, low_stock_threshold: 5, category_id: "", tax_enabled: true, is_active: true, featured: false, images: [] });
+    setForm({ name: "", slug: "", description: "", price: 0, cost_price: 0, sku: "", low_stock_threshold: 5, category_id: "", tax_enabled: true, is_active: true, featured: false, images: [] });
+    setLocationStock({});
     setEditing(null);
   };
 
-  const openEdit = (p: Product) => {
+  const openEdit = async (p: Product) => {
     setEditing(p);
     setForm({
       name: p.name,
@@ -71,7 +72,6 @@ export default function Products() {
       price: p.price,
       cost_price: p.cost_price,
       sku: p.sku || "",
-      stock_quantity: p.stock_quantity,
       low_stock_threshold: p.low_stock_threshold,
       category_id: p.category_id || "",
       tax_enabled: p.tax_enabled,
@@ -79,23 +79,49 @@ export default function Products() {
       featured: p.featured,
       images: p.images || [],
     });
+    // Load per-location stock
+    const { data } = await supabase
+      .from("product_stock")
+      .select("location_id, quantity")
+      .eq("product_id", p.id);
+    const map: Record<string, number> = {};
+    (data || []).forEach((r) => { map[r.location_id] = r.quantity; });
+    setLocationStock(map);
     setDialogOpen(true);
   };
+
+  const totalStock = Object.values(locationStock).reduce((a, b) => a + (b || 0), 0);
 
   const handleSave = async () => {
     const slug = form.slug || form.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
     const { images, ...rest } = form;
     const payload: TablesInsert<"products"> = { ...rest, slug, category_id: form.category_id || null, images: images.length > 0 ? images : null };
 
+    let productId: string;
     if (editing) {
       const { error } = await supabase.from("products").update(payload).eq("id", editing.id);
       if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+      productId = editing.id;
       toast({ title: "Product updated" });
     } else {
-      const { error } = await supabase.from("products").insert(payload);
-      if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+      const { data, error } = await supabase.from("products").insert(payload).select("id").single();
+      if (error || !data) { toast({ title: "Error", description: error?.message, variant: "destructive" }); return; }
+      productId = data.id;
       toast({ title: "Product created" });
     }
+
+    // Upsert per-location stock (only when editing — new products get auto-seeded rows by trigger;
+    // user can edit them to set quantities afterwards, OR if they entered values during create, we set them now)
+    const upserts = Object.entries(locationStock)
+      .filter(([locId]) => locId)
+      .map(([location_id, quantity]) => ({ product_id: productId, location_id, quantity: quantity || 0 }));
+    if (upserts.length > 0) {
+      const { error: stockErr } = await supabase
+        .from("product_stock")
+        .upsert(upserts, { onConflict: "product_id,location_id" });
+      if (stockErr) { toast({ title: "Stock save failed", description: stockErr.message, variant: "destructive" }); }
+    }
+
     setDialogOpen(false);
     resetForm();
     fetchData();
