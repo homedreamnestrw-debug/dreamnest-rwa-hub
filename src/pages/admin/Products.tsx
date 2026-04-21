@@ -16,6 +16,7 @@ import type { Tables, TablesInsert } from "@/integrations/supabase/types";
 
 type Product = Tables<"products">;
 type Category = Tables<"categories">;
+type StockLocation = Tables<"stock_locations">;
 
 export default function Products() {
   const [products, setProducts] = useState<Product[]>([]);
