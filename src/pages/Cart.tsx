@@ -1,16 +1,48 @@
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
-import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingBag, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { useCart } from "@/hooks/useCart";
 import { useShopEnabled } from "@/hooks/useShopEnabled";
 import { ComingSoon } from "@/components/layout/ComingSoon";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useMemo } from "react";
 
 export default function Cart() {
   const navigate = useNavigate();
   const { cartItems, isLoading, updateQuantity, removeItem } = useCart();
   const { shopEnabled, isLoading: shopLoading } = useShopEnabled();
+
+  // Live-refresh stock for everything currently in the cart so the UI never lets
+  // a customer book more than what is actually available right now.
+  const productIds = useMemo(
+    () => cartItems.map((i) => i.product?.id ?? i.product_id).filter(Boolean) as string[],
+    [cartItems]
+  );
+
+  const { data: liveStock } = useQuery({
+    queryKey: ["cart-live-stock", productIds.sort().join(",")],
+    queryFn: async () => {
+      if (productIds.length === 0) return {} as Record<string, number>;
+      const { data } = await supabase
+        .from("products")
+        .select("id, stock_quantity")
+        .in("id", productIds);
+      const map: Record<string, number> = {};
+      (data ?? []).forEach((p: any) => { map[p.id] = p.stock_quantity ?? 0; });
+      return map;
+    },
+    enabled: productIds.length > 0,
+    refetchOnWindowFocus: true,
+  });
+
+  const stockFor = (item: typeof cartItems[number]) => {
+    const pid = item.product?.id ?? item.product_id;
+    if (liveStock && pid in liveStock) return liveStock[pid];
+    return item.product?.stock_quantity ?? 0;
+  };
 
   if (!shopLoading && !shopEnabled) return <ComingSoon />;
 
@@ -21,6 +53,11 @@ export default function Cart() {
   const taxRate = 0.18;
   const tax = Math.round(subtotal * taxRate);
   const total = subtotal + tax;
+
+  const hasStockIssue = cartItems.some((i) => {
+    const max = stockFor(i);
+    return max <= 0 || i.quantity > max;
+  });
 
   return (
     <PublicLayout>
