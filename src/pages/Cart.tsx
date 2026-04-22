@@ -1,16 +1,48 @@
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
-import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingBag, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { useCart } from "@/hooks/useCart";
 import { useShopEnabled } from "@/hooks/useShopEnabled";
 import { ComingSoon } from "@/components/layout/ComingSoon";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useMemo } from "react";
 
 export default function Cart() {
   const navigate = useNavigate();
   const { cartItems, isLoading, updateQuantity, removeItem } = useCart();
   const { shopEnabled, isLoading: shopLoading } = useShopEnabled();
+
+  // Live-refresh stock for everything currently in the cart so the UI never lets
+  // a customer book more than what is actually available right now.
+  const productIds = useMemo(
+    () => cartItems.map((i) => i.product?.id ?? i.product_id).filter(Boolean) as string[],
+    [cartItems]
+  );
+
+  const { data: liveStock } = useQuery({
+    queryKey: ["cart-live-stock", productIds.sort().join(",")],
+    queryFn: async () => {
+      if (productIds.length === 0) return {} as Record<string, number>;
+      const { data } = await supabase
+        .from("products")
+        .select("id, stock_quantity")
+        .in("id", productIds);
+      const map: Record<string, number> = {};
+      (data ?? []).forEach((p: any) => { map[p.id] = p.stock_quantity ?? 0; });
+      return map;
+    },
+    enabled: productIds.length > 0,
+    refetchOnWindowFocus: true,
+  });
+
+  const stockFor = (item: typeof cartItems[number]) => {
+    const pid = item.product?.id ?? item.product_id;
+    if (liveStock && pid in liveStock) return liveStock[pid];
+    return item.product?.stock_quantity ?? 0;
+  };
 
   if (!shopLoading && !shopEnabled) return <ComingSoon />;
 
@@ -21,6 +53,11 @@ export default function Cart() {
   const taxRate = 0.18;
   const tax = Math.round(subtotal * taxRate);
   const total = subtotal + tax;
+
+  const hasStockIssue = cartItems.some((i) => {
+    const max = stockFor(i);
+    return max <= 0 || i.quantity > max;
+  });
 
   return (
     <PublicLayout>
@@ -34,8 +71,11 @@ export default function Cart() {
         ) : cartItems.length > 0 ? (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
             <div className="lg:col-span-2 space-y-4">
-              {cartItems.map((item) => (
-                <div key={item.id} className="flex gap-4 p-4 border rounded-lg">
+              {cartItems.map((item) => {
+                const maxStock = stockFor(item);
+                const overStock = item.quantity > maxStock;
+                return (
+                <div key={item.id} className={`flex gap-4 p-4 border rounded-lg ${overStock || maxStock <= 0 ? "border-destructive/50 bg-destructive/5" : ""}`}>
                   <Link to={`/product/${item.product?.slug}`} className="w-20 h-20 rounded-md overflow-hidden bg-muted flex-shrink-0">
                     {item.product?.images?.[0] ? (
                       <img src={item.product.images[0]} alt="" className="w-full h-full object-cover" />
@@ -51,10 +91,27 @@ export default function Cart() {
                         <Minus className="h-3 w-3" />
                       </Button>
                       <span className="w-8 text-center text-sm">{item.quantity}</span>
-                      <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQuantity(item.id, item.quantity + 1)}>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7"
+                        disabled={item.quantity >= maxStock}
+                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                      >
                         <Plus className="h-3 w-3" />
                       </Button>
                     </div>
+                    {maxStock <= 0 ? (
+                      <p className="text-xs text-destructive mt-2 flex items-center gap-1">
+                        <AlertTriangle className="h-3 w-3" /> Out of stock — please remove
+                      </p>
+                    ) : overStock ? (
+                      <p className="text-xs text-destructive mt-2 flex items-center gap-1">
+                        <AlertTriangle className="h-3 w-3" /> Only {maxStock} available — reduce quantity to continue
+                      </p>
+                    ) : item.quantity >= maxStock ? (
+                      <p className="text-xs text-muted-foreground mt-2">Max available: {maxStock}</p>
+                    ) : null}
                   </div>
                   <div className="flex flex-col items-end justify-between">
                     <p className="font-serif">{formatPrice((item.product?.price ?? 0) * item.quantity)}</p>
@@ -63,7 +120,8 @@ export default function Cart() {
                     </Button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="border rounded-lg p-6 h-fit space-y-4">
@@ -75,7 +133,18 @@ export default function Cart() {
                   <span>Total</span><span className="font-serif">{formatPrice(total)}</span>
                 </div>
               </div>
-              <Button className="w-full" size="lg" onClick={() => navigate("/checkout")}>
+              {hasStockIssue && (
+                <p className="text-xs text-destructive flex items-start gap-1">
+                  <AlertTriangle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                  Some items exceed available stock. Please adjust quantities before checkout.
+                </p>
+              )}
+              <Button
+                className="w-full"
+                size="lg"
+                disabled={hasStockIssue}
+                onClick={() => navigate("/checkout")}
+              >
                 Proceed to Checkout
               </Button>
               <Link to="/shop" className="block text-center text-sm text-muted-foreground hover:underline">
