@@ -71,8 +71,11 @@ export default function Cart() {
         ) : cartItems.length > 0 ? (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
             <div className="lg:col-span-2 space-y-4">
-              {cartItems.map((item) => (
-                <div key={item.id} className="flex gap-4 p-4 border rounded-lg">
+              {cartItems.map((item) => {
+                const maxStock = stockFor(item);
+                const overStock = item.quantity > maxStock;
+                return (
+                <div key={item.id} className={`flex gap-4 p-4 border rounded-lg ${overStock || maxStock <= 0 ? "border-destructive/50 bg-destructive/5" : ""}`}>
                   <Link to={`/product/${item.product?.slug}`} className="w-20 h-20 rounded-md overflow-hidden bg-muted flex-shrink-0">
                     {item.product?.images?.[0] ? (
                       <img src={item.product.images[0]} alt="" className="w-full h-full object-cover" />
@@ -92,20 +95,23 @@ export default function Cart() {
                         variant="outline"
                         size="icon"
                         className="h-7 w-7"
-                        disabled={item.quantity >= (item.product?.stock_quantity ?? 0)}
+                        disabled={item.quantity >= maxStock}
                         onClick={() => updateQuantity(item.id, item.quantity + 1)}
                       >
                         <Plus className="h-3 w-3" />
                       </Button>
                     </div>
-                    {item.product && item.quantity >= item.product.stock_quantity && (
-                      <p className="text-xs text-destructive mt-1">
-                        Max available: {item.product.stock_quantity}
+                    {maxStock <= 0 ? (
+                      <p className="text-xs text-destructive mt-2 flex items-center gap-1">
+                        <AlertTriangle className="h-3 w-3" /> Out of stock — please remove
                       </p>
-                    )}
-                    {item.product && item.product.stock_quantity <= 0 && (
-                      <p className="text-xs text-destructive mt-1">Out of stock — please remove</p>
-                    )}
+                    ) : overStock ? (
+                      <p className="text-xs text-destructive mt-2 flex items-center gap-1">
+                        <AlertTriangle className="h-3 w-3" /> Only {maxStock} available — reduce quantity to continue
+                      </p>
+                    ) : item.quantity >= maxStock ? (
+                      <p className="text-xs text-muted-foreground mt-2">Max available: {maxStock}</p>
+                    ) : null}
                   </div>
                   <div className="flex flex-col items-end justify-between">
                     <p className="font-serif">{formatPrice((item.product?.price ?? 0) * item.quantity)}</p>
@@ -114,7 +120,8 @@ export default function Cart() {
                     </Button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="border rounded-lg p-6 h-fit space-y-4">
