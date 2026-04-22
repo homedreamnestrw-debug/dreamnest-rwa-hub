@@ -51,10 +51,24 @@ export default function Cart() {
                         <Minus className="h-3 w-3" />
                       </Button>
                       <span className="w-8 text-center text-sm">{item.quantity}</span>
-                      <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQuantity(item.id, item.quantity + 1)}>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7"
+                        disabled={item.quantity >= (item.product?.stock_quantity ?? 0)}
+                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                      >
                         <Plus className="h-3 w-3" />
                       </Button>
                     </div>
+                    {item.product && item.quantity >= item.product.stock_quantity && (
+                      <p className="text-xs text-destructive mt-1">
+                        Max available: {item.product.stock_quantity}
+                      </p>
+                    )}
+                    {item.product && item.product.stock_quantity <= 0 && (
+                      <p className="text-xs text-destructive mt-1">Out of stock — please remove</p>
+                    )}
                   </div>
                   <div className="flex flex-col items-end justify-between">
                     <p className="font-serif">{formatPrice((item.product?.price ?? 0) * item.quantity)}</p>
