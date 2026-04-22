@@ -133,7 +133,18 @@ export default function Cart() {
                   <span>Total</span><span className="font-serif">{formatPrice(total)}</span>
                 </div>
               </div>
-              <Button className="w-full" size="lg" onClick={() => navigate("/checkout")}>
+              {hasStockIssue && (
+                <p className="text-xs text-destructive flex items-start gap-1">
+                  <AlertTriangle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                  Some items exceed available stock. Please adjust quantities before checkout.
+                </p>
+              )}
+              <Button
+                className="w-full"
+                size="lg"
+                disabled={hasStockIssue}
+                onClick={() => navigate("/checkout")}
+              >
                 Proceed to Checkout
               </Button>
               <Link to="/shop" className="block text-center text-sm text-muted-foreground hover:underline">
