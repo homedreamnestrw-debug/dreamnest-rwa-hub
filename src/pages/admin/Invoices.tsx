@@ -169,7 +169,7 @@ export default function Invoices() {
 
   const handleCreate = async () => {
     const payload: TablesInsert<"invoices"> = {
-      document_number: "TEMP",
+      document_number: "AUTO", // overwritten by BEFORE INSERT trigger
       document_type: form.document_type,
       status: form.status,
       subtotal: form.subtotal,
