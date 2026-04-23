@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useCart } from "@/hooks/useCart";
 import { useShopEnabled } from "@/hooks/useShopEnabled";
 import { ComingSoon } from "@/components/layout/ComingSoon";
+import { FeaturedProducts } from "@/components/product/FeaturedProducts";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useMemo } from "react";
