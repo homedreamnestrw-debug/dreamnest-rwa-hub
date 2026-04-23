@@ -327,6 +327,8 @@ export default function ProductDetail() {
             </div>
           </section>
         )}
+
+        <FeaturedProducts excludeId={product.id} title="You May Also Like" />
       </div>
     </PublicLayout>
   );
