@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { PublicLayout } from "@/components/layout/PublicLayout";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -34,7 +35,8 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <PublicLayout>
+    <div className="min-h-[calc(100vh-10rem)] flex">
       {/* Left side — branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-primary items-center justify-center p-12">
         <div className="text-center space-y-6">
@@ -114,5 +116,6 @@ export default function Login() {
         </div>
       </div>
     </div>
+    </PublicLayout>
   );
 }

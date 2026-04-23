@@ -77,12 +77,13 @@ export default function Checkout() {
 
   if (!shopLoading && !shopEnabled) return <ComingSoon />;
 
+  // Online orders: VAT is included in product price (no extra VAT charged at checkout)
   const vatRate = settings?.vat_percentage ? Number(settings.vat_percentage) / 100 : 0.18;
 
   const subtotal = cartItems.reduce((sum, item) => sum + (item.product?.price ?? 0) * item.quantity, 0);
-  const taxAmount = Math.round(subtotal * vatRate);
-  const voucherDiscount = voucherData ? Math.min(voucherData.balance, subtotal + taxAmount) : 0;
-  const total = subtotal + taxAmount - voucherDiscount;
+  const taxAmount = 0;
+  const voucherDiscount = voucherData ? Math.min(voucherData.balance, subtotal) : 0;
+  const total = subtotal - voucherDiscount;
   const isFullyPaidByVoucher = voucherDiscount > 0 && total <= 0;
 
   const applyVoucher = async () => {
@@ -459,7 +460,6 @@ export default function Checkout() {
                   <Separator />
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{formatPrice(subtotal)}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">VAT ({Math.round(vatRate * 100)}%)</span><span>{formatPrice(taxAmount)}</span></div>
                     {voucherDiscount > 0 && (
                       <div className="flex justify-between text-green-600"><span>Voucher Discount</span><span>-{formatPrice(voucherDiscount)}</span></div>
                     )}
