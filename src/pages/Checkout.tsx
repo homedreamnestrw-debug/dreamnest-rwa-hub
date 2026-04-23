@@ -475,6 +475,8 @@ export default function Checkout() {
             </div>
           </div>
         </form>
+
+        <FeaturedProducts title="Featured Products" />
       </div>
     </PublicLayout>
   );
