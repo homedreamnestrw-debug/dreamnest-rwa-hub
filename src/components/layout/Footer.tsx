@@ -51,8 +51,10 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-primary-foreground/20 mt-12 pt-8 text-center text-sm text-primary-foreground/50">
-          © {new Date().getFullYear()} DreamNest. All rights reserved.
+        <div className="border-t border-primary-foreground/20 mt-12 pt-8 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-sm text-primary-foreground/50">
+          <span>© {new Date().getFullYear()} DreamNest. All rights reserved.</span>
+          <span className="hidden sm:inline">·</span>
+          <Link to="/terms" className="hover:text-primary-foreground transition-colors">Terms & Conditions</Link>
         </div>
       </div>
     </footer>

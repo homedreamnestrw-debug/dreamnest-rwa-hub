@@ -410,6 +410,26 @@ export default function Settings() {
 
           <Card>
             <CardHeader>
+              <CardTitle>Terms & Conditions</CardTitle>
+              <CardDescription>Content shown on the public Terms & Conditions page (linked from the footer).</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {contentField("terms_title", "Page Title")}
+              <div>
+                <Label>Terms Content</Label>
+                <Textarea
+                  value={websiteContent["terms_content"] || ""}
+                  onChange={(e) => wc("terms_content", e.target.value)}
+                  className="min-h-[300px] font-mono text-sm"
+                  placeholder="Write your full terms and conditions here. Line breaks are preserved."
+                />
+                <p className="text-xs text-muted-foreground mt-1">Plain text. Line breaks and paragraphs will display as written.</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle>Contact Info</CardTitle>
               <CardDescription>Address, phone, and email shown on the Contact page and footer.</CardDescription>
             </CardHeader>
