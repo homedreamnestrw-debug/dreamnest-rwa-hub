@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import type { Database } from "@/integrations/supabase/types";
 import { useShopEnabled } from "@/hooks/useShopEnabled";
 import { ComingSoon } from "@/components/layout/ComingSoon";
+import { FeaturedProducts } from "@/components/product/FeaturedProducts";
 
 type PaymentMethod = Database["public"]["Enums"]["payment_method"];
 
@@ -474,6 +475,8 @@ export default function Checkout() {
             </div>
           </div>
         </form>
+
+        <FeaturedProducts title="Featured Products" />
       </div>
     </PublicLayout>
   );
