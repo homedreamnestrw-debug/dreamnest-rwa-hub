@@ -169,7 +169,7 @@ export default function Invoices() {
 
   const handleCreate = async () => {
     const payload: TablesInsert<"invoices"> = {
-      document_number: "TEMP",
+      document_number: "AUTO", // overwritten by BEFORE INSERT trigger
       document_type: form.document_type,
       status: form.status,
       subtotal: form.subtotal,
@@ -273,20 +273,36 @@ export default function Invoices() {
     setShowAudit(true);
   };
 
-  // Materialise a virtual row (an order without an invoice yet) into a real DB record
-  const generateFromOrder = async (row: InvoiceRow) => {
-    if (!row._order_id) return;
+  // Materialise a virtual row (an order without an invoice yet) into a real DB record.
+  // Returns the new real invoice id (or null on failure).
+  const generateFromOrder = async (row: InvoiceRow, opts?: { silent?: boolean }): Promise<string | null> => {
+    if (!row._order_id) return null;
     setGeneratingId(row.id);
     const isOnline = row._order_channel === "online";
     const docType: Invoice["document_type"] = isOnline ? "invoice" : "receipt";
+
+    // Re-check: maybe a real invoice already exists for this order (race / re-click)
+    const { data: existing } = await supabase
+      .from("invoices")
+      .select("id")
+      .eq("order_id", row._order_id)
+      .eq("document_type", docType)
+      .maybeSingle();
+    if (existing) {
+      setGeneratingId(null);
+      if (!opts?.silent) { toast({ title: "Document already exists" }); fetchData(); }
+      return existing.id;
+    }
 
     const { data: orderItems } = await supabase
       .from("order_items")
       .select("quantity, unit_price, total, products(name)")
       .eq("order_id", row._order_id);
 
+    // document_number is auto-assigned by the BEFORE INSERT trigger; we send a placeholder
+    // because the column is NOT NULL. The trigger overwrites it with a unique number.
     const payload: TablesInsert<"invoices"> = {
-      document_number: "TEMP",
+      document_number: "AUTO",
       document_type: docType,
       order_id: row._order_id,
       customer_id: row.customer_id,
@@ -299,23 +315,19 @@ export default function Invoices() {
       paid_at: row.paid_at,
       notes: row.notes,
     };
-    const { error } = await supabase.from("invoices").insert(payload);
-    if (error) {
-      setGeneratingId(null);
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-      return;
-    }
-
-    const { data: created } = await supabase
+    const { data: created, error } = await supabase
       .from("invoices")
+      .insert(payload)
       .select("id")
-      .eq("order_id", row._order_id)
-      .eq("document_type", docType)
-      .order("created_at", { ascending: false })
-      .limit(1)
       .single();
 
-    if (created && orderItems && orderItems.length > 0) {
+    if (error || !created) {
+      setGeneratingId(null);
+      if (!opts?.silent) toast({ title: "Error", description: error?.message ?? "Failed to generate", variant: "destructive" });
+      return null;
+    }
+
+    if (orderItems && orderItems.length > 0) {
       const items = orderItems.map((it: any) => ({
         invoice_id: created.id,
         description: it.products?.name || "Item",
@@ -328,8 +340,52 @@ export default function Invoices() {
     }
 
     setGeneratingId(null);
-    toast({ title: `${isOnline ? "Invoice" : "Receipt"} generated` });
-    fetchData();
+    if (!opts?.silent) toast({ title: `${isOnline ? "Invoice" : "Receipt"} generated` });
+    await fetchData();
+    return created.id;
+  };
+
+  // Resolve a row to a real invoice id, materialising it if it is a virtual one.
+  const resolveRealId = async (row: InvoiceRow): Promise<string | null> => {
+    if (!row._virtual) return row.id;
+    return await generateFromOrder(row, { silent: true });
+  };
+
+  const handleDownload = async (row: InvoiceRow) => {
+    const id = await resolveRealId(row);
+    if (id) downloadInvoicePdf(id);
+  };
+
+  const handleShare = async (row: InvoiceRow) => {
+    const id = await resolveRealId(row);
+    if (id) shareInvoiceOnWhatsApp(id);
+  };
+
+  const handleMarkPaid = async (row: InvoiceRow) => {
+    const id = await resolveRealId(row);
+    if (id) updateStatus(id, "paid");
+  };
+
+  const handleMarkSent = async (row: InvoiceRow) => {
+    const id = await resolveRealId(row);
+    if (id) updateStatus(id, "sent");
+  };
+
+  const handleCancel = async (row: InvoiceRow) => {
+    const id = await resolveRealId(row);
+    if (id) updateStatus(id, "cancelled");
+  };
+
+  const handleEdit = async (row: InvoiceRow) => {
+    const id = await resolveRealId(row);
+    if (!id) return;
+    const { data } = await supabase.from("invoices").select("*").eq("id", id).single();
+    if (data) openEdit(data);
+  };
+
+  const handleAudit = async (row: InvoiceRow) => {
+    const id = await resolveRealId(row);
+    if (id) fetchAuditLog(id);
   };
 
   const filtered = invoices.filter((inv) => {
@@ -494,7 +550,13 @@ export default function Invoices() {
                   <TableCell>
                     <div className="flex gap-1 flex-wrap">
                       <Button variant="ghost" size="icon" onClick={() => setViewing(inv)} title="View"><Eye className="h-4 w-4" /></Button>
-                      {isVirtual ? (
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(inv)} title="Edit"><Pencil className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDownload(inv)} title="Download PDF"><Download className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleShare(inv)} title="Share via WhatsApp"><Share2 className="h-4 w-4" /></Button>
+                      {!isVirtual && (
+                        <Button variant="ghost" size="icon" onClick={() => fetchAuditLog(inv.id)} title="Audit trail"><History className="h-4 w-4" /></Button>
+                      )}
+                      {isVirtual && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -505,19 +567,12 @@ export default function Invoices() {
                           <FileText className="h-3.5 w-3.5 mr-1" />
                           {generatingId === inv.id ? "Generating..." : "Generate"}
                         </Button>
-                      ) : (
-                        <>
-                          <Button variant="ghost" size="icon" onClick={() => openEdit(inv)} title="Edit"><Pencil className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon" onClick={() => downloadInvoicePdf(inv.id)} title="Download PDF"><Download className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon" onClick={() => shareInvoiceOnWhatsApp(inv.id)} title="Share via WhatsApp"><Share2 className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon" onClick={() => fetchAuditLog(inv.id)} title="Audit trail"><History className="h-4 w-4" /></Button>
-                          {inv.status === "draft" && (
-                            <Button variant="ghost" size="sm" onClick={() => updateStatus(inv.id, "sent")}>Send</Button>
-                          )}
-                          {(inv.status === "sent" || inv.status === "overdue") && (
-                            <Button variant="ghost" size="sm" onClick={() => updateStatus(inv.id, "paid")}>Mark Paid</Button>
-                          )}
-                        </>
+                      )}
+                      {inv.status === "draft" && (
+                        <Button variant="ghost" size="sm" onClick={() => handleMarkSent(inv)}>Send</Button>
+                      )}
+                      {(inv.status === "sent" || inv.status === "overdue") && (
+                        <Button variant="ghost" size="sm" onClick={() => handleMarkPaid(inv)}>Mark Paid</Button>
                       )}
                     </div>
                   </TableCell>
@@ -548,13 +603,13 @@ export default function Invoices() {
               {viewing.paid_at && <p><span className="text-muted-foreground">Paid:</span> {format(new Date(viewing.paid_at), "MMM d, yyyy")}</p>}
               {viewing.notes && <p><span className="text-muted-foreground">Notes:</span> {viewing.notes}</p>}
               <div className="flex gap-2 pt-2 flex-wrap">
-                <Button size="sm" variant="outline" onClick={() => { openEdit(viewing); setViewing(null); }}><Pencil className="h-3.5 w-3.5 mr-1" /> Edit</Button>
-                <Button size="sm" variant="outline" onClick={() => downloadInvoicePdf(viewing.id)}><Download className="h-3.5 w-3.5 mr-1" /> PDF</Button>
-                <Button size="sm" variant="outline" onClick={() => shareInvoiceOnWhatsApp(viewing.id)}><Share2 className="h-3.5 w-3.5 mr-1" /> WhatsApp</Button>
-                {viewing.status === "draft" && <Button size="sm" onClick={() => { updateStatus(viewing.id, "sent"); setViewing(null); }}>Mark as Sent</Button>}
-                {(viewing.status === "sent" || viewing.status === "overdue") && <Button size="sm" onClick={() => { updateStatus(viewing.id, "paid"); setViewing(null); }}>Mark as Paid</Button>}
+                <Button size="sm" variant="outline" onClick={() => { handleEdit(viewing); setViewing(null); }}><Pencil className="h-3.5 w-3.5 mr-1" /> Edit</Button>
+                <Button size="sm" variant="outline" onClick={() => handleDownload(viewing)}><Download className="h-3.5 w-3.5 mr-1" /> PDF</Button>
+                <Button size="sm" variant="outline" onClick={() => handleShare(viewing)}><Share2 className="h-3.5 w-3.5 mr-1" /> WhatsApp</Button>
+                {viewing.status === "draft" && <Button size="sm" onClick={() => { handleMarkSent(viewing); setViewing(null); }}>Mark as Sent</Button>}
+                {(viewing.status === "sent" || viewing.status === "overdue") && <Button size="sm" onClick={() => { handleMarkPaid(viewing); setViewing(null); }}>Mark as Paid</Button>}
                 {viewing.status !== "cancelled" && viewing.status !== "paid" && (
-                  <Button size="sm" variant="destructive" onClick={() => { updateStatus(viewing.id, "cancelled"); setViewing(null); }}>Cancel</Button>
+                  <Button size="sm" variant="destructive" onClick={() => { handleCancel(viewing); setViewing(null); }}>Cancel</Button>
                 )}
               </div>
             </div>

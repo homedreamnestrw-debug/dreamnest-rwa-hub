@@ -38,7 +38,7 @@ export async function autoCreateReceiptForOrder(orderId: string): Promise<string
   const { data: created, error } = await supabase
     .from("invoices")
     .insert({
-      document_number: "TEMP",
+      document_number: "AUTO", // overwritten by BEFORE INSERT trigger
       document_type: "receipt",
       order_id: orderId,
       customer_id: order.customer_id || null,
