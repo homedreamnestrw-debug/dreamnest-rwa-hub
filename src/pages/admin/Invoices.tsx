@@ -550,7 +550,13 @@ export default function Invoices() {
                   <TableCell>
                     <div className="flex gap-1 flex-wrap">
                       <Button variant="ghost" size="icon" onClick={() => setViewing(inv)} title="View"><Eye className="h-4 w-4" /></Button>
-                      {isVirtual ? (
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(inv)} title="Edit"><Pencil className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDownload(inv)} title="Download PDF"><Download className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleShare(inv)} title="Share via WhatsApp"><Share2 className="h-4 w-4" /></Button>
+                      {!isVirtual && (
+                        <Button variant="ghost" size="icon" onClick={() => fetchAuditLog(inv.id)} title="Audit trail"><History className="h-4 w-4" /></Button>
+                      )}
+                      {isVirtual && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -561,19 +567,12 @@ export default function Invoices() {
                           <FileText className="h-3.5 w-3.5 mr-1" />
                           {generatingId === inv.id ? "Generating..." : "Generate"}
                         </Button>
-                      ) : (
-                        <>
-                          <Button variant="ghost" size="icon" onClick={() => openEdit(inv)} title="Edit"><Pencil className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon" onClick={() => downloadInvoicePdf(inv.id)} title="Download PDF"><Download className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon" onClick={() => shareInvoiceOnWhatsApp(inv.id)} title="Share via WhatsApp"><Share2 className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon" onClick={() => fetchAuditLog(inv.id)} title="Audit trail"><History className="h-4 w-4" /></Button>
-                          {inv.status === "draft" && (
-                            <Button variant="ghost" size="sm" onClick={() => updateStatus(inv.id, "sent")}>Send</Button>
-                          )}
-                          {(inv.status === "sent" || inv.status === "overdue") && (
-                            <Button variant="ghost" size="sm" onClick={() => updateStatus(inv.id, "paid")}>Mark Paid</Button>
-                          )}
-                        </>
+                      )}
+                      {inv.status === "draft" && (
+                        <Button variant="ghost" size="sm" onClick={() => handleMarkSent(inv)}>Send</Button>
+                      )}
+                      {(inv.status === "sent" || inv.status === "overdue") && (
+                        <Button variant="ghost" size="sm" onClick={() => handleMarkPaid(inv)}>Mark Paid</Button>
                       )}
                     </div>
                   </TableCell>
