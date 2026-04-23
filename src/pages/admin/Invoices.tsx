@@ -603,13 +603,13 @@ export default function Invoices() {
               {viewing.paid_at && <p><span className="text-muted-foreground">Paid:</span> {format(new Date(viewing.paid_at), "MMM d, yyyy")}</p>}
               {viewing.notes && <p><span className="text-muted-foreground">Notes:</span> {viewing.notes}</p>}
               <div className="flex gap-2 pt-2 flex-wrap">
-                <Button size="sm" variant="outline" onClick={() => { openEdit(viewing); setViewing(null); }}><Pencil className="h-3.5 w-3.5 mr-1" /> Edit</Button>
-                <Button size="sm" variant="outline" onClick={() => downloadInvoicePdf(viewing.id)}><Download className="h-3.5 w-3.5 mr-1" /> PDF</Button>
-                <Button size="sm" variant="outline" onClick={() => shareInvoiceOnWhatsApp(viewing.id)}><Share2 className="h-3.5 w-3.5 mr-1" /> WhatsApp</Button>
-                {viewing.status === "draft" && <Button size="sm" onClick={() => { updateStatus(viewing.id, "sent"); setViewing(null); }}>Mark as Sent</Button>}
-                {(viewing.status === "sent" || viewing.status === "overdue") && <Button size="sm" onClick={() => { updateStatus(viewing.id, "paid"); setViewing(null); }}>Mark as Paid</Button>}
+                <Button size="sm" variant="outline" onClick={() => { handleEdit(viewing); setViewing(null); }}><Pencil className="h-3.5 w-3.5 mr-1" /> Edit</Button>
+                <Button size="sm" variant="outline" onClick={() => handleDownload(viewing)}><Download className="h-3.5 w-3.5 mr-1" /> PDF</Button>
+                <Button size="sm" variant="outline" onClick={() => handleShare(viewing)}><Share2 className="h-3.5 w-3.5 mr-1" /> WhatsApp</Button>
+                {viewing.status === "draft" && <Button size="sm" onClick={() => { handleMarkSent(viewing); setViewing(null); }}>Mark as Sent</Button>}
+                {(viewing.status === "sent" || viewing.status === "overdue") && <Button size="sm" onClick={() => { handleMarkPaid(viewing); setViewing(null); }}>Mark as Paid</Button>}
                 {viewing.status !== "cancelled" && viewing.status !== "paid" && (
-                  <Button size="sm" variant="destructive" onClick={() => { updateStatus(viewing.id, "cancelled"); setViewing(null); }}>Cancel</Button>
+                  <Button size="sm" variant="destructive" onClick={() => { handleCancel(viewing); setViewing(null); }}>Cancel</Button>
                 )}
               </div>
             </div>
