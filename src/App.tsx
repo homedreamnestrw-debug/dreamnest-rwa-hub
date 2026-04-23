@@ -22,6 +22,7 @@ import NotFound from "./pages/NotFound";
 import Checkout from "./pages/Checkout";
 import OrderConfirmation from "./pages/OrderConfirmation";
 import Account from "./pages/Account";
+import Terms from "./pages/Terms";
 
 // Admin pages
 import Dashboard from "./pages/admin/Dashboard";
@@ -63,6 +64,7 @@ const App = () => (
             <Route path="/cart" element={<Cart />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/terms" element={<Terms />} />
 
             {/* Auth */}
             <Route path="/auth/login" element={<Login />} />
