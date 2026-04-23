@@ -12,6 +12,7 @@ import { ReviewForm } from "@/components/product/ReviewForm";
 import { useShopEnabled } from "@/hooks/useShopEnabled";
 import { ComingSoon } from "@/components/layout/ComingSoon";
 import { SEO } from "@/components/SEO";
+import { FeaturedProducts } from "@/components/product/FeaturedProducts";
 
 export default function ProductDetail() {
   const { slug } = useParams<{ slug: string }>();
