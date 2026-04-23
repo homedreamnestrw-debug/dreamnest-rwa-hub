@@ -161,6 +161,8 @@ export default function Cart() {
             <Link to="/shop"><Button>Start Shopping</Button></Link>
           </div>
         )}
+
+        <FeaturedProducts title="Featured Products" />
       </div>
     </PublicLayout>
   );
