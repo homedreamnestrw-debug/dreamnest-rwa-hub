@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { PublicLayout } from "@/components/layout/PublicLayout";
+import loginBedroom from "@/assets/login-bedroom.jpg";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -38,12 +39,21 @@ export default function Login() {
     <PublicLayout>
     <div className="min-h-[calc(100vh-10rem)] flex">
       {/* Left side — branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-primary items-center justify-center p-12">
-        <div className="text-center space-y-6">
-          <h1 className="text-5xl font-serif text-primary-foreground">DreamNest</h1>
-          <p className="text-primary-foreground/80 text-lg max-w-md">
-            Premium bedding & home decor — crafted for comfort, designed for elegance.
-          </p>
+      <div className="hidden lg:block lg:w-1/2 relative overflow-hidden">
+        <img
+          src={loginBedroom}
+          alt="Premium bedding in a serene bedroom"
+          className="absolute inset-0 w-full h-full object-cover"
+          loading="lazy"
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/70 via-primary/40 to-primary/70" />
+        <div className="relative z-10 h-full flex items-center justify-center p-12">
+          <div className="text-center space-y-6">
+            <h1 className="text-5xl font-serif text-primary-foreground drop-shadow-md">DreamNest</h1>
+            <p className="text-primary-foreground/90 text-lg max-w-md drop-shadow">
+              Premium bedding & home decor — crafted for comfort, designed for elegance.
+            </p>
+          </div>
         </div>
       </div>
 

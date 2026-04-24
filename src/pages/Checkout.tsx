@@ -287,7 +287,7 @@ export default function Checkout() {
                 <p><strong>Total: ${formatPrice(total)}</strong></p>
                 <p><strong>Payment:</strong> ${paymentLabel}</p>
                 <p><strong>Delivery to:</strong> ${form.shipping_address}, ${form.shipping_city}</p>
-                <p style="margin-top:24px">If you have any questions, feel free to reply to this email or contact us at <strong>+250 788 000 000</strong>.</p>
+                <p style="margin-top:24px">If you have any questions, feel free to reply to this email or contact us at <strong>+250 788 742 122</strong>.</p>
                 <p style="color:#999;font-size:12px;margin-top:32px">DreamNest — Premium Bedding & Home Decor</p>
               </div>`,
             },
