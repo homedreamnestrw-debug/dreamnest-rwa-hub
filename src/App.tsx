@@ -26,12 +26,10 @@ import Terms from "./pages/Terms";
 
 // Admin pages
 import Dashboard from "./pages/admin/Dashboard";
-import Products from "./pages/admin/Products";
 import Orders from "./pages/admin/Orders";
 import Customers from "./pages/admin/Customers";
-import Categories from "./pages/admin/Categories";
 import Analytics from "./pages/admin/Analytics";
-import StockManagement from "./pages/admin/StockManagement";
+import Stock from "./pages/admin/Stock";
 import Suppliers from "./pages/admin/Suppliers";
 import Invoices from "./pages/admin/Invoices";
 import Expenses from "./pages/admin/Expenses";
@@ -44,7 +42,7 @@ import Messages from "./pages/admin/Messages";
 import GiftVouchers from "./pages/GiftVouchers";
 import GiftVoucherConfirmation from "./pages/GiftVoucherConfirmation";
 import AdminGiftVouchers from "./pages/admin/GiftVouchers";
-import Locations from "./pages/admin/Locations";
+import { Navigate } from "react-router-dom";
 
 const queryClient = new QueryClient();
 
@@ -91,11 +89,12 @@ const App = () => (
             >
               <Route index element={<POS />} />
               <Route path="pos" element={<POS />} />
-              <Route path="products" element={<Products />} />
               <Route path="orders" element={<Orders />} />
               <Route path="customers" element={<Customers />} />
-              <Route path="categories" element={<Categories />} />
-              <Route path="stock" element={<StockManagement />} />
+              <Route path="stock" element={<Stock />} />
+              <Route path="products" element={<Navigate to="/admin/stock?tab=products" replace />} />
+              <Route path="categories" element={<Navigate to="/admin/stock?tab=categories" replace />} />
+              <Route path="locations" element={<Navigate to="/admin/stock?tab=locations" replace />} />
               <Route path="invoices" element={<Invoices />} />
               <Route path="messages" element={<Messages />} />
               <Route path="gift-vouchers" element={<AdminGiftVouchers />} />
@@ -109,7 +108,6 @@ const App = () => (
               <Route path="settings" element={<ProtectedRoute requiredRole="admin"><Settings /></ProtectedRoute>} />
               <Route path="staff" element={<ProtectedRoute requiredRole="admin"><Staff /></ProtectedRoute>} />
               <Route path="finance" element={<ProtectedRoute requiredRole="admin"><Finance /></ProtectedRoute>} />
-              <Route path="locations" element={<ProtectedRoute requiredRole="admin"><Locations /></ProtectedRoute>} />
             </Route>
 
             {/* Catch-all */}
