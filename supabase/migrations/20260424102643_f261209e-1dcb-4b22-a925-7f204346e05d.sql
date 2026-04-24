@@ -1,0 +1,1 @@
+UPDATE public.business_settings SET phone = '+250 788 742 122' WHERE phone IS NULL OR phone = '' OR phone = '+250 788 000 000';
