@@ -442,6 +442,11 @@ export default function Settings() {
               {contentField("contact_phone", "Phone")}
               {contentField("contact_label_email", "Email Us Label")}
               {contentField("contact_email", "Email")}
+              <Separator />
+              <p className="text-sm font-medium text-muted-foreground">Social Links (shown in footer)</p>
+              {contentField("social_instagram", "Instagram URL")}
+              {contentField("social_tiktok", "TikTok URL")}
+              {contentField("social_facebook", "Facebook URL")}
             </CardContent>
           </Card>
 
