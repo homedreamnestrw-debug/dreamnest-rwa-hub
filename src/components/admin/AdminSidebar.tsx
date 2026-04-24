@@ -49,10 +49,7 @@ const salesItems: NavItem[] = [
 ];
 
 const catalogItems: NavItem[] = [
-  { title: "Products", url: "/admin/products", icon: Package, visibility: "both" },
-  { title: "Categories", url: "/admin/categories", icon: FolderTree, visibility: "both" },
   { title: "Stock", url: "/admin/stock", icon: Warehouse, visibility: "both" },
-  { title: "Locations", url: "/admin/locations", icon: Warehouse, visibility: "admin" },
 ];
 
 const peopleItems: NavItem[] = [
