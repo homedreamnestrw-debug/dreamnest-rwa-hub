@@ -56,6 +56,43 @@ export function Footer() {
               <span>{c.contact_phone ?? "+250 788 000 000"}</span>
               <span>{c.contact_email ?? "sales@dreamnestrw.com"}</span>
             </div>
+            {(c.social_instagram || c.social_tiktok || c.social_facebook) && (
+              <div className="flex items-center gap-3 pt-2">
+                {c.social_instagram && (
+                  <a
+                    href={c.social_instagram}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Instagram"
+                    className="text-primary-foreground/70 hover:text-primary-foreground transition-colors"
+                  >
+                    <Instagram className="h-5 w-5" />
+                  </a>
+                )}
+                {c.social_tiktok && (
+                  <a
+                    href={c.social_tiktok}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="TikTok"
+                    className="text-primary-foreground/70 hover:text-primary-foreground transition-colors"
+                  >
+                    <TikTokIcon className="h-5 w-5" />
+                  </a>
+                )}
+                {c.social_facebook && (
+                  <a
+                    href={c.social_facebook}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Facebook"
+                    className="text-primary-foreground/70 hover:text-primary-foreground transition-colors"
+                  >
+                    <Facebook className="h-5 w-5" />
+                  </a>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
