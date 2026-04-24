@@ -1,72 +1,84 @@
 
 
-## Goal
-Give admins a real **Locations** management page, link inventory to locations per product, and make existing flows (POS, transfer, adjust, low-stock) respect per-location stock.
+## Plan: Unify Stock Pages + Add Import/Export
 
-## What's broken today
-- `stock_locations` table exists but **no admin UI to create/edit** locations — only the seeded "Main Showroom" exists.
-- `products.stock_quantity` is a single global number — no per-location stock for non-variant products. Only `variant_stock` is per-location.
-- `StockManagement` "Transfer" button just inserts two movement log rows — it does **not** actually move stock between locations.
-- POS reads `selectedLocation` but stock deduction ignores it (deducts from the global `products.stock_quantity`).
+Reorganize the sidebar so **Products**, **Categories**, **Locations**, and the existing **Stock Management** views live together under a single **Stock** hub with tabs. Add **CSV export** (always) and **CSV import** (with prefilled templates) on each tab.
 
-## Plan (in dependency order)
+### 1. Sidebar Reorganization (`AdminSidebar.tsx`)
 
-### Step 1 — Database (migration)
-1. **New table `product_stock`** (per-product, per-location quantities — mirrors `variant_stock`):
-   ```
-   product_stock(id, product_id, location_id, quantity int default 0,
-                 unique(product_id, location_id))
-   ```
-   RLS: admin/staff manage + view.
-2. **Backfill**: for every existing product, insert one `product_stock` row at the default location (`Main Showroom`) with `quantity = products.stock_quantity`. This keeps current totals intact.
-3. **Keep `products.stock_quantity` as the rolled-up total** (sum across locations) — simplest, no breaking changes to Shop / Cart / Checkout / public reads. Maintained by trigger:
-   - `trg_sync_product_total_stock` on `product_stock` (AFTER INS/UPD/DEL): recompute `products.stock_quantity = SUM(product_stock.quantity) WHERE product_id = X`.
-4. **Update `deduct_stock_on_order_item` trigger**: when `orders.location_id` is set, deduct from `product_stock` at that location (with `FOR UPDATE` + insufficient-stock guard). The total on `products` is then refreshed by the sync trigger. If `location_id` is null (legacy online order), fall back to default location.
-5. **Update `approve_order_payment`**: same — deduct per location row.
+Replace the current Catalog group entries with a single collapsed entry:
 
-### Step 2 — Locations admin page
-- New route `/admin/locations` → `src/pages/admin/Locations.tsx`.
-- List all `stock_locations` (name, address, active toggle, total stock value, # products carried).
-- "Add Location" dialog → name + address. On create, auto-insert a `product_stock` row (qty 0) for every existing product so it appears in stock screens immediately.
-- Edit / deactivate (no delete if any movement references it — show toast).
-- Add to `AdminSidebar.tsx` under **Inventory** group with **Ad** visibility tag (admin-only, matches existing RLS).
+```
+Catalog
+  └── Stock   (Ad+St)
+```
 
-### Step 3 — Stock Management upgrades
-- **Overview tab**: add a Location filter dropdown. Table shows stock at the selected location (joins `product_stock`); "All Locations" shows the rolled-up total (current behaviour).
-- **Adjust dialog**: location selector becomes **required**; adjustment writes to `product_stock` at that location (not to `products` directly). The DB trigger keeps the global total in sync.
-- **Transfer dialog (real transfer now)**: in one Postgres function `transfer_stock(product_id, from_location, to_location, qty)` —
-  - lock both `product_stock` rows,
-  - check source has enough,
-  - subtract from source, add to destination,
-  - write two `stock_movements` rows (`-qty` from source, `+qty` to destination, type `transfer`).
-- **Movement log**: already shows location — no change needed.
+Remove standalone `Products`, `Categories`, `Stock`, `Locations` items. The unified page will live at `/admin/stock`.
 
-### Step 4 — Product form (Products.tsx)
-- Replace the single `stock_quantity` input with a **per-location stock grid**:
-  ```
-  Main Showroom   [   12 ]
-  Warehouse A     [    0 ]
-  ──────────────
-  Total           12 (auto)
-  ```
-- On save, upsert `product_stock` rows for each location. New products auto-get one row per active location at qty 0.
+### 2. New Unified Stock Hub (`src/pages/admin/Stock.tsx`)
 
-### Step 5 — POS deducts from selected location
-- POS already passes `orders.location_id` — once the trigger update in Step 1 lands, deduction will hit the right `product_stock` row automatically. No POS code change needed beyond ensuring a location is always selected (already required).
+Wraps the existing screens as tabs in one page:
 
-### Step 6 — Low-stock alerts
-- `StockManagement` low-stock tab adds a **Location** column and flags rows where `product_stock.quantity <= products.low_stock_threshold` for that specific location, in addition to the global view.
+```
+[ Inventory ] [ Products ] [ Categories ] [ Locations ] [ Movements ]
+```
 
-## Files touched
-- New migration (table + trigger + functions + backfill)
-- `src/pages/admin/Locations.tsx` (new)
-- `src/pages/admin/StockManagement.tsx` (location filter, real transfer, per-location adjust)
-- `src/pages/admin/Products.tsx` (per-location stock grid)
-- `src/components/admin/AdminSidebar.tsx` (add Locations link, Ad tag)
-- `src/App.tsx` (route for `/admin/locations`)
+- **Inventory / Movements / Low Stock**: current `StockManagement.tsx` content (split its existing tabs across the new tabs).
+- **Products**: full `Products.tsx` admin UI (add/edit/delete/search).
+- **Categories**: full `Categories.tsx` admin UI.
+- **Locations**: full `Locations.tsx` admin UI (admin-only tab — hidden for staff).
 
-## Notes
-- Storefront (`Shop`, `ProductDetail`, `Cart`, `Checkout`) stays unchanged — it keeps reading `products.stock_quantity` which is the auto-maintained total. Online orders without a location continue to deduct from the default location.
-- Existing single "Main Showroom" + current stock numbers are preserved by the backfill — nothing visible changes for the customer.
-- Admin-only access for the Locations page (consistent with `stock_locations` RLS where only admin can manage).
+Existing pages are refactored into reusable section components (`ProductsSection`, `CategoriesSection`, `LocationsSection`, `InventorySection`) so logic isn't duplicated. The standalone routes (`/admin/products`, `/admin/categories`, `/admin/locations`) redirect to `/admin/stock?tab=...` for backward compatibility.
+
+### 3. Import / Export Toolbar (per tab)
+
+A shared `ImportExportBar` component appears at the top of each tab with two buttons:
+
+- **Export CSV** — downloads current filtered rows.
+- **Import CSV** — opens a dialog with:
+  - "Download template" link (a CSV pre-filled with the correct headers + 1 example row + valid options for enums/IDs in a comment row).
+  - File picker that parses CSV client-side, shows a preview table, then bulk upserts via Supabase.
+
+#### Per-tab specifics
+
+| Tab | Export columns | Import columns (prefilled template) | Insert/Upsert target |
+|---|---|---|---|
+| Products | name, slug, sku, price, cost_price, stock_quantity, low_stock_threshold, category_name, is_active, featured, tax_enabled | same (category resolved by name; `slug` auto-generated if blank) | `products` upsert on `slug` |
+| Categories | name, slug, description, image_url | same | `categories` upsert on `slug` |
+| Locations | name, address, is_active | same | `stock_locations` upsert on `name` |
+| Inventory | product_name, sku, location_name, quantity, low_stock_threshold | product_sku, location_name, quantity | `product_stock` upsert on `(product_id, location_id)` after resolving SKU + location name to IDs; logs a `stock_movements` row of type `adjustment` |
+| Movements | date, product, type, qty, before, after, location, reason | (export-only — no import) | — |
+
+### 4. Reports (Export)
+
+Add a top-right **"Export Report"** dropdown on the hub page with one-click CSVs:
+- Full inventory snapshot (all products × all locations with current quantities).
+- Low-stock report.
+- Stock movements (last 30/90 days).
+- Category summary (products per category, total value at cost).
+
+### 5. Technical Notes
+
+- CSV parsing: lightweight inline parser (no new dep) — handles quoted fields and commas. If complexity grows we can swap to `papaparse`.
+- Template generation: served as a client-side `Blob` download, headers prefilled, plus a sample row using **real existing data** (e.g. first existing category name, first location name) so users see valid values.
+- Import flow: parse → validate (required fields, FK lookups by name/SKU) → preview dialog with row count + errors highlighted → confirm → batched Supabase upserts (chunks of 100) → toast with success/failure counts → refresh tab data.
+- Permissions: Locations tab and Locations import/export hidden when `!isAdmin`. All existing RLS policies remain unchanged.
+- No DB migration required.
+
+### Files
+
+**New**
+- `src/pages/admin/Stock.tsx` (hub with tabs)
+- `src/components/admin/stock/ImportExportBar.tsx`
+- `src/components/admin/stock/ImportDialog.tsx`
+- `src/components/admin/stock/sections/ProductsSection.tsx`
+- `src/components/admin/stock/sections/CategoriesSection.tsx`
+- `src/components/admin/stock/sections/LocationsSection.tsx`
+- `src/components/admin/stock/sections/InventorySection.tsx`
+- `src/lib/csv.ts` (parse + serialize helpers)
+
+**Edited**
+- `src/components/admin/AdminSidebar.tsx` (collapse Catalog group)
+- `src/App.tsx` (redirect old routes to `/admin/stock`)
+- `src/pages/admin/Products.tsx`, `Categories.tsx`, `Locations.tsx`, `StockManagement.tsx` → reduced to thin wrappers around the new section components (kept for the redirect targets).
 
