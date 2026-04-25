@@ -31,12 +31,9 @@ export function useCreativeHistory() {
 
   const log = useMutation({
     mutationFn: async (input: CreativeAssetInput) => {
-      const { data, error } = await supabase
-        .from("creative_assets")
-        .insert({
-          ...input,
-          created_by: user?.id ?? null,
-        })
+      const payload: any = { ...input, created_by: user?.id ?? null };
+      const { data, error } = await (supabase.from("creative_assets") as any)
+        .insert(payload)
         .select()
         .single();
       if (error) throw error;
