@@ -45,8 +45,10 @@ export function ExportBar({ stageRef, filenameBase, caption, onLogged }: Props) 
       const ratio = 1 / (stage.scaleX() || 1);
       const dataUrl = stage.toDataURL({ mimeType: "image/png", pixelRatio: ratio });
       const blob = dataURLtoBlob(dataUrl);
-      // @ts-expect-error - ClipboardItem typings vary
-      await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+      const ClipboardItemCtor = (window as any).ClipboardItem;
+      await (navigator.clipboard as any).write([
+        new ClipboardItemCtor({ "image/png": blob }),
+      ]);
       toast({ title: "Image copied to clipboard" });
     } catch (e) {
       toast({
@@ -79,7 +81,6 @@ export function ExportBar({ stageRef, filenameBase, caption, onLogged }: Props) 
         size="sm"
         variant="outline"
         onClick={shareWhatsApp}
-        className="text-emerald-700"
       >
         <MessageCircle className="h-4 w-4" /> WhatsApp
       </Button>
