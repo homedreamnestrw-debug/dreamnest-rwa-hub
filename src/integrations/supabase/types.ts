@@ -245,6 +245,98 @@ export type Database = {
         }
         Relationships: []
       }
+      creative_assets: {
+        Row: {
+          asset_type: string
+          caption: string | null
+          config: Json
+          created_at: string
+          created_by: string | null
+          download_count: number
+          id: string
+          platform_format: string | null
+          product_id: string | null
+          style_variant: string | null
+          template_key: string | null
+        }
+        Insert: {
+          asset_type: string
+          caption?: string | null
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          download_count?: number
+          id?: string
+          platform_format?: string | null
+          product_id?: string | null
+          style_variant?: string | null
+          template_key?: string | null
+        }
+        Update: {
+          asset_type?: string
+          caption?: string | null
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          download_count?: number
+          id?: string
+          platform_format?: string | null
+          product_id?: string | null
+          style_variant?: string | null
+          template_key?: string | null
+        }
+        Relationships: []
+      }
+      creative_performance: {
+        Row: {
+          asset_id: string
+          comments: number
+          created_at: string
+          created_by: string | null
+          id: string
+          likes: number
+          notes: string | null
+          platform: string
+          posted_at: string | null
+          sales_attributed: number
+          shares: number
+        }
+        Insert: {
+          asset_id: string
+          comments?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          likes?: number
+          notes?: string | null
+          platform: string
+          posted_at?: string | null
+          sales_attributed?: number
+          shares?: number
+        }
+        Update: {
+          asset_id?: string
+          comments?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          likes?: number
+          notes?: string | null
+          platform?: string
+          posted_at?: string | null
+          sales_attributed?: number
+          shares?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creative_performance_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "creative_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credit_payments: {
         Row: {
           amount: number

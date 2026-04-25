@@ -42,6 +42,7 @@ import Messages from "./pages/admin/Messages";
 import GiftVouchers from "./pages/GiftVouchers";
 import GiftVoucherConfirmation from "./pages/GiftVoucherConfirmation";
 import AdminGiftVouchers from "./pages/admin/GiftVouchers";
+import CreativeStudio from "./pages/admin/CreativeStudio";
 import { Navigate } from "react-router-dom";
 
 const queryClient = new QueryClient();
@@ -98,6 +99,7 @@ const App = () => (
               <Route path="invoices" element={<Invoices />} />
               <Route path="messages" element={<Messages />} />
               <Route path="gift-vouchers" element={<AdminGiftVouchers />} />
+              <Route path="creative-studio" element={<CreativeStudio />} />
 
               {/* Admin-only */}
               <Route path="dashboard" element={<ProtectedRoute requiredRole="admin"><Dashboard /></ProtectedRoute>} />

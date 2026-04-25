@@ -15,6 +15,7 @@ import {
   ExternalLink,
   MessageSquare,
   Gift,
+  Sparkles,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -50,6 +51,10 @@ const salesItems: NavItem[] = [
 
 const catalogItems: NavItem[] = [
   { title: "Stock", url: "/admin/stock", icon: Warehouse, visibility: "both" },
+];
+
+const studioItems: NavItem[] = [
+  { title: "Creative Studio", url: "/admin/creative-studio", icon: Sparkles, visibility: "both" },
 ];
 
 const peopleItems: NavItem[] = [
@@ -145,6 +150,7 @@ export function AdminSidebar() {
 
         {renderGroup("Sales", salesItems)}
         {renderGroup("Catalog", catalogItems)}
+        {renderGroup("Studio", studioItems)}
         {renderGroup("People", peopleItems)}
         {renderGroup("Operations", operationsItems)}
         {renderGroup("Insights", insightsItems)}
