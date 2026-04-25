@@ -150,6 +150,7 @@ export function AdminSidebar() {
 
         {renderGroup("Sales", salesItems)}
         {renderGroup("Catalog", catalogItems)}
+        {renderGroup("Studio", studioItems)}
         {renderGroup("People", peopleItems)}
         {renderGroup("Operations", operationsItems)}
         {renderGroup("Insights", insightsItems)}
