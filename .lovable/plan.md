@@ -1,84 +1,195 @@
+## Plan: Creative Studio — Phase 1 + Announcements
 
+A new admin-only module at `/admin/creative-studio` that turns DreamNest catalog data into branded social graphics, announcements, captions, and shareable assets — entirely client-side using **Konva**, with history persisted to Supabase.
 
-## Plan: Unify Stock Pages + Add Import/Export
+---
 
-Reorganize the sidebar so **Products**, **Categories**, **Locations**, and the existing **Stock Management** views live together under a single **Stock** hub with tabs. Add **CSV export** (always) and **CSV import** (with prefilled templates) on each tab.
+### 1. Routing, sidebar, permissions
 
-### 1. Sidebar Reorganization (`AdminSidebar.tsx`)
+- Add route `/admin/creative-studio` in `src/App.tsx` under the `AdminLayout` block, wrapped with `ProtectedRoute requiredRole="staff"` (so admins + staff get access).
+- Add a new sidebar group **"Studio"** in `AdminSidebar.tsx` with a single entry **Creative Studio** (icon: `Sparkles` from lucide), visibility `both`.
 
-Replace the current Catalog group entries with a single collapsed entry:
+### 2. Database (Supabase migration)
+
+Two new tables behind RLS:
+
+**`creative_assets`** — log of every generated card
+| column | type |
+|---|---|
+| id | uuid PK |
+| created_by | uuid (auth.uid) |
+| created_at | timestamptz |
+| asset_type | text — `'product_card' \| 'announcement' \| 'bundle'` |
+| product_id | uuid (nullable, FK by id reference only — no cascade) |
+| template_key | text — e.g. `we_are_open`, `flash_sale`, `restock` |
+| style_variant | text — `classic / bold / minimal / cozy / urgent` |
+| platform_format | text — `ig_post / ig_story / whatsapp / fb_post` |
+| config | jsonb — full overlay/font/color state for one-click regenerate |
+| caption | text |
+| download_count | int default 0 |
+
+**`creative_performance`** — manual post-engagement notes
+| column | type |
+|---|---|
+| id, created_at, created_by | standard |
+| asset_id | uuid → creative_assets.id |
+| platform | text — `instagram / tiktok / facebook / whatsapp` |
+| posted_at | date |
+| likes, comments, shares, sales_attributed | int |
+| notes | text |
+
+RLS for both: `admin/staff can manage`, no public read.
+
+(Performance table is created now even though the dashboard ships later — keeps schema stable.)
+
+### 3. Dependencies
+
+- `konva` + `react-konva` — declarative canvas
+- `use-image` — Konva image hook for product/logo loading with CORS handling
+- `jszip` + `file-saver` — multi-file downloads (price list + future story zip)
+
+### 4. File structure
 
 ```
-Catalog
-  └── Stock   (Ad+St)
+src/pages/admin/CreativeStudio.tsx              ← main page
+src/components/admin/studio/
+  ├── ProductPicker.tsx                         ← grid w/ search + filter, lazy images
+  ├── StyleControls.tsx                         ← font / color / overlay / position controls
+  ├── OverlayToggles.tsx                        ← name / price / badges / SKU / URL / logo
+  ├── PlatformFormatTabs.tsx                    ← IG post / IG story / WhatsApp / FB
+  ├── CardPreview.tsx                           ← Konva Stage at format dimensions
+  ├── VariationGrid.tsx                         ← all 5 styles as scaled thumbnails
+  ├── CaptionPanel.tsx                          ← auto-generated caption + hashtags + copy
+  ├── ExportBar.tsx                             ← PNG / JPG / clipboard / WhatsApp share
+  ├── AnnouncementsPanel.tsx                    ← template library tab
+  └── templates/
+      ├── productCardRenderers.ts               ← 5 style render functions (Konva nodes)
+      ├── announcementRenderers.ts              ← 19 templates → Konva nodes
+      ├── brandTokens.ts                        ← colors, fonts, dimensions, format presets
+      └── captionTemplates.ts                   ← caption generators by post type
+src/hooks/useBrandAssets.ts                     ← loads logo from business_settings, fallback /logo.png
+src/hooks/useCreativeHistory.ts                 ← list + insert into creative_assets
 ```
 
-Remove standalone `Products`, `Categories`, `Stock`, `Locations` items. The unified page will live at `/admin/stock`.
+### 5. Brand tokens (`brandTokens.ts`)
 
-### 2. New Unified Stock Hub (`src/pages/admin/Stock.tsx`)
-
-Wraps the existing screens as tabs in one page:
-
+```ts
+export const COLORS = {
+  warmWhite:  '#FAFAF8',
+  cream:      '#F5F0E8',
+  terracotta: '#C17A5A',
+  taupe:      '#8B7355',
+  charcoal:   '#2C2C2A',
+  dustyRose:  '#D4A5A0',
+  forest:     '#4A6B52',
+  midnight:   '#1F2A44',
+};
+export const FONTS = {
+  serif:    "'Playfair Display', serif",
+  sans:     "'Inter', sans-serif",
+  display:  "'Inter', sans-serif",   // bold weight
+  script:   "'Dancing Script', cursive",
+  editorial:"'Playfair Display', serif",
+};
+export const FORMATS = {
+  ig_post:   { w: 1080, h: 1080, label: 'Instagram Post' },
+  ig_story:  { w: 1080, h: 1920, label: 'IG Story / TikTok' },
+  whatsapp:  { w:  800, h:  800, label: 'WhatsApp Catalogue' },
+  fb_post:   { w: 1200, h:  630, label: 'Facebook Post' },
+};
+export const TAGLINE = 'Sweet dreams start with the perfect bedding...';
 ```
-[ Inventory ] [ Products ] [ Categories ] [ Locations ] [ Movements ]
-```
 
-- **Inventory / Movements / Low Stock**: current `StockManagement.tsx` content (split its existing tabs across the new tabs).
-- **Products**: full `Products.tsx` admin UI (add/edit/delete/search).
-- **Categories**: full `Categories.tsx` admin UI.
-- **Locations**: full `Locations.tsx` admin UI (admin-only tab — hidden for staff).
+Google Fonts loaded via `<link>` injected from `index.html` so Konva text rasterizes with the right typeface.
 
-Existing pages are refactored into reusable section components (`ProductsSection`, `CategoriesSection`, `LocationsSection`, `InventorySection`) so logic isn't duplicated. The standalone routes (`/admin/products`, `/admin/categories`, `/admin/locations`) redirect to `/admin/stock?tab=...` for backward compatibility.
+### 6. Section 1 — Product card generator
 
-### 3. Import / Export Toolbar (per tab)
+**ProductPicker** queries `products` (active only) joined to `categories`, with search + category filter + lazy thumbnails. Selecting a product hydrates a `useStudio()` zustand-light state (just `useState` in the page) with: image, name, description (first 80 chars), price (RWF), SKU, stock, category, low_stock_threshold.
 
-A shared `ImportExportBar` component appears at the top of each tab with two buttons:
+**CardPreview** renders a Konva `Stage` sized to the active platform format, then scales the canvas via CSS transform to fit the panel. Layers:
+1. Background (color or product image w/ overlay)
+2. Color overlay rect with configurable opacity (0–80%)
+3. Logo image at chosen corner
+4. Product name (font + position)
+5. Price (RWF formatted, position complementary to text block)
+6. Optional badges (New / Best Seller / Sale %, Low Stock auto-from `stock_quantity ≤ low_stock_threshold`)
+7. Optional SKU, description excerpt
+8. Footer: `dreamnestrw.com` watermark
 
-- **Export CSV** — downloads current filtered rows.
-- **Import CSV** — opens a dialog with:
-  - "Download template" link (a CSV pre-filled with the correct headers + 1 example row + valid options for enums/IDs in a comment row).
-  - File picker that parses CSV client-side, shows a preview table, then bulk upserts via Supabase.
+**5 style renderers** (`productCardRenderers.ts`) export `(ctx) => KonvaNodes[]` returning a configured layer stack for: classic / bold / minimal / cozy / urgent. Urgent reads live `stock_quantity` for the "Only X left!" badge.
 
-#### Per-tab specifics
+**VariationGrid** mounts 5 small Stages (preview-scaled) so all styles render simultaneously; clicking promotes one to the main preview.
 
-| Tab | Export columns | Import columns (prefilled template) | Insert/Upsert target |
-|---|---|---|---|
-| Products | name, slug, sku, price, cost_price, stock_quantity, low_stock_threshold, category_name, is_active, featured, tax_enabled | same (category resolved by name; `slug` auto-generated if blank) | `products` upsert on `slug` |
-| Categories | name, slug, description, image_url | same | `categories` upsert on `slug` |
-| Locations | name, address, is_active | same | `stock_locations` upsert on `name` |
-| Inventory | product_name, sku, location_name, quantity, low_stock_threshold | product_sku, location_name, quantity | `product_stock` upsert on `(product_id, location_id)` after resolving SKU + location name to IDs; logs a `stock_movements` row of type `adjustment` |
-| Movements | date, product, type, qty, before, after, location, reason | (export-only — no import) | — |
+### 7. Section 2 — Announcements library
 
-### 4. Reports (Export)
+`AnnouncementsPanel` shows a card grid of 19 templates (8 business + 7 seasonal + 4 engagement). Selecting one opens a right-side form with only the fields that template needs (e.g. `Flash Sale` → percent, duration, product picker). Renders into the same `CardPreview` using `announcementRenderers.ts`. The product-pull templates (New Arrival, Restock, Customer Spotlight) reuse `ProductPicker` inline.
 
-Add a top-right **"Export Report"** dropdown on the hub page with one-click CSVs:
-- Full inventory snapshot (all products × all locations with current quantities).
-- Low-stock report.
-- Stock movements (last 30/90 days).
-- Category summary (products per category, total value at cost).
+### 8. Section 3 — Style engine
 
-### 5. Technical Notes
+`StyleControls` exposes:
+- Font dropdown (5 options from `FONTS`)
+- Color shade dropdown (6 from `COLORS`)
+- Overlay opacity slider (0–80)
+- Logo position (4 corners + center) — radio
+- Text position (top / center / bottom) — radio
 
-- CSV parsing: lightweight inline parser (no new dep) — handles quoted fields and commas. If complexity grows we can swap to `papaparse`.
-- Template generation: served as a client-side `Blob` download, headers prefilled, plus a sample row using **real existing data** (e.g. first existing category name, first location name) so users see valid values.
-- Import flow: parse → validate (required fields, FK lookups by name/SKU) → preview dialog with row count + errors highlighted → confirm → batched Supabase upserts (chunks of 100) → toast with success/failure counts → refresh tab data.
-- Permissions: Locations tab and Locations import/export hidden when `!isAdmin`. All existing RLS policies remain unchanged.
-- No DB migration required.
+All controls feed the renderer via a single `StyleConfig` object. Changes re-render Konva immediately (memoized).
+
+### 9. Section 6 — Export & sharing
+
+`ExportBar`:
+- **Download PNG** — `stage.toDataURL({ pixelRatio: 1, mimeType: 'image/png' })` then anchor download.
+- **Download JPG** — `mimeType: 'image/jpeg', quality: 0.9`.
+- **Copy to clipboard** — converts to Blob and uses `navigator.clipboard.write([new ClipboardItem({...})])`.
+- **Share via WhatsApp** — opens `https://wa.me/?text=<encoded caption with dreamnestrw.com link>`.
+- Every download/share also calls `useCreativeHistory.log(...)` to insert into `creative_assets` with the full `config` for one-click regenerate later.
+
+`CaptionPanel` uses `captionTemplates.ts` to produce captions per post type (launch / sale / restock / general) with hashtags `#DreamNest #BedroomRwanda #HomeDecorKigali #PremiumBedding #KigaliHome #RwandaDecor`. Includes a "Copy caption" button.
+
+### 10. Brand asset loader
+
+`useBrandAssets.ts` queries `get_public_business_settings()` (already exists) for `logo_url`. If null/empty or load fails, fall back to `/logo.png`. Returns an `HTMLImageElement` ready for Konva.
+
+### 11. UI layout
+
+- Tabs at top: **Product Cards** | **Announcements**
+- Left panel (30%): picker + StyleControls + OverlayToggles + format tabs + Generate
+- Right panel (70%): VariationGrid (5 thumbnails) above, expanded CardPreview below, ExportBar + CaptionPanel beneath
+- Fully responsive: on `<lg` viewports the panels stack vertically, canvas scales down proportionally
+
+### 12. Out of scope for this build (deferred)
+
+The following from the original brief are **explicitly not built now** and can be added in a follow-up:
+
+- Bundle "Complete the Look" multi-product card
+- Section 4 — Price List Generator
+- Section 5 — Story Sequence Builder (3-frame zip)
+- Section 7 — Post History UI + Performance dashboard + recommendations  
+  *(the underlying tables ARE created so the future build is just UI on top)*
 
 ### Files
 
 **New**
-- `src/pages/admin/Stock.tsx` (hub with tabs)
-- `src/components/admin/stock/ImportExportBar.tsx`
-- `src/components/admin/stock/ImportDialog.tsx`
-- `src/components/admin/stock/sections/ProductsSection.tsx`
-- `src/components/admin/stock/sections/CategoriesSection.tsx`
-- `src/components/admin/stock/sections/LocationsSection.tsx`
-- `src/components/admin/stock/sections/InventorySection.tsx`
-- `src/lib/csv.ts` (parse + serialize helpers)
+- `src/pages/admin/CreativeStudio.tsx`
+- `src/components/admin/studio/ProductPicker.tsx`
+- `src/components/admin/studio/StyleControls.tsx`
+- `src/components/admin/studio/OverlayToggles.tsx`
+- `src/components/admin/studio/PlatformFormatTabs.tsx`
+- `src/components/admin/studio/CardPreview.tsx`
+- `src/components/admin/studio/VariationGrid.tsx`
+- `src/components/admin/studio/CaptionPanel.tsx`
+- `src/components/admin/studio/ExportBar.tsx`
+- `src/components/admin/studio/AnnouncementsPanel.tsx`
+- `src/components/admin/studio/templates/productCardRenderers.ts`
+- `src/components/admin/studio/templates/announcementRenderers.ts`
+- `src/components/admin/studio/templates/brandTokens.ts`
+- `src/components/admin/studio/templates/captionTemplates.ts`
+- `src/hooks/useBrandAssets.ts`
+- `src/hooks/useCreativeHistory.ts`
+- Migration: `creative_assets` + `creative_performance` tables with RLS
 
 **Edited**
-- `src/components/admin/AdminSidebar.tsx` (collapse Catalog group)
-- `src/App.tsx` (redirect old routes to `/admin/stock`)
-- `src/pages/admin/Products.tsx`, `Categories.tsx`, `Locations.tsx`, `StockManagement.tsx` → reduced to thin wrappers around the new section components (kept for the redirect targets).
-
+- `src/App.tsx` — add `/admin/creative-studio` route
+- `src/components/admin/AdminSidebar.tsx` — add Studio group
+- `index.html` — preload Playfair Display, Inter, Dancing Script from Google Fonts
+- `package.json` — add `konva`, `react-konva`, `use-image`, `jszip`, `file-saver`
