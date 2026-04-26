@@ -398,21 +398,14 @@ export default function POS() {
         });
       }
 
-      // Record voucher redemption if used
+      // Record voucher redemption if used — use secure RPC (validates + decrements atomically)
       if (voucherData && voucherDiscount > 0) {
-        await supabase.from("voucher_redemptions").insert({
-          voucher_id: voucherData.id,
-          order_id: order.id,
-          amount_used: voucherDiscount,
+        const { error: redeemErr } = await supabase.rpc("redeem_voucher" as any, {
+          p_voucher_code: voucherData.code,
+          p_order_id: order.id,
+          p_amount: voucherDiscount,
         });
-        const newBalance = voucherData.balance - voucherDiscount;
-        await supabase
-          .from("gift_vouchers")
-          .update({
-            balance: newBalance,
-            status: newBalance <= 0 ? "redeemed" : "active",
-          })
-          .eq("id", voucherData.id);
+        if (redeemErr) throw redeemErr;
       }
 
       // Auto-create receipt in invoices
