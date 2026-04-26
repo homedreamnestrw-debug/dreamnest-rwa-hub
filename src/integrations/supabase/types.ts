@@ -1454,6 +1454,13 @@ export type Database = {
     }
     Functions: {
       approve_order_payment: { Args: { order_id: string }; Returns: undefined }
+      create_guest_order: {
+        Args: { p_items: Json; p_order: Json }
+        Returns: {
+          id: string
+          order_number: number
+        }[]
+      }
       generate_voucher_code: { Args: never; Returns: string }
       get_public_business_settings: {
         Args: never

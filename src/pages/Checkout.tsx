@@ -173,36 +173,61 @@ export default function Checkout() {
         payment_approved: isFullyPaidByVoucher ? true : false,
       };
 
+      let order: { id: string; order_number: number };
+
       if (user) {
         orderPayload.customer_id = user.id;
+
+        const { data: inserted, error: orderError } = await supabase
+          .from("orders")
+          .insert(orderPayload)
+          .select("id, order_number")
+          .single();
+
+        if (orderError) throw orderError;
+        order = inserted as { id: string; order_number: number };
+
+        const orderItems = cartItems.map((item) => ({
+          order_id: order.id,
+          product_id: item.product?.id ?? item.product_id,
+          variant_id: item.variant_id,
+          quantity: item.quantity,
+          unit_price: item.product?.price ?? 0,
+          discount: 0,
+          total: (item.product?.price ?? 0) * item.quantity,
+        }));
+
+        const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
+        if (itemsError) throw itemsError;
       } else {
-        // Guest order
-        orderPayload.customer_id = null;
-        orderPayload.guest_name = form.full_name;
-        orderPayload.guest_email = form.email;
-        orderPayload.guest_phone = form.phone;
+        // Guest checkout: use secure RPC so guest PII is never exposed via public SELECT.
+        const guestPayload = {
+          ...orderPayload,
+          guest_name: form.full_name,
+          guest_email: form.email,
+          guest_phone: form.phone,
+        };
+        delete (guestPayload as any).customer_id;
+
+        const guestItems = cartItems.map((item) => ({
+          product_id: item.product?.id ?? item.product_id,
+          variant_id: item.variant_id,
+          quantity: item.quantity,
+          unit_price: item.product?.price ?? 0,
+          discount: 0,
+          total: (item.product?.price ?? 0) * item.quantity,
+        }));
+
+        const { data: rpcData, error: rpcError } = await supabase.rpc("create_guest_order" as any, {
+          p_order: guestPayload,
+          p_items: guestItems,
+        });
+
+        if (rpcError) throw rpcError;
+        const row = Array.isArray(rpcData) ? rpcData[0] : rpcData;
+        if (!row) throw new Error("Order creation failed");
+        order = { id: row.id, order_number: row.order_number };
       }
-
-      const { data: order, error: orderError } = await supabase
-        .from("orders")
-        .insert(orderPayload)
-        .select("id, order_number")
-        .single();
-
-      if (orderError) throw orderError;
-
-      const orderItems = cartItems.map((item) => ({
-        order_id: order.id,
-        product_id: item.product?.id ?? item.product_id,
-        variant_id: item.variant_id,
-        quantity: item.quantity,
-        unit_price: item.product?.price ?? 0,
-        discount: 0,
-        total: (item.product?.price ?? 0) * item.quantity,
-      }));
-
-      const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
-      if (itemsError) throw itemsError;
 
       // Record voucher redemption if used
       if (voucherData && voucherDiscount > 0) {
