@@ -29,7 +29,10 @@ export default function Shop() {
   const { data: products, isLoading } = useQuery({
     queryKey: ["products", categorySlug, search, sortBy],
     queryFn: async () => {
-      let query = supabase.from("products").select("*, categories(name, slug)").eq("is_active", true);
+      let query = supabase
+        .from("products")
+        .select("id, name, slug, price, images, stock_quantity, low_stock_threshold, category_id, categories(name, slug)")
+        .eq("is_active", true);
 
       if (categorySlug) {
         const { data: cat } = await supabase.from("categories").select("id").eq("slug", categorySlug).maybeSingle();
