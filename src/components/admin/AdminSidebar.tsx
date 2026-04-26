@@ -149,8 +149,8 @@ export function AdminSidebar() {
         </div>
 
         {renderGroup("Sales", salesItems)}
-        {renderGroup("Catalog", catalogItems)}
         {renderGroup("Studio", studioItems)}
+        {renderGroup("Catalog", catalogItems)}
         {renderGroup("People", peopleItems)}
         {renderGroup("Operations", operationsItems)}
         {renderGroup("Insights", insightsItems)}
