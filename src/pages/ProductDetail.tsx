@@ -30,7 +30,7 @@ export default function ProductDetail() {
     queryFn: async () => {
       const { data } = await supabase
         .from("products")
-        .select("*, categories(name, slug)")
+        .select("id, name, slug, description, price, sku, images, stock_quantity, low_stock_threshold, category_id, tax_enabled, is_active, featured, created_at, updated_at, categories(name, slug)")
         .eq("slug", slug!)
         .maybeSingle();
       return data;

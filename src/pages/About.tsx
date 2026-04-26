@@ -17,7 +17,7 @@ export default function About() {
     queryFn: async () => {
       const { data } = await supabase
         .from("products")
-        .select("*, categories(name)")
+        .select("id, name, slug, price, images, categories(name)")
         .eq("is_active", true)
         .eq("featured", true)
         .limit(4);
