@@ -49,12 +49,12 @@ const salesItems: NavItem[] = [
   { title: "Gift Vouchers", url: "/admin/gift-vouchers", icon: Gift, visibility: "both" },
 ];
 
-const catalogItems: NavItem[] = [
-  { title: "Stock", url: "/admin/stock", icon: Warehouse, visibility: "both" },
-];
-
 const studioItems: NavItem[] = [
   { title: "Creative Studio", url: "/admin/creative-studio", icon: Sparkles, visibility: "both" },
+];
+
+const catalogItems: NavItem[] = [
+  { title: "Stock", url: "/admin/stock", icon: Warehouse, visibility: "both" },
 ];
 
 const peopleItems: NavItem[] = [
