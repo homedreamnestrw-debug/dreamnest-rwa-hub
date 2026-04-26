@@ -78,6 +78,7 @@ const App = () => (
             <Route path="/wishlist" element={<Account />} />
             <Route path="/gift-vouchers" element={<GiftVouchers />} />
             <Route path="/gift-vouchers/confirmation/:code" element={<GiftVoucherConfirmation />} />
+            <Route path="/creative-studio" element={<Navigate to="/admin/creative-studio" replace />} />
 
             {/* Admin */}
             <Route
