@@ -43,14 +43,11 @@ type NavItem = {
 };
 
 const salesItems: NavItem[] = [
+  { title: "Creative Studio", url: "/admin/creative-studio", icon: Sparkles, visibility: "both" },
   { title: "POS Terminal", url: "/admin/pos", icon: Monitor, visibility: "both" },
   { title: "Orders", url: "/admin/orders", icon: ShoppingCart, visibility: "both" },
   { title: "Invoices", url: "/admin/invoices", icon: FileText, visibility: "both" },
   { title: "Gift Vouchers", url: "/admin/gift-vouchers", icon: Gift, visibility: "both" },
-];
-
-const studioItems: NavItem[] = [
-  { title: "Creative Studio", url: "/admin/creative-studio", icon: Sparkles, visibility: "both" },
 ];
 
 const catalogItems: NavItem[] = [
@@ -149,7 +146,6 @@ export function AdminSidebar() {
         </div>
 
         {renderGroup("Sales", salesItems)}
-        {renderGroup("Studio", studioItems)}
         {renderGroup("Catalog", catalogItems)}
         {renderGroup("People", peopleItems)}
         {renderGroup("Operations", operationsItems)}
