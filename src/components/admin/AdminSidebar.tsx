@@ -42,8 +42,11 @@ type NavItem = {
   visibility: Visibility;
 };
 
-const salesItems: NavItem[] = [
+const studioItems: NavItem[] = [
   { title: "Creative Studio", url: "/admin/creative-studio", icon: Sparkles, visibility: "both" },
+];
+
+const salesItems: NavItem[] = [
   { title: "POS Terminal", url: "/admin/pos", icon: Monitor, visibility: "both" },
   { title: "Orders", url: "/admin/orders", icon: ShoppingCart, visibility: "both" },
   { title: "Invoices", url: "/admin/invoices", icon: FileText, visibility: "both" },
@@ -145,6 +148,7 @@ export function AdminSidebar() {
           )}
         </div>
 
+        {renderGroup("Studio", studioItems)}
         {renderGroup("Sales", salesItems)}
         {renderGroup("Catalog", catalogItems)}
         {renderGroup("People", peopleItems)}
