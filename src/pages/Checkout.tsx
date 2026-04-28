@@ -81,7 +81,7 @@ export default function Checkout() {
   // Online orders: VAT is included in product price (no extra VAT charged at checkout)
   const vatRate = settings?.vat_percentage ? Number(settings.vat_percentage) / 100 : 0.18;
 
-  const subtotal = cartItems.reduce((sum, item) => sum + (item.product?.price ?? 0) * item.quantity, 0);
+  const subtotal = cartItems.reduce((sum, item) => sum + (item.unit_price ?? item.product?.price ?? 0) * item.quantity, 0);
   const taxAmount = 0;
   const voucherDiscount = voucherData ? Math.min(voucherData.balance, subtotal) : 0;
   const total = subtotal - voucherDiscount;
