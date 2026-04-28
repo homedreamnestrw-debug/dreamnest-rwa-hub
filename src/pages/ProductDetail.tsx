@@ -30,7 +30,7 @@ export default function ProductDetail() {
     queryFn: async () => {
       const { data } = await supabase
         .from("products")
-        .select("id, name, slug, description, price, sku, images, stock_quantity, low_stock_threshold, category_id, tax_enabled, is_active, featured, created_at, updated_at, categories(name, slug)")
+        .select("id, name, slug, description, price, sku, images, stock_quantity, low_stock_threshold, category_id, tax_enabled, is_active, featured, variant_attributes, created_at, updated_at, categories(name, slug)")
         .eq("slug", slug!)
         .maybeSingle();
       return data;
@@ -57,13 +57,39 @@ export default function ProductDetail() {
     queryFn: async () => {
       const { data } = await supabase
         .from("product_variants")
-        .select("*")
+        .select("id, variant_name, sku, price_override, attributes, stock_quantity, is_active")
         .eq("product_id", product!.id)
         .eq("is_active", true);
       return data ?? [];
     },
     enabled: !!product?.id,
   });
+
+  const optionsSchema: Record<string, string[]> =
+    (product as any)?.variant_attributes && typeof (product as any).variant_attributes === "object"
+      ? ((product as any).variant_attributes as Record<string, string[]>)
+      : {};
+  const optionNames = Object.keys(optionsSchema);
+  const hasVariants = optionNames.length > 0 && (variants?.length ?? 0) > 0;
+
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
+
+  // Reset selection when product changes
+  useEffect(() => {
+    setSelectedOptions({});
+  }, [product?.id]);
+
+  const matchedVariant = hasVariants
+    ? variants!.find((v: any) =>
+        optionNames.every((n) => (v.attributes ?? {})[n] === selectedOptions[n])
+      )
+    : null;
+
+  const effectivePrice = matchedVariant?.price_override ?? product?.price ?? 0;
+  const effectiveStock = hasVariants
+    ? (matchedVariant?.stock_quantity ?? 0)
+    : (product?.stock_quantity ?? 0);
+
 
   const formatPrice = (price: number) =>
     new Intl.NumberFormat("en-RW", { style: "currency", currency: "RWF", minimumFractionDigits: 0 }).format(price);
