@@ -304,7 +304,14 @@ export default function Products() {
               <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No products found</TableCell></TableRow>
             ) : filtered.map((p) => (
               <TableRow key={p.id}>
-                <TableCell className="font-medium">{p.name}</TableCell>
+                <TableCell className="font-medium">
+                  <div className="flex items-center gap-2">
+                    <span>{p.name}</span>
+                    {(p as any).variant_attributes && Object.keys((p as any).variant_attributes).length > 0 && (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0">Variants</Badge>
+                    )}
+                  </div>
+                </TableCell>
                 <TableCell className="text-muted-foreground">{p.sku || "—"}</TableCell>
                 <TableCell>{formatRWF(p.price)}</TableCell>
                 <TableCell>

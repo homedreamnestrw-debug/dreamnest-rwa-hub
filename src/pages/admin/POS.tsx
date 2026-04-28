@@ -26,11 +26,23 @@ type PaymentMethod = Database["public"]["Enums"]["payment_method"];
 
 interface CartItem {
   product_id: string;
+  variant_id: string | null;
   name: string;
+  variant_label: string | null;
   price: number; // original price
   selling_price: number; // actual selling price (can be modified)
   quantity: number;
   stock: number;
+}
+
+interface VariantOption {
+  id: string;
+  variant_name: string;
+  attributes: Record<string, string> | null;
+  price_override: number | null;
+  stock_quantity: number;
+  sku: string | null;
+  is_active: boolean;
 }
 
 interface CompletedOrder {
@@ -74,7 +86,13 @@ export default function POS() {
   const [editPriceValue, setEditPriceValue] = useState<string>("");
   // Quantity prompt dialog
   const [qtyPromptProduct, setQtyPromptProduct] = useState<any | null>(null);
+  const [qtyPromptVariant, setQtyPromptVariant] = useState<VariantOption | null>(null);
   const [qtyPromptValue, setQtyPromptValue] = useState<string>("1");
+  // Variant picker dialog
+  const [variantPickerProduct, setVariantPickerProduct] = useState<any | null>(null);
+  const [variantPickerOptions, setVariantPickerOptions] = useState<VariantOption[]>([]);
+  const [variantPickerSelections, setVariantPickerSelections] = useState<Record<string, string>>({});
+  const [variantPickerLoading, setVariantPickerLoading] = useState(false);
   // VAT toggle
   const [includeVat, setIncludeVat] = useState(false);
   // Discount
@@ -92,7 +110,7 @@ export default function POS() {
     queryFn: async () => {
       const { data } = await supabase
         .from("products")
-        .select("id, name, price, stock_quantity, sku, images, category_id, categories(name)")
+        .select("id, name, price, stock_quantity, sku, images, category_id, variant_attributes, categories(name)")
         .eq("is_active", true)
         .order("name");
       return data ?? [];
@@ -196,53 +214,119 @@ export default function POS() {
       (p.sku && p.sku.toLowerCase().includes(search.toLowerCase()))
   ) ?? [];
 
-  const addToCart = useCallback((product: any, qty: number = 1) => {
-    if (product.stock_quantity <= 0) {
+  const cartKey = (productId: string, variantId: string | null) => `${productId}::${variantId ?? ""}`;
+
+  const addToCart = useCallback((product: any, qty: number = 1, variant: VariantOption | null = null) => {
+    const stockMax = variant ? (variant.stock_quantity ?? 0) : product.stock_quantity;
+    if (stockMax <= 0) {
       toast.error("Out of stock");
       return;
     }
+    const variantId = variant?.id ?? null;
+    const unitPrice = variant?.price_override ?? product.price;
+    const variantLabel = variant?.variant_name ?? null;
+    const displayName = variant ? `${product.name} — ${variant.variant_name}` : product.name;
     setCart((prev) => {
-      const existing = prev.find((i) => i.product_id === product.id);
+      const existing = prev.find((i) => cartKey(i.product_id, i.variant_id) === cartKey(product.id, variantId));
       if (existing) {
         const newQty = existing.quantity + qty;
-        if (newQty > product.stock_quantity) {
+        if (newQty > stockMax) {
           toast.error("Not enough stock");
           return prev;
         }
         return prev.map((i) =>
-          i.product_id === product.id ? { ...i, quantity: newQty } : i
+          cartKey(i.product_id, i.variant_id) === cartKey(product.id, variantId) ? { ...i, quantity: newQty } : i
         );
       }
-      if (qty > product.stock_quantity) {
+      if (qty > stockMax) {
         toast.error("Not enough stock");
         return prev;
       }
-      return [...prev, { product_id: product.id, name: product.name, price: product.price, selling_price: product.price, quantity: qty, stock: product.stock_quantity }];
+      return [...prev, {
+        product_id: product.id,
+        variant_id: variantId,
+        name: displayName,
+        variant_label: variantLabel,
+        price: unitPrice,
+        selling_price: unitPrice,
+        quantity: qty,
+        stock: stockMax,
+      }];
     });
     setSearch("");
     searchRef.current?.focus();
   }, []);
 
-  const openQtyPrompt = useCallback((product: any) => {
+  // Detect whether a product has variants (variant_attributes is non-empty object)
+  const productHasVariants = (product: any): boolean => {
+    const attrs = product?.variant_attributes;
+    return attrs && typeof attrs === "object" && Object.keys(attrs).length > 0;
+  };
+
+  const openProduct = useCallback(async (product: any) => {
+    if (productHasVariants(product)) {
+      // Open variant picker — fetch variants for this product
+      setVariantPickerProduct(product);
+      setVariantPickerSelections({});
+      setVariantPickerLoading(true);
+      const { data } = await supabase
+        .from("product_variants")
+        .select("id, variant_name, attributes, price_override, stock_quantity, sku, is_active")
+        .eq("product_id", product.id)
+        .eq("is_active", true);
+      setVariantPickerOptions((data ?? []) as VariantOption[]);
+      setVariantPickerLoading(false);
+      return;
+    }
     if (product.stock_quantity <= 0) {
       toast.error("Out of stock");
       return;
     }
     setQtyPromptProduct(product);
+    setQtyPromptVariant(null);
     setQtyPromptValue("1");
   }, []);
 
   const confirmQtyPrompt = () => {
     if (!qtyPromptProduct) return;
     const qty = Math.max(1, Math.floor(Number(qtyPromptValue) || 1));
-    addToCart(qtyPromptProduct, qty);
+    addToCart(qtyPromptProduct, qty, qtyPromptVariant);
     setQtyPromptProduct(null);
+    setQtyPromptVariant(null);
   };
 
-  const updateQty = (productId: string, delta: number) => {
+  // Variant picker helpers
+  const variantOptionNames = variantPickerProduct
+    ? Object.keys((variantPickerProduct.variant_attributes ?? {}) as Record<string, string[]>)
+    : [];
+  const matchedPickerVariant: VariantOption | null = (() => {
+    if (!variantPickerProduct || variantOptionNames.length === 0) return null;
+    return (
+      variantPickerOptions.find((v) =>
+        variantOptionNames.every((n) => (v.attributes ?? {})[n] === variantPickerSelections[n])
+      ) ?? null
+    );
+  })();
+
+  const confirmVariantPick = () => {
+    if (!variantPickerProduct || !matchedPickerVariant) return;
+    if ((matchedPickerVariant.stock_quantity ?? 0) <= 0) {
+      toast.error("Selected variant is out of stock");
+      return;
+    }
+    // Hand off to qty prompt for quantity entry
+    setQtyPromptProduct(variantPickerProduct);
+    setQtyPromptVariant(matchedPickerVariant);
+    setQtyPromptValue("1");
+    setVariantPickerProduct(null);
+    setVariantPickerOptions([]);
+    setVariantPickerSelections({});
+  };
+
+  const updateQty = (key: string, delta: number) => {
     setCart((prev) =>
       prev.map((i) => {
-        if (i.product_id !== productId) return i;
+        if (cartKey(i.product_id, i.variant_id) !== key) return i;
         const newQty = i.quantity + delta;
         if (newQty <= 0) return null as any;
         if (newQty > i.stock) { toast.error("Not enough stock"); return i; }
@@ -251,16 +335,16 @@ export default function POS() {
     );
   };
 
-  const updateSellingPrice = (productId: string, newPrice: number) => {
+  const updateSellingPrice = (key: string, newPrice: number) => {
     setCart((prev) =>
       prev.map((i) =>
-        i.product_id === productId ? { ...i, selling_price: Math.max(0, newPrice) } : i
+        cartKey(i.product_id, i.variant_id) === key ? { ...i, selling_price: Math.max(0, newPrice) } : i
       )
     );
   };
 
   const startEditPrice = (item: CartItem) => {
-    setEditingPriceId(item.product_id);
+    setEditingPriceId(cartKey(item.product_id, item.variant_id));
     setEditPriceValue(String(item.selling_price));
   };
 
@@ -272,7 +356,7 @@ export default function POS() {
     setEditPriceValue("");
   };
 
-  const removeFromCart = (productId: string) => setCart((prev) => prev.filter((i) => i.product_id !== productId));
+  const removeFromCart = (key: string) => setCart((prev) => prev.filter((i) => cartKey(i.product_id, i.variant_id) !== key));
   const clearCart = () => { setCart([]); setCustomerNote(""); setIsCredit(false); setAmountPaid(""); setDiscountType("none"); setDiscountValue(""); setVoucherCode(""); setVoucherData(null); setIncludeVat(false); clearCustomer(); searchRef.current?.focus(); };
 
   const subtotal = cart.reduce((s, i) => s + i.selling_price * i.quantity, 0);
@@ -379,6 +463,7 @@ export default function POS() {
       const items = cart.map((i) => ({
         order_id: order.id,
         product_id: i.product_id,
+        variant_id: i.variant_id,
         quantity: i.quantity,
         unit_price: i.selling_price,
         discount: (i.price - i.selling_price) * i.quantity,
@@ -661,30 +746,36 @@ export default function POS() {
 
               <ScrollArea className="flex-1">
                 <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
-                  {filtered.map((product: any) => (
-                    <button
-                      key={product.id}
-                      onClick={() => openQtyPrompt(product)}
-                      disabled={product.stock_quantity <= 0}
-                      className="text-left p-3 border rounded-lg hover:border-primary hover:bg-primary/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <div className="aspect-square rounded-md overflow-hidden bg-muted mb-2">
-                        {product.images?.[0] ? (
-                          <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">No image</div>
-                        )}
-                      </div>
-                      <p className="font-medium text-sm truncate">{product.name}</p>
-                      <div className="flex items-center justify-between mt-1">
-                        <span className="font-serif text-sm">{formatPrice(product.price)}</span>
-                        <Badge variant={product.stock_quantity <= 0 ? "destructive" : product.stock_quantity <= 5 ? "secondary" : "outline"} className="text-xs">
-                          {product.stock_quantity}
-                        </Badge>
-                      </div>
-                      {product.sku && <p className="text-xs text-muted-foreground mt-1">{product.sku}</p>}
-                    </button>
-                  ))}
+                  {filtered.map((product: any) => {
+                    const hasVar = productHasVariants(product);
+                    return (
+                      <button
+                        key={product.id}
+                        onClick={() => openProduct(product)}
+                        disabled={product.stock_quantity <= 0}
+                        className="text-left p-3 border rounded-lg hover:border-primary hover:bg-primary/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <div className="aspect-square rounded-md overflow-hidden bg-muted mb-2 relative">
+                          {product.images?.[0] ? (
+                            <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">No image</div>
+                          )}
+                          {hasVar && (
+                            <Badge variant="secondary" className="absolute top-1 left-1 text-[9px] px-1 py-0">Variants</Badge>
+                          )}
+                        </div>
+                        <p className="font-medium text-sm truncate">{product.name}</p>
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="font-serif text-sm">{formatPrice(product.price)}</span>
+                          <Badge variant={product.stock_quantity <= 0 ? "destructive" : product.stock_quantity <= 5 ? "secondary" : "outline"} className="text-xs">
+                            {product.stock_quantity}
+                          </Badge>
+                        </div>
+                        {product.sku && <p className="text-xs text-muted-foreground mt-1">{product.sku}</p>}
+                      </button>
+                    );
+                  })}
                   {filtered.length === 0 && (
                     <div className="col-span-full text-center py-12 text-muted-foreground">
                       {search ? "No products found" : "No products available"}
@@ -726,23 +817,28 @@ export default function POS() {
                     ) : (
                       <>
                         <div className="space-y-2">
-                          {cart.map((item) => (
-                            <div key={item.product_id} className="rounded-md bg-muted/50 p-2 space-y-1">
+                          {cart.map((item) => {
+                            const key = cartKey(item.product_id, item.variant_id);
+                            return (
+                            <div key={key} className="rounded-md bg-muted/50 p-2 space-y-1">
                               <div className="flex min-w-0 items-center gap-2">
                                 <div className="min-w-0 flex-1 overflow-hidden">
                                   <p className="truncate text-sm font-medium">{item.name}</p>
+                                  {item.variant_label && (
+                                    <p className="truncate text-[10px] text-muted-foreground">{item.variant_label}</p>
+                                  )}
                                 </div>
                                 <div className="flex shrink-0 items-center gap-1">
-                                  <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQty(item.product_id, -1)}><Minus className="h-3 w-3" /></Button>
+                                  <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQty(key, -1)}><Minus className="h-3 w-3" /></Button>
                                   <span className="w-6 text-center text-sm font-medium">{item.quantity}</span>
-                                  <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQty(item.product_id, 1)}><Plus className="h-3 w-3" /></Button>
+                                  <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQty(key, 1)}><Plus className="h-3 w-3" /></Button>
                                 </div>
                                 <span className="shrink-0 text-right text-sm font-medium">{formatPrice(item.selling_price * item.quantity)}</span>
-                                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-destructive" onClick={() => removeFromCart(item.product_id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-destructive" onClick={() => removeFromCart(key)}><Trash2 className="h-3.5 w-3.5" /></Button>
                               </div>
                               {/* Price edit row */}
                               <div className="flex items-center gap-2 text-xs">
-                                {editingPriceId === item.product_id ? (
+                                {editingPriceId === key ? (
                                   <div className="flex items-center gap-1">
                                     <Input
                                       type="number"
@@ -773,7 +869,7 @@ export default function POS() {
                                 )}
                               </div>
                             </div>
-                          ))}
+                          );})}
                         </div>
 
                         <div className="space-y-4 pb-1">
@@ -977,15 +1073,77 @@ export default function POS() {
         </ResizablePanelGroup>
       </div>
 
+      {/* Variant Picker Dialog */}
+      <Dialog
+        open={!!variantPickerProduct}
+        onOpenChange={(o) => { if (!o) { setVariantPickerProduct(null); setVariantPickerOptions([]); setVariantPickerSelections({}); } }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Choose options — {variantPickerProduct?.name}</DialogTitle>
+          </DialogHeader>
+          {variantPickerLoading ? (
+            <div className="py-8 text-center text-sm text-muted-foreground"><Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" /> Loading variants…</div>
+          ) : (
+            <div className="space-y-4">
+              {variantOptionNames.map((opt) => {
+                const values = ((variantPickerProduct?.variant_attributes ?? {})[opt] ?? []) as string[];
+                return (
+                  <div key={opt} className="space-y-1.5">
+                    <p className="text-sm font-medium">
+                      {opt}: <span className="text-muted-foreground font-normal">{variantPickerSelections[opt] ?? "Choose"}</span>
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {values.map((val) => {
+                        const candidate = { ...variantPickerSelections, [opt]: val };
+                        const matched = variantPickerOptions.find((v) =>
+                          variantOptionNames.every((n) => (v.attributes ?? {})[n] === candidate[n])
+                        );
+                        const inStock = matched ? (matched.stock_quantity ?? 0) > 0 : true;
+                        const isSelected = variantPickerSelections[opt] === val;
+                        return (
+                          <Button
+                            key={val}
+                            type="button"
+                            size="sm"
+                            variant={isSelected ? "default" : "outline"}
+                            disabled={!inStock && !isSelected}
+                            onClick={() => setVariantPickerSelections({ ...variantPickerSelections, [opt]: val })}
+                            className={!inStock ? "line-through opacity-60" : ""}
+                          >
+                            {val}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+              {matchedPickerVariant && (
+                <div className="text-xs text-muted-foreground rounded-md bg-muted/40 p-2">
+                  <div className="flex justify-between"><span>Price</span><span className="font-medium text-foreground">{formatPrice(matchedPickerVariant.price_override ?? variantPickerProduct?.price ?? 0)}</span></div>
+                  <div className="flex justify-between"><span>Stock</span><span className={(matchedPickerVariant.stock_quantity ?? 0) <= 0 ? "text-destructive font-medium" : "font-medium text-foreground"}>{matchedPickerVariant.stock_quantity ?? 0}</span></div>
+                  {matchedPickerVariant.sku && <div className="flex justify-between"><span>SKU</span><span>{matchedPickerVariant.sku}</span></div>}
+                </div>
+              )}
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => { setVariantPickerProduct(null); setVariantPickerOptions([]); setVariantPickerSelections({}); }}>Cancel</Button>
+                <Button onClick={confirmVariantPick} disabled={!matchedPickerVariant || (matchedPickerVariant.stock_quantity ?? 0) <= 0}>Continue</Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Quantity Prompt Dialog */}
-      <Dialog open={!!qtyPromptProduct} onOpenChange={(o) => { if (!o) setQtyPromptProduct(null); }}>
+      <Dialog open={!!qtyPromptProduct} onOpenChange={(o) => { if (!o) { setQtyPromptProduct(null); setQtyPromptVariant(null); } }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Add {qtyPromptProduct?.name}</DialogTitle>
+            <DialogTitle>Add {qtyPromptProduct?.name}{qtyPromptVariant ? ` — ${qtyPromptVariant.variant_name}` : ""}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="text-sm text-muted-foreground">
-              Available stock: <span className="font-medium text-foreground">{qtyPromptProduct?.stock_quantity ?? 0}</span>
+              Available stock: <span className="font-medium text-foreground">{qtyPromptVariant ? (qtyPromptVariant.stock_quantity ?? 0) : (qtyPromptProduct?.stock_quantity ?? 0)}</span>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="qty-prompt">Quantity</Label>
@@ -993,7 +1151,7 @@ export default function POS() {
                 id="qty-prompt"
                 type="number"
                 min={1}
-                max={qtyPromptProduct?.stock_quantity}
+                max={qtyPromptVariant ? (qtyPromptVariant.stock_quantity ?? 0) : (qtyPromptProduct?.stock_quantity ?? 0)}
                 value={qtyPromptValue}
                 autoFocus
                 onChange={(e) => setQtyPromptValue(e.target.value)}

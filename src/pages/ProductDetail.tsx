@@ -14,6 +14,36 @@ import { ComingSoon } from "@/components/layout/ComingSoon";
 import { SEO } from "@/components/SEO";
 import { FeaturedProducts } from "@/components/product/FeaturedProducts";
 
+/**
+ * Best-effort mapping of a free-text color value (e.g. "Rabbit plush warm sun orange",
+ * "deep coffee", "milk white") to a CSS color for the swatch dot. Picks the last
+ * recognized color keyword in the string. Falls back to neutral muted.
+ */
+function cssColorFromName(label: string): string {
+  const map: Record<string, string> = {
+    white: "#f5f5f5", milk: "#f5efe6", ivory: "#fffff0", cream: "#fffdd0",
+    black: "#1a1a1a", gray: "#9ca3af", grey: "#9ca3af", silver: "#c0c0c0",
+    red: "#dc2626", crimson: "#b91c1c", maroon: "#7f1d1d", pink: "#ec4899",
+    rose: "#f43f5e", coral: "#fb7185",
+    orange: "#f97316", peach: "#fdba74", sun: "#fbbf24", amber: "#f59e0b",
+    yellow: "#eab308", gold: "#d4af37",
+    green: "#16a34a", olive: "#65a30d", mint: "#86efac", sage: "#84cc16",
+    teal: "#14b8a6", cyan: "#06b6d4", turquoise: "#2dd4bf",
+    blue: "#2563eb", navy: "#1e3a8a", denim: "#3b82f6", sky: "#0ea5e9",
+    purple: "#9333ea", violet: "#7c3aed", lavender: "#c4b5fd", lilac: "#c084fc",
+    brown: "#78350f", coffee: "#4b2e1e", chocolate: "#3f2415", tan: "#d2b48c",
+    beige: "#e8d8b8", khaki: "#bdb76b", camel: "#c19a6b", sand: "#dec39c",
+    deep: "", warm: "", plush: "", rabbit: "", wool: "", dark: "", light: "",
+  };
+  const tokens = label.toLowerCase().split(/[\s/\-_,]+/).filter(Boolean);
+  // pick last token that maps to a color
+  let chosen = "";
+  for (const t of tokens) {
+    const hit = map[t];
+    if (hit) chosen = hit;
+  }
+  return chosen || "hsl(var(--muted))";
+}
 export default function ProductDetail() {
   const { slug } = useParams<{ slug: string }>();
   const { user } = useAuth();
@@ -287,39 +317,53 @@ export default function ProductDetail() {
             )}
 
             {hasVariants && (
-              <div className="space-y-3">
-                {optionNames.map((opt) => (
-                  <div key={opt} className="space-y-1.5">
-                    <p className="text-sm font-medium">
-                      {opt}: <span className="text-muted-foreground font-normal">{selectedOptions[opt] ?? "Choose"}</span>
-                    </p>
-                    <div className="flex gap-2 flex-wrap">
-                      {(optionsSchema[opt] ?? []).map((val) => {
-                        // Determine availability: a value is available if at least one variant matching
-                        // current selections (excluding this option) + this value is in stock.
-                        const candidateOptions = { ...selectedOptions, [opt]: val };
-                        const candidate = variants!.find((v: any) =>
-                          optionNames.every((n) => (v.attributes ?? {})[n] === candidateOptions[n])
-                        );
-                        const inStock = candidate ? (candidate.stock_quantity ?? 0) > 0 : false;
-                        const isSelected = selectedOptions[opt] === val;
-                        return (
-                          <Button
-                            key={val}
-                            type="button"
-                            variant={isSelected ? "default" : "outline"}
-                            size="sm"
-                            disabled={!inStock && !isSelected}
-                            onClick={() => setSelectedOptions({ ...selectedOptions, [opt]: val })}
-                            className={!inStock ? "line-through opacity-60" : ""}
-                          >
-                            {val}
-                          </Button>
-                        );
-                      })}
+              <div className="space-y-5">
+                {optionNames.map((opt) => {
+                  const isColor = opt.toLowerCase().includes("color") || opt.toLowerCase().includes("colour");
+                  return (
+                    <div key={opt} className="space-y-2">
+                      <p className="text-sm text-muted-foreground">{opt}</p>
+                      <div className="flex flex-col gap-2">
+                        {(optionsSchema[opt] ?? []).map((val) => {
+                          const candidateOptions = { ...selectedOptions, [opt]: val };
+                          const candidate = variants!.find((v: any) =>
+                            optionNames.every((n) => (v.attributes ?? {})[n] === candidateOptions[n])
+                          );
+                          const inStock = candidate ? (candidate.stock_quantity ?? 0) > 0 : false;
+                          const isSelected = selectedOptions[opt] === val;
+                          return (
+                            <button
+                              key={val}
+                              type="button"
+                              disabled={!inStock && !isSelected}
+                              onClick={() => setSelectedOptions({ ...selectedOptions, [opt]: val })}
+                              className={[
+                                "w-full text-left rounded-full border px-5 py-3 text-sm transition-all",
+                                "flex items-center gap-3",
+                                isSelected
+                                  ? "bg-foreground text-background border-foreground"
+                                  : "bg-background text-foreground border-border hover:border-foreground",
+                                !inStock && !isSelected ? "opacity-50 line-through cursor-not-allowed" : "",
+                              ].join(" ")}
+                            >
+                              {isColor && (
+                                <span
+                                  className="inline-block h-5 w-5 rounded-full border border-border shrink-0"
+                                  style={{ backgroundColor: cssColorFromName(val) }}
+                                  aria-hidden
+                                />
+                              )}
+                              <span className="flex-1">{val}</span>
+                              {!inStock && !isSelected && (
+                                <span className="text-xs uppercase tracking-wide">Out</span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
