@@ -132,7 +132,14 @@ export default function Products() {
   const handleSave = async () => {
     const slug = form.slug || form.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
     const { images, ...rest } = form;
-    const payload: TablesInsert<"products"> = { ...rest, slug, category_id: form.category_id || null, images: images.length > 0 ? images : null };
+    const hasVariants = variantRows.length > 0;
+    const payload: TablesInsert<"products"> = {
+      ...rest,
+      slug,
+      category_id: form.category_id || null,
+      images: images.length > 0 ? images : null,
+      variant_attributes: optionsSchema as any,
+    };
 
     let productId: string;
     if (editing) {
@@ -147,16 +154,21 @@ export default function Products() {
       toast({ title: "Product created" });
     }
 
-    // Upsert per-location stock (only when editing — new products get auto-seeded rows by trigger;
-    // user can edit them to set quantities afterwards, OR if they entered values during create, we set them now)
-    const upserts = Object.entries(locationStock)
-      .filter(([locId]) => locId)
-      .map(([location_id, quantity]) => ({ product_id: productId, location_id, quantity: quantity || 0 }));
-    if (upserts.length > 0) {
-      const { error: stockErr } = await supabase
-        .from("product_stock")
-        .upsert(upserts, { onConflict: "product_id,location_id" });
-      if (stockErr) { toast({ title: "Stock save failed", description: stockErr.message, variant: "destructive" }); }
+    // Persist variants (and their per-location stock) when defined
+    if (hasVariants) {
+      const { error: vErr } = await persistVariants(productId, variantRows);
+      if (vErr) { toast({ title: "Variants save failed", description: vErr, variant: "destructive" }); }
+    } else {
+      // No variants: regular per-product per-location stock
+      const upserts = Object.entries(locationStock)
+        .filter(([locId]) => locId)
+        .map(([location_id, quantity]) => ({ product_id: productId, location_id, quantity: quantity || 0 }));
+      if (upserts.length > 0) {
+        const { error: stockErr } = await supabase
+          .from("product_stock")
+          .upsert(upserts, { onConflict: "product_id,location_id" });
+        if (stockErr) { toast({ title: "Stock save failed", description: stockErr.message, variant: "destructive" }); }
+      }
     }
 
     setDialogOpen(false);
