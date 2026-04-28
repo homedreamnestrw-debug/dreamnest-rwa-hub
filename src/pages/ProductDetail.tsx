@@ -5,7 +5,7 @@ import { PublicLayout } from "@/components/layout/PublicLayout";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/hooks/useCart";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Heart, Minus, Plus, ShoppingCart, Star } from "lucide-react";
 import { ReviewForm } from "@/components/product/ReviewForm";
@@ -30,7 +30,7 @@ export default function ProductDetail() {
     queryFn: async () => {
       const { data } = await supabase
         .from("products")
-        .select("id, name, slug, description, price, sku, images, stock_quantity, low_stock_threshold, category_id, tax_enabled, is_active, featured, created_at, updated_at, categories(name, slug)")
+        .select("id, name, slug, description, price, sku, images, stock_quantity, low_stock_threshold, category_id, tax_enabled, is_active, featured, variant_attributes, created_at, updated_at, categories(name, slug)")
         .eq("slug", slug!)
         .maybeSingle();
       return data;
@@ -57,7 +57,7 @@ export default function ProductDetail() {
     queryFn: async () => {
       const { data } = await supabase
         .from("product_variants")
-        .select("*")
+        .select("id, variant_name, sku, price_override, attributes, stock_quantity, is_active")
         .eq("product_id", product!.id)
         .eq("is_active", true);
       return data ?? [];
@@ -65,27 +65,70 @@ export default function ProductDetail() {
     enabled: !!product?.id,
   });
 
+  const optionsSchema: Record<string, string[]> =
+    (product as any)?.variant_attributes && typeof (product as any).variant_attributes === "object"
+      ? ((product as any).variant_attributes as Record<string, string[]>)
+      : {};
+  const optionNames = Object.keys(optionsSchema);
+  const hasVariants = optionNames.length > 0 && (variants?.length ?? 0) > 0;
+
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
+
+  // Reset selection when product changes
+  useEffect(() => {
+    setSelectedOptions({});
+  }, [product?.id]);
+
+  const matchedVariant = hasVariants
+    ? variants!.find((v: any) =>
+        optionNames.every((n) => (v.attributes ?? {})[n] === selectedOptions[n])
+      )
+    : null;
+
+  const effectivePrice = matchedVariant?.price_override ?? product?.price ?? 0;
+  const effectiveStock = hasVariants
+    ? (matchedVariant?.stock_quantity ?? 0)
+    : (product?.stock_quantity ?? 0);
+
+
   const formatPrice = (price: number) =>
     new Intl.NumberFormat("en-RW", { style: "currency", currency: "RWF", minimumFractionDigits: 0 }).format(price);
 
   const addToCart = async () => {
     if (!product) return;
-    if (product.stock_quantity <= 0) {
-      toast.error("This product is out of stock");
+    if (hasVariants && !matchedVariant) {
+      toast.error(`Please choose ${optionNames.join(" and ")}`);
       return;
     }
-    if (quantity > product.stock_quantity) {
-      toast.error(`Only ${product.stock_quantity} available in stock`);
+    if (effectiveStock <= 0) {
+      toast.error("This item is out of stock");
       return;
     }
-    await addItem({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      slug: product.slug,
-      images: product.images,
-      stock_quantity: product.stock_quantity,
-    }, quantity);
+    if (quantity > effectiveStock) {
+      toast.error(`Only ${effectiveStock} available in stock`);
+      return;
+    }
+    await addItem(
+      {
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        slug: product.slug,
+        images: product.images,
+        stock_quantity: product.stock_quantity,
+      },
+      quantity,
+      matchedVariant
+        ? {
+            id: matchedVariant.id,
+            variant_name: matchedVariant.variant_name,
+            price_override: matchedVariant.price_override ?? null,
+            attributes: (matchedVariant.attributes ?? null) as Record<string, string> | null,
+            sku: matchedVariant.sku ?? null,
+          }
+        : null,
+      hasVariants ? effectiveStock : undefined,
+    );
     toast.success("Added to cart!");
   };
 
@@ -237,49 +280,84 @@ export default function ProductDetail() {
               </div>
             )}
 
-            <p className="text-3xl font-serif">{formatPrice(product.price)}</p>
+            <p className="text-3xl font-serif">{formatPrice(effectivePrice)}</p>
 
             {product.description && (
               <p className="text-muted-foreground leading-relaxed">{product.description}</p>
             )}
 
-            {variants && variants.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-sm font-medium">Variants</p>
-                <div className="flex gap-2 flex-wrap">
-                  {variants.map((v: any) => (
-                    <Button key={v.id} variant="outline" size="sm">{v.variant_name}</Button>
-                  ))}
-                </div>
+            {hasVariants && (
+              <div className="space-y-3">
+                {optionNames.map((opt) => (
+                  <div key={opt} className="space-y-1.5">
+                    <p className="text-sm font-medium">
+                      {opt}: <span className="text-muted-foreground font-normal">{selectedOptions[opt] ?? "Choose"}</span>
+                    </p>
+                    <div className="flex gap-2 flex-wrap">
+                      {(optionsSchema[opt] ?? []).map((val) => {
+                        // Determine availability: a value is available if at least one variant matching
+                        // current selections (excluding this option) + this value is in stock.
+                        const candidateOptions = { ...selectedOptions, [opt]: val };
+                        const candidate = variants!.find((v: any) =>
+                          optionNames.every((n) => (v.attributes ?? {})[n] === candidateOptions[n])
+                        );
+                        const inStock = candidate ? (candidate.stock_quantity ?? 0) > 0 : false;
+                        const isSelected = selectedOptions[opt] === val;
+                        return (
+                          <Button
+                            key={val}
+                            type="button"
+                            variant={isSelected ? "default" : "outline"}
+                            size="sm"
+                            disabled={!inStock && !isSelected}
+                            onClick={() => setSelectedOptions({ ...selectedOptions, [opt]: val })}
+                            className={!inStock ? "line-through opacity-60" : ""}
+                          >
+                            {val}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
 
             {/* Quantity + Add to Cart */}
             <div className="flex items-center gap-4 pt-4">
               <div className="flex items-center border rounded-md">
-                <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => setQuantity(Math.max(1, quantity - 1))} disabled={product.stock_quantity <= 0}>
+                <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => setQuantity(Math.max(1, quantity - 1))} disabled={effectiveStock <= 0}>
                   <Minus className="h-4 w-4" />
                 </Button>
                 <span className="w-12 text-center font-medium">{quantity}</span>
-                <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => setQuantity(Math.min(product.stock_quantity, quantity + 1))} disabled={product.stock_quantity <= 0 || quantity >= product.stock_quantity}>
+                <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => setQuantity(Math.min(effectiveStock, quantity + 1))} disabled={effectiveStock <= 0 || quantity >= effectiveStock}>
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
-              <Button className="flex-1" size="lg" disabled={product.stock_quantity <= 0} onClick={addToCart}>
+              <Button
+                className="flex-1"
+                size="lg"
+                disabled={effectiveStock <= 0 || (hasVariants && !matchedVariant)}
+                onClick={addToCart}
+              >
                 <ShoppingCart className="mr-2 h-5 w-5" />
-                {product.stock_quantity <= 0 ? "Out of Stock" : "Add to Cart"}
+                {hasVariants && !matchedVariant
+                  ? `Select ${optionNames.join(" & ")}`
+                  : effectiveStock <= 0
+                  ? "Out of Stock"
+                  : "Add to Cart"}
               </Button>
               <Button variant="outline" size="icon" className="h-11 w-11" onClick={addToWishlist}>
                 <Heart className="h-5 w-5" />
               </Button>
             </div>
 
-            {product.stock_quantity > 0 && product.stock_quantity <= product.low_stock_threshold && (
-              <p className="text-sm text-destructive">Only {product.stock_quantity} left in stock</p>
+            {effectiveStock > 0 && effectiveStock <= product.low_stock_threshold && (
+              <p className="text-sm text-destructive">Only {effectiveStock} left in stock</p>
             )}
 
-            {product.sku && (
-              <p className="text-xs text-muted-foreground">SKU: {product.sku}</p>
+            {(matchedVariant?.sku || product.sku) && (
+              <p className="text-xs text-muted-foreground">SKU: {matchedVariant?.sku || product.sku}</p>
             )}
           </div>
         </div>

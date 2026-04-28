@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, Search } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { ProductImageUpload } from "@/components/admin/ProductImageUpload";
+import { VariantManager, persistVariants, type OptionsSchema, type VariantRow } from "@/components/admin/VariantManager";
 import type { Tables, TablesInsert } from "@/integrations/supabase/types";
 
 type Product = Tables<"products">;
@@ -27,6 +28,8 @@ export default function Products() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [locationStock, setLocationStock] = useState<Record<string, number>>({});
+  const [optionsSchema, setOptionsSchema] = useState<OptionsSchema>({});
+  const [variantRows, setVariantRows] = useState<VariantRow[]>([]);
 
   const [form, setForm] = useState({
     name: "",
@@ -60,6 +63,8 @@ export default function Products() {
   const resetForm = () => {
     setForm({ name: "", slug: "", description: "", price: 0, cost_price: 0, sku: "", low_stock_threshold: 5, category_id: "", tax_enabled: true, is_active: true, featured: false, images: [] });
     setLocationStock({});
+    setOptionsSchema({});
+    setVariantRows([]);
     setEditing(null);
   };
 
@@ -87,6 +92,38 @@ export default function Products() {
     const map: Record<string, number> = {};
     (data || []).forEach((r) => { map[r.location_id] = r.quantity; });
     setLocationStock(map);
+
+    // Load variant schema + variants + variant stock
+    const schema = ((p as any).variant_attributes ?? {}) as OptionsSchema;
+    setOptionsSchema(schema);
+    const { data: vData } = await supabase
+      .from("product_variants")
+      .select("id, variant_name, attributes, sku, price_override, is_active")
+      .eq("product_id", p.id)
+      .eq("is_active", true);
+    const variantIds = (vData ?? []).map((v) => v.id);
+    let stockByVariant: Record<string, Record<string, number>> = {};
+    if (variantIds.length > 0) {
+      const { data: vsData } = await supabase
+        .from("variant_stock")
+        .select("variant_id, location_id, quantity")
+        .in("variant_id", variantIds);
+      (vsData ?? []).forEach((r: any) => {
+        stockByVariant[r.variant_id] = stockByVariant[r.variant_id] || {};
+        stockByVariant[r.variant_id][r.location_id] = r.quantity;
+      });
+    }
+    setVariantRows(
+      (vData ?? []).map((v: any) => ({
+        id: v.id,
+        variant_name: v.variant_name,
+        attributes: (v.attributes ?? {}) as Record<string, string>,
+        sku: v.sku ?? "",
+        price_override: v.price_override,
+        is_active: v.is_active,
+        stock: stockByVariant[v.id] ?? {},
+      }))
+    );
     setDialogOpen(true);
   };
 
@@ -95,7 +132,14 @@ export default function Products() {
   const handleSave = async () => {
     const slug = form.slug || form.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
     const { images, ...rest } = form;
-    const payload: TablesInsert<"products"> = { ...rest, slug, category_id: form.category_id || null, images: images.length > 0 ? images : null };
+    const hasVariants = variantRows.length > 0;
+    const payload: TablesInsert<"products"> = {
+      ...rest,
+      slug,
+      category_id: form.category_id || null,
+      images: images.length > 0 ? images : null,
+      variant_attributes: optionsSchema as any,
+    };
 
     let productId: string;
     if (editing) {
@@ -110,16 +154,21 @@ export default function Products() {
       toast({ title: "Product created" });
     }
 
-    // Upsert per-location stock (only when editing — new products get auto-seeded rows by trigger;
-    // user can edit them to set quantities afterwards, OR if they entered values during create, we set them now)
-    const upserts = Object.entries(locationStock)
-      .filter(([locId]) => locId)
-      .map(([location_id, quantity]) => ({ product_id: productId, location_id, quantity: quantity || 0 }));
-    if (upserts.length > 0) {
-      const { error: stockErr } = await supabase
-        .from("product_stock")
-        .upsert(upserts, { onConflict: "product_id,location_id" });
-      if (stockErr) { toast({ title: "Stock save failed", description: stockErr.message, variant: "destructive" }); }
+    // Persist variants (and their per-location stock) when defined
+    if (hasVariants) {
+      const { error: vErr } = await persistVariants(productId, variantRows);
+      if (vErr) { toast({ title: "Variants save failed", description: vErr, variant: "destructive" }); }
+    } else {
+      // No variants: regular per-product per-location stock
+      const upserts = Object.entries(locationStock)
+        .filter(([locId]) => locId)
+        .map(([location_id, quantity]) => ({ product_id: productId, location_id, quantity: quantity || 0 }));
+      if (upserts.length > 0) {
+        const { error: stockErr } = await supabase
+          .from("product_stock")
+          .upsert(upserts, { onConflict: "product_id,location_id" });
+        if (stockErr) { toast({ title: "Stock save failed", description: stockErr.message, variant: "destructive" }); }
+      }
     }
 
     setDialogOpen(false);
@@ -146,7 +195,7 @@ export default function Products() {
           <DialogTrigger asChild>
             <Button><Plus className="h-4 w-4 mr-2" /> Add Product</Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editing ? "Edit Product" : "New Product"}</DialogTitle>
             </DialogHeader>
@@ -171,33 +220,44 @@ export default function Products() {
                 <div><Label>SKU</Label><Input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} /></div>
                 <div><Label>Low Stock Threshold</Label><Input type="number" value={form.low_stock_threshold} onChange={(e) => setForm({ ...form, low_stock_threshold: +e.target.value })} /></div>
               </div>
-              <div className="rounded-md border p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium">Stock per Location</Label>
-                  <span className="text-xs text-muted-foreground">Total: <span className="font-semibold text-foreground">{totalStock}</span></span>
-                </div>
-                {locations.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">No active locations. Create one in Locations first.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {locations.map((l) => (
-                      <div key={l.id} className="flex items-center gap-3">
-                        <span className="text-sm flex-1 truncate">{l.name}</span>
-                        <Input
-                          type="number"
-                          min={0}
-                          className="w-28"
-                          value={locationStock[l.id] ?? 0}
-                          onChange={(e) => setLocationStock({ ...locationStock, [l.id]: +e.target.value })}
-                        />
-                      </div>
-                    ))}
+              {variantRows.length === 0 && (
+                <div className="rounded-md border p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">Stock per Location</Label>
+                    <span className="text-xs text-muted-foreground">Total: <span className="font-semibold text-foreground">{totalStock}</span></span>
                   </div>
-                )}
-                {!editing && (
-                  <p className="text-xs text-muted-foreground">Tip: stock rows are auto-created at qty 0 for new products. Edit them here or in Stock Management.</p>
-                )}
-              </div>
+                  {locations.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No active locations. Create one in Locations first.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {locations.map((l) => (
+                        <div key={l.id} className="flex items-center gap-3">
+                          <span className="text-sm flex-1 truncate">{l.name}</span>
+                          <Input
+                            type="number"
+                            min={0}
+                            className="w-28"
+                            value={locationStock[l.id] ?? 0}
+                            onChange={(e) => setLocationStock({ ...locationStock, [l.id]: +e.target.value })}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground">Hidden when this product has variants — stock is then tracked per variant below.</p>
+                </div>
+              )}
+
+              <VariantManager
+                productId={editing?.id ?? null}
+                basePrice={form.price}
+                locations={locations.map((l) => ({ id: l.id, name: l.name }))}
+                options={optionsSchema}
+                onOptionsChange={setOptionsSchema}
+                variants={variantRows}
+                onVariantsChange={setVariantRows}
+              />
+
               <div>
                 <Label>Category</Label>
                 <Select value={form.category_id} onValueChange={(v) => setForm({ ...form, category_id: v })}>

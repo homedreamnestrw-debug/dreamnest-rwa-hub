@@ -965,6 +965,7 @@ export type Database = {
           stock_quantity: number
           tax_enabled: boolean
           updated_at: string
+          variant_attributes: Json
         }
         Insert: {
           category_id?: string | null
@@ -983,6 +984,7 @@ export type Database = {
           stock_quantity?: number
           tax_enabled?: boolean
           updated_at?: string
+          variant_attributes?: Json
         }
         Update: {
           category_id?: string | null
@@ -1001,6 +1003,7 @@ export type Database = {
           stock_quantity?: number
           tax_enabled?: boolean
           updated_at?: string
+          variant_attributes?: Json
         }
         Relationships: [
           {
@@ -1634,6 +1637,15 @@ export type Database = {
           p_product_id: string
           p_quantity: number
           p_to_location: string
+        }
+        Returns: undefined
+      }
+      transfer_variant_stock: {
+        Args: {
+          p_from_location: string
+          p_quantity: number
+          p_to_location: string
+          p_variant_id: string
         }
         Returns: undefined
       }

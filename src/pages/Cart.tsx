@@ -50,7 +50,7 @@ export default function Cart() {
   const formatPrice = (price: number) =>
     new Intl.NumberFormat("en-RW", { style: "currency", currency: "RWF", minimumFractionDigits: 0 }).format(price);
 
-  const subtotal = cartItems.reduce((sum, item) => sum + (item.product?.price ?? 0) * item.quantity, 0);
+  const subtotal = cartItems.reduce((sum, item) => sum + (item.unit_price ?? item.product?.price ?? 0) * item.quantity, 0);
   const taxRate = 0.18;
   const tax = Math.round(subtotal * taxRate);
   const total = subtotal + tax;
@@ -86,7 +86,10 @@ export default function Cart() {
                   </Link>
                   <div className="flex-1 min-w-0">
                     <Link to={`/product/${item.product?.slug}`} className="font-medium hover:underline">{item.product?.name}</Link>
-                    <p className="text-sm text-muted-foreground mt-1">{formatPrice(item.product?.price ?? 0)}</p>
+                    {item.variant?.variant_name && (
+                      <p className="text-xs text-muted-foreground mt-0.5">{item.variant.variant_name}</p>
+                    )}
+                    <p className="text-sm text-muted-foreground mt-1">{formatPrice(item.unit_price ?? item.product?.price ?? 0)}</p>
                     <div className="flex items-center gap-2 mt-2">
                       <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQuantity(item.id, item.quantity - 1)}>
                         <Minus className="h-3 w-3" />
@@ -115,7 +118,7 @@ export default function Cart() {
                     ) : null}
                   </div>
                   <div className="flex flex-col items-end justify-between">
-                    <p className="font-serif">{formatPrice((item.product?.price ?? 0) * item.quantity)}</p>
+                    <p className="font-serif">{formatPrice((item.unit_price ?? item.product?.price ?? 0) * item.quantity)}</p>
                     <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => { removeItem(item.id); toast.success("Item removed"); }}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
