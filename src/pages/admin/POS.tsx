@@ -214,53 +214,119 @@ export default function POS() {
       (p.sku && p.sku.toLowerCase().includes(search.toLowerCase()))
   ) ?? [];
 
-  const addToCart = useCallback((product: any, qty: number = 1) => {
-    if (product.stock_quantity <= 0) {
+  const cartKey = (productId: string, variantId: string | null) => `${productId}::${variantId ?? ""}`;
+
+  const addToCart = useCallback((product: any, qty: number = 1, variant: VariantOption | null = null) => {
+    const stockMax = variant ? (variant.stock_quantity ?? 0) : product.stock_quantity;
+    if (stockMax <= 0) {
       toast.error("Out of stock");
       return;
     }
+    const variantId = variant?.id ?? null;
+    const unitPrice = variant?.price_override ?? product.price;
+    const variantLabel = variant?.variant_name ?? null;
+    const displayName = variant ? `${product.name} — ${variant.variant_name}` : product.name;
     setCart((prev) => {
-      const existing = prev.find((i) => i.product_id === product.id);
+      const existing = prev.find((i) => cartKey(i.product_id, i.variant_id) === cartKey(product.id, variantId));
       if (existing) {
         const newQty = existing.quantity + qty;
-        if (newQty > product.stock_quantity) {
+        if (newQty > stockMax) {
           toast.error("Not enough stock");
           return prev;
         }
         return prev.map((i) =>
-          i.product_id === product.id ? { ...i, quantity: newQty } : i
+          cartKey(i.product_id, i.variant_id) === cartKey(product.id, variantId) ? { ...i, quantity: newQty } : i
         );
       }
-      if (qty > product.stock_quantity) {
+      if (qty > stockMax) {
         toast.error("Not enough stock");
         return prev;
       }
-      return [...prev, { product_id: product.id, name: product.name, price: product.price, selling_price: product.price, quantity: qty, stock: product.stock_quantity }];
+      return [...prev, {
+        product_id: product.id,
+        variant_id: variantId,
+        name: displayName,
+        variant_label: variantLabel,
+        price: unitPrice,
+        selling_price: unitPrice,
+        quantity: qty,
+        stock: stockMax,
+      }];
     });
     setSearch("");
     searchRef.current?.focus();
   }, []);
 
-  const openQtyPrompt = useCallback((product: any) => {
+  // Detect whether a product has variants (variant_attributes is non-empty object)
+  const productHasVariants = (product: any): boolean => {
+    const attrs = product?.variant_attributes;
+    return attrs && typeof attrs === "object" && Object.keys(attrs).length > 0;
+  };
+
+  const openProduct = useCallback(async (product: any) => {
+    if (productHasVariants(product)) {
+      // Open variant picker — fetch variants for this product
+      setVariantPickerProduct(product);
+      setVariantPickerSelections({});
+      setVariantPickerLoading(true);
+      const { data } = await supabase
+        .from("product_variants")
+        .select("id, variant_name, attributes, price_override, stock_quantity, sku, is_active")
+        .eq("product_id", product.id)
+        .eq("is_active", true);
+      setVariantPickerOptions((data ?? []) as VariantOption[]);
+      setVariantPickerLoading(false);
+      return;
+    }
     if (product.stock_quantity <= 0) {
       toast.error("Out of stock");
       return;
     }
     setQtyPromptProduct(product);
+    setQtyPromptVariant(null);
     setQtyPromptValue("1");
   }, []);
 
   const confirmQtyPrompt = () => {
     if (!qtyPromptProduct) return;
     const qty = Math.max(1, Math.floor(Number(qtyPromptValue) || 1));
-    addToCart(qtyPromptProduct, qty);
+    addToCart(qtyPromptProduct, qty, qtyPromptVariant);
     setQtyPromptProduct(null);
+    setQtyPromptVariant(null);
   };
 
-  const updateQty = (productId: string, delta: number) => {
+  // Variant picker helpers
+  const variantOptionNames = variantPickerProduct
+    ? Object.keys((variantPickerProduct.variant_attributes ?? {}) as Record<string, string[]>)
+    : [];
+  const matchedPickerVariant: VariantOption | null = (() => {
+    if (!variantPickerProduct || variantOptionNames.length === 0) return null;
+    return (
+      variantPickerOptions.find((v) =>
+        variantOptionNames.every((n) => (v.attributes ?? {})[n] === variantPickerSelections[n])
+      ) ?? null
+    );
+  })();
+
+  const confirmVariantPick = () => {
+    if (!variantPickerProduct || !matchedPickerVariant) return;
+    if ((matchedPickerVariant.stock_quantity ?? 0) <= 0) {
+      toast.error("Selected variant is out of stock");
+      return;
+    }
+    // Hand off to qty prompt for quantity entry
+    setQtyPromptProduct(variantPickerProduct);
+    setQtyPromptVariant(matchedPickerVariant);
+    setQtyPromptValue("1");
+    setVariantPickerProduct(null);
+    setVariantPickerOptions([]);
+    setVariantPickerSelections({});
+  };
+
+  const updateQty = (key: string, delta: number) => {
     setCart((prev) =>
       prev.map((i) => {
-        if (i.product_id !== productId) return i;
+        if (cartKey(i.product_id, i.variant_id) !== key) return i;
         const newQty = i.quantity + delta;
         if (newQty <= 0) return null as any;
         if (newQty > i.stock) { toast.error("Not enough stock"); return i; }
@@ -269,16 +335,16 @@ export default function POS() {
     );
   };
 
-  const updateSellingPrice = (productId: string, newPrice: number) => {
+  const updateSellingPrice = (key: string, newPrice: number) => {
     setCart((prev) =>
       prev.map((i) =>
-        i.product_id === productId ? { ...i, selling_price: Math.max(0, newPrice) } : i
+        cartKey(i.product_id, i.variant_id) === key ? { ...i, selling_price: Math.max(0, newPrice) } : i
       )
     );
   };
 
   const startEditPrice = (item: CartItem) => {
-    setEditingPriceId(item.product_id);
+    setEditingPriceId(cartKey(item.product_id, item.variant_id));
     setEditPriceValue(String(item.selling_price));
   };
 
@@ -290,7 +356,7 @@ export default function POS() {
     setEditPriceValue("");
   };
 
-  const removeFromCart = (productId: string) => setCart((prev) => prev.filter((i) => i.product_id !== productId));
+  const removeFromCart = (key: string) => setCart((prev) => prev.filter((i) => cartKey(i.product_id, i.variant_id) !== key));
   const clearCart = () => { setCart([]); setCustomerNote(""); setIsCredit(false); setAmountPaid(""); setDiscountType("none"); setDiscountValue(""); setVoucherCode(""); setVoucherData(null); setIncludeVat(false); clearCustomer(); searchRef.current?.focus(); };
 
   const subtotal = cart.reduce((s, i) => s + i.selling_price * i.quantity, 0);
