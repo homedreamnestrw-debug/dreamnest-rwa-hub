@@ -87,6 +87,7 @@ export default function POS() {
   // Quantity prompt dialog
   const [qtyPromptProduct, setQtyPromptProduct] = useState<any | null>(null);
   const [qtyPromptVariant, setQtyPromptVariant] = useState<VariantOption | null>(null);
+  const [qtyPromptValue, setQtyPromptValue] = useState<string>("1");
   // Variant picker dialog
   const [variantPickerProduct, setVariantPickerProduct] = useState<any | null>(null);
   const [variantPickerOptions, setVariantPickerOptions] = useState<VariantOption[]>([]);
