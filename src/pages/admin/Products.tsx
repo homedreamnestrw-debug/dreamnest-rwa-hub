@@ -63,6 +63,8 @@ export default function Products() {
   const resetForm = () => {
     setForm({ name: "", slug: "", description: "", price: 0, cost_price: 0, sku: "", low_stock_threshold: 5, category_id: "", tax_enabled: true, is_active: true, featured: false, images: [] });
     setLocationStock({});
+    setOptionsSchema({});
+    setVariantRows([]);
     setEditing(null);
   };
 
@@ -90,6 +92,38 @@ export default function Products() {
     const map: Record<string, number> = {};
     (data || []).forEach((r) => { map[r.location_id] = r.quantity; });
     setLocationStock(map);
+
+    // Load variant schema + variants + variant stock
+    const schema = ((p as any).variant_attributes ?? {}) as OptionsSchema;
+    setOptionsSchema(schema);
+    const { data: vData } = await supabase
+      .from("product_variants")
+      .select("id, variant_name, attributes, sku, price_override, is_active")
+      .eq("product_id", p.id)
+      .eq("is_active", true);
+    const variantIds = (vData ?? []).map((v) => v.id);
+    let stockByVariant: Record<string, Record<string, number>> = {};
+    if (variantIds.length > 0) {
+      const { data: vsData } = await supabase
+        .from("variant_stock")
+        .select("variant_id, location_id, quantity")
+        .in("variant_id", variantIds);
+      (vsData ?? []).forEach((r: any) => {
+        stockByVariant[r.variant_id] = stockByVariant[r.variant_id] || {};
+        stockByVariant[r.variant_id][r.location_id] = r.quantity;
+      });
+    }
+    setVariantRows(
+      (vData ?? []).map((v: any) => ({
+        id: v.id,
+        variant_name: v.variant_name,
+        attributes: (v.attributes ?? {}) as Record<string, string>,
+        sku: v.sku ?? "",
+        price_override: v.price_override,
+        is_active: v.is_active,
+        stock: stockByVariant[v.id] ?? {},
+      }))
+    );
     setDialogOpen(true);
   };
 
