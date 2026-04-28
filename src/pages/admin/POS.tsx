@@ -817,23 +817,28 @@ export default function POS() {
                     ) : (
                       <>
                         <div className="space-y-2">
-                          {cart.map((item) => (
-                            <div key={item.product_id} className="rounded-md bg-muted/50 p-2 space-y-1">
+                          {cart.map((item) => {
+                            const key = cartKey(item.product_id, item.variant_id);
+                            return (
+                            <div key={key} className="rounded-md bg-muted/50 p-2 space-y-1">
                               <div className="flex min-w-0 items-center gap-2">
                                 <div className="min-w-0 flex-1 overflow-hidden">
                                   <p className="truncate text-sm font-medium">{item.name}</p>
+                                  {item.variant_label && (
+                                    <p className="truncate text-[10px] text-muted-foreground">{item.variant_label}</p>
+                                  )}
                                 </div>
                                 <div className="flex shrink-0 items-center gap-1">
-                                  <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQty(item.product_id, -1)}><Minus className="h-3 w-3" /></Button>
+                                  <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQty(key, -1)}><Minus className="h-3 w-3" /></Button>
                                   <span className="w-6 text-center text-sm font-medium">{item.quantity}</span>
-                                  <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQty(item.product_id, 1)}><Plus className="h-3 w-3" /></Button>
+                                  <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQty(key, 1)}><Plus className="h-3 w-3" /></Button>
                                 </div>
                                 <span className="shrink-0 text-right text-sm font-medium">{formatPrice(item.selling_price * item.quantity)}</span>
-                                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-destructive" onClick={() => removeFromCart(item.product_id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-destructive" onClick={() => removeFromCart(key)}><Trash2 className="h-3.5 w-3.5" /></Button>
                               </div>
                               {/* Price edit row */}
                               <div className="flex items-center gap-2 text-xs">
-                                {editingPriceId === item.product_id ? (
+                                {editingPriceId === key ? (
                                   <div className="flex items-center gap-1">
                                     <Input
                                       type="number"
@@ -864,7 +869,7 @@ export default function POS() {
                                 )}
                               </div>
                             </div>
-                          ))}
+                          );})}
                         </div>
 
                         <div className="space-y-4 pb-1">
