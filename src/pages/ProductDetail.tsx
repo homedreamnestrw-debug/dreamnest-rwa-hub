@@ -96,22 +96,39 @@ export default function ProductDetail() {
 
   const addToCart = async () => {
     if (!product) return;
-    if (product.stock_quantity <= 0) {
-      toast.error("This product is out of stock");
+    if (hasVariants && !matchedVariant) {
+      toast.error(`Please choose ${optionNames.join(" and ")}`);
       return;
     }
-    if (quantity > product.stock_quantity) {
-      toast.error(`Only ${product.stock_quantity} available in stock`);
+    if (effectiveStock <= 0) {
+      toast.error("This item is out of stock");
       return;
     }
-    await addItem({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      slug: product.slug,
-      images: product.images,
-      stock_quantity: product.stock_quantity,
-    }, quantity);
+    if (quantity > effectiveStock) {
+      toast.error(`Only ${effectiveStock} available in stock`);
+      return;
+    }
+    await addItem(
+      {
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        slug: product.slug,
+        images: product.images,
+        stock_quantity: product.stock_quantity,
+      },
+      quantity,
+      matchedVariant
+        ? {
+            id: matchedVariant.id,
+            variant_name: matchedVariant.variant_name,
+            price_override: matchedVariant.price_override ?? null,
+            attributes: (matchedVariant.attributes ?? null) as Record<string, string> | null,
+            sku: matchedVariant.sku ?? null,
+          }
+        : null,
+      hasVariants ? effectiveStock : undefined,
+    );
     toast.success("Added to cart!");
   };
 
