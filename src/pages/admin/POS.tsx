@@ -86,7 +86,12 @@ export default function POS() {
   const [editPriceValue, setEditPriceValue] = useState<string>("");
   // Quantity prompt dialog
   const [qtyPromptProduct, setQtyPromptProduct] = useState<any | null>(null);
-  const [qtyPromptValue, setQtyPromptValue] = useState<string>("1");
+  const [qtyPromptVariant, setQtyPromptVariant] = useState<VariantOption | null>(null);
+  // Variant picker dialog
+  const [variantPickerProduct, setVariantPickerProduct] = useState<any | null>(null);
+  const [variantPickerOptions, setVariantPickerOptions] = useState<VariantOption[]>([]);
+  const [variantPickerSelections, setVariantPickerSelections] = useState<Record<string, string>>({});
+  const [variantPickerLoading, setVariantPickerLoading] = useState(false);
   // VAT toggle
   const [includeVat, setIncludeVat] = useState(false);
   // Discount
