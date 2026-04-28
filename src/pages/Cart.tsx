@@ -50,7 +50,7 @@ export default function Cart() {
   const formatPrice = (price: number) =>
     new Intl.NumberFormat("en-RW", { style: "currency", currency: "RWF", minimumFractionDigits: 0 }).format(price);
 
-  const subtotal = cartItems.reduce((sum, item) => sum + (item.product?.price ?? 0) * item.quantity, 0);
+  const subtotal = cartItems.reduce((sum, item) => sum + (item.unit_price ?? item.product?.price ?? 0) * item.quantity, 0);
   const taxRate = 0.18;
   const tax = Math.round(subtotal * taxRate);
   const total = subtotal + tax;
