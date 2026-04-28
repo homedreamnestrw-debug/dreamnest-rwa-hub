@@ -118,7 +118,7 @@ export default function Cart() {
                     ) : null}
                   </div>
                   <div className="flex flex-col items-end justify-between">
-                    <p className="font-serif">{formatPrice((item.product?.price ?? 0) * item.quantity)}</p>
+                    <p className="font-serif">{formatPrice((item.unit_price ?? item.product?.price ?? 0) * item.quantity)}</p>
                     <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => { removeItem(item.id); toast.success("Item removed"); }}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
