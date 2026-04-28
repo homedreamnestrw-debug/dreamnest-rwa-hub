@@ -463,6 +463,7 @@ export default function POS() {
       const items = cart.map((i) => ({
         order_id: order.id,
         product_id: i.product_id,
+        variant_id: i.variant_id,
         quantity: i.quantity,
         unit_price: i.selling_price,
         discount: (i.price - i.selling_price) * i.quantity,
