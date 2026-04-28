@@ -187,15 +187,18 @@ export default function Checkout() {
         if (orderError) throw orderError;
         order = inserted as { id: string; order_number: number };
 
-        const orderItems = cartItems.map((item) => ({
-          order_id: order.id,
-          product_id: item.product?.id ?? item.product_id,
-          variant_id: item.variant_id,
-          quantity: item.quantity,
-          unit_price: item.product?.price ?? 0,
-          discount: 0,
-          total: (item.product?.price ?? 0) * item.quantity,
-        }));
+        const orderItems = cartItems.map((item) => {
+          const unit = item.unit_price ?? item.product?.price ?? 0;
+          return {
+            order_id: order.id,
+            product_id: item.product?.id ?? item.product_id,
+            variant_id: item.variant_id,
+            quantity: item.quantity,
+            unit_price: unit,
+            discount: 0,
+            total: unit * item.quantity,
+          };
+        });
 
         const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
         if (itemsError) throw itemsError;
@@ -209,14 +212,17 @@ export default function Checkout() {
         };
         delete (guestPayload as any).customer_id;
 
-        const guestItems = cartItems.map((item) => ({
-          product_id: item.product?.id ?? item.product_id,
-          variant_id: item.variant_id,
-          quantity: item.quantity,
-          unit_price: item.product?.price ?? 0,
-          discount: 0,
-          total: (item.product?.price ?? 0) * item.quantity,
-        }));
+        const guestItems = cartItems.map((item) => {
+          const unit = item.unit_price ?? item.product?.price ?? 0;
+          return {
+            product_id: item.product?.id ?? item.product_id,
+            variant_id: item.variant_id,
+            quantity: item.quantity,
+            unit_price: unit,
+            discount: 0,
+            total: unit * item.quantity,
+          };
+        });
 
         const { data: rpcData, error: rpcError } = await supabase.rpc("create_guest_order" as any, {
           p_order: guestPayload,
