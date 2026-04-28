@@ -14,6 +14,36 @@ import { ComingSoon } from "@/components/layout/ComingSoon";
 import { SEO } from "@/components/SEO";
 import { FeaturedProducts } from "@/components/product/FeaturedProducts";
 
+/**
+ * Best-effort mapping of a free-text color value (e.g. "Rabbit plush warm sun orange",
+ * "deep coffee", "milk white") to a CSS color for the swatch dot. Picks the last
+ * recognized color keyword in the string. Falls back to neutral muted.
+ */
+function cssColorFromName(label: string): string {
+  const map: Record<string, string> = {
+    white: "#f5f5f5", milk: "#f5efe6", ivory: "#fffff0", cream: "#fffdd0",
+    black: "#1a1a1a", gray: "#9ca3af", grey: "#9ca3af", silver: "#c0c0c0",
+    red: "#dc2626", crimson: "#b91c1c", maroon: "#7f1d1d", pink: "#ec4899",
+    rose: "#f43f5e", coral: "#fb7185",
+    orange: "#f97316", peach: "#fdba74", sun: "#fbbf24", amber: "#f59e0b",
+    yellow: "#eab308", gold: "#d4af37",
+    green: "#16a34a", olive: "#65a30d", mint: "#86efac", sage: "#84cc16",
+    teal: "#14b8a6", cyan: "#06b6d4", turquoise: "#2dd4bf",
+    blue: "#2563eb", navy: "#1e3a8a", denim: "#3b82f6", sky: "#0ea5e9",
+    purple: "#9333ea", violet: "#7c3aed", lavender: "#c4b5fd", lilac: "#c084fc",
+    brown: "#78350f", coffee: "#4b2e1e", chocolate: "#3f2415", tan: "#d2b48c",
+    beige: "#e8d8b8", khaki: "#bdb76b", camel: "#c19a6b", sand: "#dec39c",
+    deep: "", warm: "", plush: "", rabbit: "", wool: "", dark: "", light: "",
+  };
+  const tokens = label.toLowerCase().split(/[\s/\-_,]+/).filter(Boolean);
+  // pick last token that maps to a color
+  let chosen = "";
+  for (const t of tokens) {
+    const hit = map[t];
+    if (hit) chosen = hit;
+  }
+  return chosen || "hsl(var(--muted))";
+}
 export default function ProductDetail() {
   const { slug } = useParams<{ slug: string }>();
   const { user } = useAuth();
