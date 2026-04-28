@@ -287,39 +287,53 @@ export default function ProductDetail() {
             )}
 
             {hasVariants && (
-              <div className="space-y-3">
-                {optionNames.map((opt) => (
-                  <div key={opt} className="space-y-1.5">
-                    <p className="text-sm font-medium">
-                      {opt}: <span className="text-muted-foreground font-normal">{selectedOptions[opt] ?? "Choose"}</span>
-                    </p>
-                    <div className="flex gap-2 flex-wrap">
-                      {(optionsSchema[opt] ?? []).map((val) => {
-                        // Determine availability: a value is available if at least one variant matching
-                        // current selections (excluding this option) + this value is in stock.
-                        const candidateOptions = { ...selectedOptions, [opt]: val };
-                        const candidate = variants!.find((v: any) =>
-                          optionNames.every((n) => (v.attributes ?? {})[n] === candidateOptions[n])
-                        );
-                        const inStock = candidate ? (candidate.stock_quantity ?? 0) > 0 : false;
-                        const isSelected = selectedOptions[opt] === val;
-                        return (
-                          <Button
-                            key={val}
-                            type="button"
-                            variant={isSelected ? "default" : "outline"}
-                            size="sm"
-                            disabled={!inStock && !isSelected}
-                            onClick={() => setSelectedOptions({ ...selectedOptions, [opt]: val })}
-                            className={!inStock ? "line-through opacity-60" : ""}
-                          >
-                            {val}
-                          </Button>
-                        );
-                      })}
+              <div className="space-y-5">
+                {optionNames.map((opt) => {
+                  const isColor = opt.toLowerCase().includes("color") || opt.toLowerCase().includes("colour");
+                  return (
+                    <div key={opt} className="space-y-2">
+                      <p className="text-sm text-muted-foreground">{opt}</p>
+                      <div className="flex flex-col gap-2">
+                        {(optionsSchema[opt] ?? []).map((val) => {
+                          const candidateOptions = { ...selectedOptions, [opt]: val };
+                          const candidate = variants!.find((v: any) =>
+                            optionNames.every((n) => (v.attributes ?? {})[n] === candidateOptions[n])
+                          );
+                          const inStock = candidate ? (candidate.stock_quantity ?? 0) > 0 : false;
+                          const isSelected = selectedOptions[opt] === val;
+                          return (
+                            <button
+                              key={val}
+                              type="button"
+                              disabled={!inStock && !isSelected}
+                              onClick={() => setSelectedOptions({ ...selectedOptions, [opt]: val })}
+                              className={[
+                                "w-full text-left rounded-full border px-5 py-3 text-sm transition-all",
+                                "flex items-center gap-3",
+                                isSelected
+                                  ? "bg-foreground text-background border-foreground"
+                                  : "bg-background text-foreground border-border hover:border-foreground",
+                                !inStock && !isSelected ? "opacity-50 line-through cursor-not-allowed" : "",
+                              ].join(" ")}
+                            >
+                              {isColor && (
+                                <span
+                                  className="inline-block h-5 w-5 rounded-full border border-border shrink-0"
+                                  style={{ backgroundColor: cssColorFromName(val) }}
+                                  aria-hidden
+                                />
+                              )}
+                              <span className="flex-1">{val}</span>
+                              {!inStock && !isSelected && (
+                                <span className="text-xs uppercase tracking-wide">Out</span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
