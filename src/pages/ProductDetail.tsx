@@ -5,7 +5,7 @@ import { PublicLayout } from "@/components/layout/PublicLayout";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/hooks/useCart";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Heart, Minus, Plus, ShoppingCart, Star } from "lucide-react";
 import { ReviewForm } from "@/components/product/ReviewForm";
