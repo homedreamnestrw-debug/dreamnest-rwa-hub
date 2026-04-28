@@ -195,7 +195,7 @@ export default function Products() {
           <DialogTrigger asChild>
             <Button><Plus className="h-4 w-4 mr-2" /> Add Product</Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editing ? "Edit Product" : "New Product"}</DialogTitle>
             </DialogHeader>
