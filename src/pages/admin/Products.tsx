@@ -220,33 +220,44 @@ export default function Products() {
                 <div><Label>SKU</Label><Input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} /></div>
                 <div><Label>Low Stock Threshold</Label><Input type="number" value={form.low_stock_threshold} onChange={(e) => setForm({ ...form, low_stock_threshold: +e.target.value })} /></div>
               </div>
-              <div className="rounded-md border p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium">Stock per Location</Label>
-                  <span className="text-xs text-muted-foreground">Total: <span className="font-semibold text-foreground">{totalStock}</span></span>
-                </div>
-                {locations.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">No active locations. Create one in Locations first.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {locations.map((l) => (
-                      <div key={l.id} className="flex items-center gap-3">
-                        <span className="text-sm flex-1 truncate">{l.name}</span>
-                        <Input
-                          type="number"
-                          min={0}
-                          className="w-28"
-                          value={locationStock[l.id] ?? 0}
-                          onChange={(e) => setLocationStock({ ...locationStock, [l.id]: +e.target.value })}
-                        />
-                      </div>
-                    ))}
+              {variantRows.length === 0 && (
+                <div className="rounded-md border p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">Stock per Location</Label>
+                    <span className="text-xs text-muted-foreground">Total: <span className="font-semibold text-foreground">{totalStock}</span></span>
                   </div>
-                )}
-                {!editing && (
-                  <p className="text-xs text-muted-foreground">Tip: stock rows are auto-created at qty 0 for new products. Edit them here or in Stock Management.</p>
-                )}
-              </div>
+                  {locations.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No active locations. Create one in Locations first.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {locations.map((l) => (
+                        <div key={l.id} className="flex items-center gap-3">
+                          <span className="text-sm flex-1 truncate">{l.name}</span>
+                          <Input
+                            type="number"
+                            min={0}
+                            className="w-28"
+                            value={locationStock[l.id] ?? 0}
+                            onChange={(e) => setLocationStock({ ...locationStock, [l.id]: +e.target.value })}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground">Hidden when this product has variants — stock is then tracked per variant below.</p>
+                </div>
+              )}
+
+              <VariantManager
+                productId={editing?.id ?? null}
+                basePrice={form.price}
+                locations={locations.map((l) => ({ id: l.id, name: l.name }))}
+                options={optionsSchema}
+                onOptionsChange={setOptionsSchema}
+                variants={variantRows}
+                onVariantsChange={setVariantRows}
+              />
+
               <div>
                 <Label>Category</Label>
                 <Select value={form.category_id} onValueChange={(v) => setForm({ ...form, category_id: v })}>
