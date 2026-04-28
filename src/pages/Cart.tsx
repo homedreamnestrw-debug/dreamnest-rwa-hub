@@ -86,7 +86,10 @@ export default function Cart() {
                   </Link>
                   <div className="flex-1 min-w-0">
                     <Link to={`/product/${item.product?.slug}`} className="font-medium hover:underline">{item.product?.name}</Link>
-                    <p className="text-sm text-muted-foreground mt-1">{formatPrice(item.product?.price ?? 0)}</p>
+                    {item.variant?.variant_name && (
+                      <p className="text-xs text-muted-foreground mt-0.5">{item.variant.variant_name}</p>
+                    )}
+                    <p className="text-sm text-muted-foreground mt-1">{formatPrice(item.unit_price ?? item.product?.price ?? 0)}</p>
                     <div className="flex items-center gap-2 mt-2">
                       <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQuantity(item.id, item.quantity - 1)}>
                         <Minus className="h-3 w-3" />
