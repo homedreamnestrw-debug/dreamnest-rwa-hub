@@ -28,6 +28,8 @@ export default function Products() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [locationStock, setLocationStock] = useState<Record<string, number>>({});
+  const [optionsSchema, setOptionsSchema] = useState<OptionsSchema>({});
+  const [variantRows, setVariantRows] = useState<VariantRow[]>([]);
 
   const [form, setForm] = useState({
     name: "",
