@@ -1151,7 +1151,7 @@ export default function POS() {
                 id="qty-prompt"
                 type="number"
                 min={1}
-                max={qtyPromptProduct?.stock_quantity}
+                max={qtyPromptVariant ? (qtyPromptVariant.stock_quantity ?? 0) : (qtyPromptProduct?.stock_quantity ?? 0)}
                 value={qtyPromptValue}
                 autoFocus
                 onChange={(e) => setQtyPromptValue(e.target.value)}
