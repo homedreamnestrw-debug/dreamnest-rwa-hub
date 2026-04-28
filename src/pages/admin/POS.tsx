@@ -104,7 +104,7 @@ export default function POS() {
     queryFn: async () => {
       const { data } = await supabase
         .from("products")
-        .select("id, name, price, stock_quantity, sku, images, category_id, categories(name)")
+        .select("id, name, price, stock_quantity, sku, images, category_id, variant_attributes, categories(name)")
         .eq("is_active", true)
         .order("name");
       return data ?? [];
