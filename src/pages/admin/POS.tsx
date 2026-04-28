@@ -26,11 +26,23 @@ type PaymentMethod = Database["public"]["Enums"]["payment_method"];
 
 interface CartItem {
   product_id: string;
+  variant_id: string | null;
   name: string;
+  variant_label: string | null;
   price: number; // original price
   selling_price: number; // actual selling price (can be modified)
   quantity: number;
   stock: number;
+}
+
+interface VariantOption {
+  id: string;
+  variant_name: string;
+  attributes: Record<string, string> | null;
+  price_override: number | null;
+  stock_quantity: number;
+  sku: string | null;
+  is_active: boolean;
 }
 
 interface CompletedOrder {
