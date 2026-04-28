@@ -746,30 +746,36 @@ export default function POS() {
 
               <ScrollArea className="flex-1">
                 <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
-                  {filtered.map((product: any) => (
-                    <button
-                      key={product.id}
-                      onClick={() => openQtyPrompt(product)}
-                      disabled={product.stock_quantity <= 0}
-                      className="text-left p-3 border rounded-lg hover:border-primary hover:bg-primary/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <div className="aspect-square rounded-md overflow-hidden bg-muted mb-2">
-                        {product.images?.[0] ? (
-                          <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">No image</div>
-                        )}
-                      </div>
-                      <p className="font-medium text-sm truncate">{product.name}</p>
-                      <div className="flex items-center justify-between mt-1">
-                        <span className="font-serif text-sm">{formatPrice(product.price)}</span>
-                        <Badge variant={product.stock_quantity <= 0 ? "destructive" : product.stock_quantity <= 5 ? "secondary" : "outline"} className="text-xs">
-                          {product.stock_quantity}
-                        </Badge>
-                      </div>
-                      {product.sku && <p className="text-xs text-muted-foreground mt-1">{product.sku}</p>}
-                    </button>
-                  ))}
+                  {filtered.map((product: any) => {
+                    const hasVar = productHasVariants(product);
+                    return (
+                      <button
+                        key={product.id}
+                        onClick={() => openProduct(product)}
+                        disabled={product.stock_quantity <= 0}
+                        className="text-left p-3 border rounded-lg hover:border-primary hover:bg-primary/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <div className="aspect-square rounded-md overflow-hidden bg-muted mb-2 relative">
+                          {product.images?.[0] ? (
+                            <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">No image</div>
+                          )}
+                          {hasVar && (
+                            <Badge variant="secondary" className="absolute top-1 left-1 text-[9px] px-1 py-0">Variants</Badge>
+                          )}
+                        </div>
+                        <p className="font-medium text-sm truncate">{product.name}</p>
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="font-serif text-sm">{formatPrice(product.price)}</span>
+                          <Badge variant={product.stock_quantity <= 0 ? "destructive" : product.stock_quantity <= 5 ? "secondary" : "outline"} className="text-xs">
+                            {product.stock_quantity}
+                          </Badge>
+                        </div>
+                        {product.sku && <p className="text-xs text-muted-foreground mt-1">{product.sku}</p>}
+                      </button>
+                    );
+                  })}
                   {filtered.length === 0 && (
                     <div className="col-span-full text-center py-12 text-muted-foreground">
                       {search ? "No products found" : "No products available"}
