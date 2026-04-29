@@ -360,7 +360,7 @@ export default function ProductDetail() {
                                 isSelected
                                   ? "bg-foreground text-background border-foreground"
                                   : "bg-background text-foreground border-border hover:border-foreground",
-                                !inStock && !isSelected ? "opacity-50 line-through cursor-not-allowed" : "",
+                                (!inStock || !exists) && !isSelected ? "opacity-50 line-through cursor-not-allowed" : "",
                               ].join(" ")}
                             >
                               {isColor && (
