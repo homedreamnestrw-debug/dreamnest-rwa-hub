@@ -371,7 +371,7 @@ export default function ProductDetail() {
                                 />
                               )}
                               <span className="flex-1">{val}</span>
-                              {!inStock && !isSelected && (
+                              {(!inStock || !exists) && !isSelected && (
                                 <span className="text-xs uppercase tracking-wide">Out</span>
                               )}
                             </button>
