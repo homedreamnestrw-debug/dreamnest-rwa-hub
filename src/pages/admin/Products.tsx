@@ -158,6 +158,12 @@ export default function Products() {
     if (hasVariants) {
       const { error: vErr } = await persistVariants(productId, variantRows);
       if (vErr) { toast({ title: "Variants save failed", description: vErr, variant: "destructive" }); }
+      // Zero out per-product stock so it doesn't conflict with variant totals
+      await supabase
+        .from("product_stock")
+        .update({ quantity: 0 })
+        .eq("product_id", productId)
+        .gt("quantity", 0);
     } else {
       // No variants: regular per-product per-location stock
       const upserts = Object.entries(locationStock)

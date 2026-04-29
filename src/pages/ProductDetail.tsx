@@ -87,10 +87,16 @@ export default function ProductDetail() {
     queryFn: async () => {
       const { data } = await supabase
         .from("product_variants")
-        .select("id, variant_name, sku, price_override, attributes, stock_quantity, is_active")
+        .select("id, variant_name, sku, price_override, attributes, stock_quantity, is_active, variant_stock(quantity)")
         .eq("product_id", product!.id)
         .eq("is_active", true);
-      return data ?? [];
+      // Defensive: if stock_quantity is 0 but variant_stock rows have qty, use the sum.
+      return (data ?? []).map((v: any) => {
+        const sumLoc = Array.isArray(v.variant_stock)
+          ? v.variant_stock.reduce((a: number, r: any) => a + (r.quantity || 0), 0)
+          : 0;
+        return { ...v, stock_quantity: Math.max(v.stock_quantity ?? 0, sumLoc) };
+      });
     },
     enabled: !!product?.id,
   });

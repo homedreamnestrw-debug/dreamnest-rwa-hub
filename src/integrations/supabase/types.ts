@@ -1573,6 +1573,16 @@ export type Database = {
       }
     }
     Functions: {
+      adjust_variant_stock: {
+        Args: {
+          p_location_id: string
+          p_movement_type?: Database["public"]["Enums"]["stock_movement_type"]
+          p_new_quantity: number
+          p_reason?: string
+          p_variant_id: string
+        }
+        Returns: undefined
+      }
       approve_order_payment: { Args: { order_id: string }; Returns: undefined }
       create_guest_order: {
         Args: { p_items: Json; p_order: Json }

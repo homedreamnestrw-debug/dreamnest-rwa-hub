@@ -173,66 +173,106 @@ export default function Stock() {
     />
   );
 
-  // INVENTORY
+  // INVENTORY (variant-aware)
   const inventoryBar = (
     <ImportExportBar
       label="Inventory"
       exportFilename="inventory.csv"
       templateFilename="inventory-template.csv"
-      templateHeaders={["product_sku","location_name","quantity"]}
-      templateSample={{ product_sku: "SKU-001", location_name: "Main Warehouse", quantity: "10" }}
+      templateHeaders={["product_sku","variant_sku","location_name","quantity"]}
+      templateSample={{ product_sku: "SKU-001", variant_sku: "", location_name: "Main Warehouse", quantity: "10" }}
       exportRows={async () => {
-        const [{ data: stock }, { data: prods }, { data: locs }] = await Promise.all([
+        const [{ data: pStock }, { data: vStock }, { data: prods }, { data: vars }, { data: locs }] = await Promise.all([
           supabase.from("product_stock").select("product_id,location_id,quantity"),
+          supabase.from("variant_stock").select("variant_id,location_id,quantity"),
           supabase.from("products").select("id,name,sku,low_stock_threshold"),
+          supabase.from("product_variants").select("id,product_id,variant_name,sku,is_active").eq("is_active", true),
           supabase.from("stock_locations").select("id,name"),
         ]);
         const pMap = new Map((prods || []).map((p) => [p.id, p]));
+        const vMap = new Map((vars || []).map((v) => [v.id, v]));
         const lMap = new Map((locs || []).map((l) => [l.id, l.name]));
-        return (stock || []).map((s) => {
-          const p = pMap.get(s.product_id);
-          return {
+        const pHasVariants = new Set((vars || []).map((v) => v.product_id));
+        const rows: any[] = [];
+        // Variant rows
+        (vStock || []).forEach((s) => {
+          const v = vMap.get(s.variant_id); if (!v) return;
+          const p = pMap.get(v.product_id);
+          rows.push({
             product_name: p?.name || "",
-            sku: p?.sku || "",
+            product_sku: p?.sku || "",
+            variant_name: v.variant_name,
+            variant_sku: v.sku || "",
             location_name: lMap.get(s.location_id) || "",
             quantity: s.quantity,
             low_stock_threshold: p?.low_stock_threshold ?? 0,
-          };
+          });
         });
+        // Product rows (skip products that have variants — they are reported per variant)
+        (pStock || []).forEach((s) => {
+          if (pHasVariants.has(s.product_id)) return;
+          const p = pMap.get(s.product_id);
+          rows.push({
+            product_name: p?.name || "",
+            product_sku: p?.sku || "",
+            variant_name: "",
+            variant_sku: "",
+            location_name: lMap.get(s.location_id) || "",
+            quantity: s.quantity,
+            low_stock_threshold: p?.low_stock_threshold ?? 0,
+          });
+        });
+        return rows;
       }}
-      importNotes="Sets stock quantity at location. Resolves product by SKU and location by name. Logs a stock adjustment."
+      importNotes="Sets stock at a location. If variant_sku is provided, updates that variant; otherwise updates the product. Logs a movement."
       onImport={async (rows): Promise<ImportResult> => {
         const errors: string[] = []; let ok = 0, failed = 0;
-        const [{ data: prods }, { data: locs }, { data: stock }] = await Promise.all([
+        const [{ data: prods }, { data: vars }, { data: locs }, { data: pStock }, { data: vStock }] = await Promise.all([
           supabase.from("products").select("id,sku"),
+          supabase.from("product_variants").select("id,sku,product_id").eq("is_active", true),
           supabase.from("stock_locations").select("id,name"),
           supabase.from("product_stock").select("product_id,location_id,quantity"),
+          supabase.from("variant_stock").select("variant_id,location_id,quantity"),
         ]);
         const pBySku = new Map((prods || []).filter((p) => p.sku).map((p) => [p.sku!.toLowerCase(), p.id]));
+        const vBySku = new Map((vars || []).filter((v) => v.sku).map((v) => [v.sku!.toLowerCase(), v]));
         const lByName = new Map((locs || []).map((l) => [l.name.toLowerCase(), l.id]));
-        const stockKey = (pid: string, lid: string) => `${pid}__${lid}`;
-        const stockMap = new Map((stock || []).map((s) => [stockKey(s.product_id, s.location_id), s.quantity]));
+        const pKey = (pid: string, lid: string) => `${pid}__${lid}`;
+        const vKey = (vid: string, lid: string) => `${vid}__${lid}`;
+        const pStockMap = new Map((pStock || []).map((s) => [pKey(s.product_id, s.location_id), s.quantity]));
+        const vStockMap = new Map((vStock || []).map((s) => [vKey(s.variant_id, s.location_id), s.quantity]));
 
         for (const r of rows) {
           try {
-            const pid = pBySku.get((r.product_sku || "").toLowerCase());
             const lid = lByName.get((r.location_name || "").toLowerCase());
-            if (!pid) throw new Error(`unknown SKU "${r.product_sku}"`);
             if (!lid) throw new Error(`unknown location "${r.location_name}"`);
             const qty = Number(r.quantity);
             if (Number.isNaN(qty) || qty < 0) throw new Error("quantity must be ≥ 0");
-            const prev = stockMap.get(stockKey(pid, lid)) ?? 0;
-            const { error } = await supabase
-              .from("product_stock")
-              .upsert({ product_id: pid, location_id: lid, quantity: qty }, { onConflict: "product_id,location_id" });
-            if (error) throw error;
-            await supabase.from("stock_movements").insert({
-              product_id: pid, location_id: lid, movement_type: "adjustment",
-              quantity: qty - prev, previous_stock: prev, new_stock: qty,
-              reason: "CSV import",
-            });
+
+            if (r.variant_sku) {
+              const v = vBySku.get(String(r.variant_sku).toLowerCase());
+              if (!v) throw new Error(`unknown variant SKU "${r.variant_sku}"`);
+              const { error } = await supabase.rpc("adjust_variant_stock", {
+                p_variant_id: v.id, p_location_id: lid, p_new_quantity: qty,
+                p_movement_type: "adjustment", p_reason: "CSV import",
+              });
+              if (error) throw error;
+            } else {
+              const pid = pBySku.get(String(r.product_sku || "").toLowerCase());
+              if (!pid) throw new Error(`unknown product SKU "${r.product_sku}"`);
+              const prev = pStockMap.get(pKey(pid, lid)) ?? 0;
+              const { error } = await supabase
+                .from("product_stock")
+                .upsert({ product_id: pid, location_id: lid, quantity: qty }, { onConflict: "product_id,location_id" });
+              if (error) throw error;
+              await supabase.from("stock_movements").insert({
+                product_id: pid, location_id: lid, movement_type: "adjustment",
+                quantity: qty - prev, previous_stock: prev, new_stock: qty,
+                reason: "CSV import",
+              });
+            }
             ok++;
-          } catch (e: any) { failed++; errors.push(`${r.product_sku}/${r.location_name}: ${e.message}`); }
+          } catch (e: any) { failed++; errors.push(`${r.variant_sku || r.product_sku}/${r.location_name}: ${e.message}`); }
         }
         return { ok, failed, errors };
       }}
