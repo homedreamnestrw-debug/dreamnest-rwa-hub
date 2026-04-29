@@ -352,7 +352,7 @@ export default function ProductDetail() {
                             <button
                               key={val}
                               type="button"
-                              disabled={!inStock && !isSelected}
+                              disabled={(!inStock || !exists) && !isSelected}
                               onClick={() => setSelectedOptions({ ...selectedOptions, [opt]: val })}
                               className={[
                                 "w-full text-left rounded-full border px-5 py-3 text-sm transition-all",
