@@ -331,17 +331,28 @@ export default function ProductDetail() {
                       <p className="text-sm text-muted-foreground">{opt}</p>
                       <div className="flex flex-col gap-2">
                         {(optionsSchema[opt] ?? []).map((val) => {
-                          const candidateOptions = { ...selectedOptions, [opt]: val };
-                          const candidate = variants!.find((v: any) =>
-                            optionNames.every((n) => (v.attributes ?? {})[n] === candidateOptions[n])
+                          // A value is "in stock" if ANY variant with this value (and matching
+                          // already-selected OTHER options) has stock. We don't require the user
+                          // to have picked every option yet.
+                          const matchingVariants = variants!.filter((v: any) => {
+                            if ((v.attributes ?? {})[opt] !== val) return false;
+                            return optionNames.every((n) => {
+                              if (n === opt) return true;
+                              const sel = selectedOptions[n];
+                              if (!sel) return true; // ignore options not yet chosen
+                              return (v.attributes ?? {})[n] === sel;
+                            });
+                          });
+                          const inStock = matchingVariants.some(
+                            (v: any) => (v.stock_quantity ?? 0) > 0
                           );
-                          const inStock = candidate ? (candidate.stock_quantity ?? 0) > 0 : false;
+                          const exists = matchingVariants.length > 0;
                           const isSelected = selectedOptions[opt] === val;
                           return (
                             <button
                               key={val}
                               type="button"
-                              disabled={!inStock && !isSelected}
+                              disabled={(!inStock || !exists) && !isSelected}
                               onClick={() => setSelectedOptions({ ...selectedOptions, [opt]: val })}
                               className={[
                                 "w-full text-left rounded-full border px-5 py-3 text-sm transition-all",
@@ -349,7 +360,7 @@ export default function ProductDetail() {
                                 isSelected
                                   ? "bg-foreground text-background border-foreground"
                                   : "bg-background text-foreground border-border hover:border-foreground",
-                                !inStock && !isSelected ? "opacity-50 line-through cursor-not-allowed" : "",
+                                (!inStock || !exists) && !isSelected ? "opacity-50 line-through cursor-not-allowed" : "",
                               ].join(" ")}
                             >
                               {isColor && (
@@ -360,7 +371,7 @@ export default function ProductDetail() {
                                 />
                               )}
                               <span className="flex-1">{val}</span>
-                              {!inStock && !isSelected && (
+                              {(!inStock || !exists) && !isSelected && (
                                 <span className="text-xs uppercase tracking-wide">Out</span>
                               )}
                             </button>
