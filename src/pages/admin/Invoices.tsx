@@ -296,7 +296,7 @@ export default function Invoices() {
 
     const { data: orderItems } = await supabase
       .from("order_items")
-      .select("quantity, unit_price, total, products(name)")
+      .select("quantity, unit_price, total, products(name), product_variants(variant_name, sku, attributes)")
       .eq("order_id", row._order_id);
 
     // document_number is auto-assigned by the BEFORE INSERT trigger; we send a placeholder
@@ -328,14 +328,22 @@ export default function Invoices() {
     }
 
     if (orderItems && orderItems.length > 0) {
-      const items = orderItems.map((it: any) => ({
-        invoice_id: created.id,
-        description: it.products?.name || "Item",
-        quantity: it.quantity,
-        unit_price: it.unit_price,
-        tax: 0,
-        total: it.total,
-      }));
+      const items = orderItems.map((it: any) => {
+        const attrs = it.product_variants?.attributes as Record<string, string> | null | undefined;
+        const variantLabel =
+          it.product_variants?.variant_name ||
+          (attrs ? Object.entries(attrs).map(([k, v]) => `${k}: ${v}`).join(", ") : "");
+        const baseName = it.products?.name || "Item";
+        const description = variantLabel ? `${baseName} — ${variantLabel}` : baseName;
+        return {
+          invoice_id: created.id,
+          description,
+          quantity: it.quantity,
+          unit_price: it.unit_price,
+          tax: 0,
+          total: it.total,
+        };
+      });
       await supabase.from("invoice_items").insert(items);
     }
 
