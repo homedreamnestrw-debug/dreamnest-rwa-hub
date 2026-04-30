@@ -421,18 +421,36 @@ export default function Checkout() {
                       onValueChange={(val) => setForm({ ...form, payment_method: val as PaymentMethod })}
                       className="space-y-3"
                     >
-                      {paymentMethods.map((pm) => (
-                        <label
-                          key={pm.value}
-                          className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${
-                            form.payment_method === pm.value ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-                          }`}
-                        >
-                          <RadioGroupItem value={pm.value} />
-                          {pm.icon}
-                          <span className="font-medium">{pm.label}</span>
-                        </label>
-                      ))}
+                      {paymentMethods.map((pm) => {
+                        const isSelected = form.payment_method === pm.value;
+                        return (
+                          <div key={pm.value}>
+                            <label
+                              className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${
+                                isSelected ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                              }`}
+                            >
+                              <RadioGroupItem value={pm.value} />
+                              {pm.icon}
+                              <span className="font-medium">{pm.label}</span>
+                            </label>
+                            {isSelected && pm.value === "mtn_momo" && (
+                              <div className="mt-2 ml-4 p-3 rounded-md bg-muted/50 border border-border text-sm space-y-1">
+                                <p className="font-mono font-semibold text-base">{MOMO_USSD}</p>
+                                <p className="text-muted-foreground">Name: <span className="font-medium text-foreground">{MOMO_NAME}</span></p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Dial the code above on your phone to pay, then place your order. We'll confirm once payment is received.
+                                </p>
+                              </div>
+                            )}
+                            {isSelected && pm.value === "cash" && (
+                              <div className="mt-2 ml-4 p-3 rounded-md bg-muted/50 border border-border text-xs text-muted-foreground">
+                                Pay in cash when your order is delivered.
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </RadioGroup>
                   </CardContent>
                 </Card>
