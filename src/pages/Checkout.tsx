@@ -115,11 +115,12 @@ export default function Checkout() {
     new Intl.NumberFormat("en-RW", { style: "currency", currency: "RWF", minimumFractionDigits: 0 }).format(price);
 
   const paymentMethods: { value: PaymentMethod; label: string; icon: React.ReactNode }[] = [
-    { value: "mtn_momo", label: "MTN Mobile Money", icon: <Smartphone className="h-4 w-4" /> },
-    { value: "airtel_money", label: "Airtel Money", icon: <Smartphone className="h-4 w-4" /> },
-    { value: "card", label: "Card Payment", icon: <CreditCard className="h-4 w-4" /> },
-    { value: "cash", label: "Cash on Delivery", icon: <Banknote className="h-4 w-4" /> },
+    { value: "mtn_momo", label: "MoMo (Mobile Money)", icon: <Smartphone className="h-4 w-4" /> },
+    { value: "cash", label: "Cash on Delivery (COD)", icon: <Banknote className="h-4 w-4" /> },
   ];
+
+  const MOMO_USSD = "*182*8*1*2067310#";
+  const MOMO_NAME = "ABIGAEL";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
