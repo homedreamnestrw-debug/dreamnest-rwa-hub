@@ -120,7 +120,7 @@ export default function Checkout() {
   ];
 
   const MOMO_USSD = "*182*8*1*2067310#";
-  const MOMO_NAME = "ABIGAEL";
+  const MOMO_NAME = "DREAMNEST";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
