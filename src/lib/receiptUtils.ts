@@ -30,7 +30,7 @@ export async function autoCreateReceiptForOrder(orderId: string): Promise<string
 
   const { data: items } = await supabase
     .from("order_items")
-    .select("*, products(name)")
+    .select("*, products(name), product_variants(variant_name, sku, attributes)")
     .eq("order_id", orderId);
 
   const taxRate = order.subtotal > 0 ? Math.round((order.tax_amount / order.subtotal) * 100) : 0;
@@ -57,14 +57,22 @@ export async function autoCreateReceiptForOrder(orderId: string): Promise<string
   if (error || !created) return null;
 
   if (items && items.length > 0) {
-    const invItems = items.map((i: any) => ({
-      invoice_id: created.id,
-      description: i.products?.name || "Item",
-      quantity: i.quantity,
-      unit_price: i.unit_price,
-      tax: 0,
-      total: i.total,
-    }));
+    const invItems = items.map((i: any) => {
+      const attrs = i.product_variants?.attributes as Record<string, string> | null | undefined;
+      const variantLabel =
+        i.product_variants?.variant_name ||
+        (attrs ? Object.entries(attrs).map(([k, v]) => `${k}: ${v}`).join(", ") : "");
+      const baseName = i.products?.name || "Item";
+      const description = variantLabel ? `${baseName} — ${variantLabel}` : baseName;
+      return {
+        invoice_id: created.id,
+        description,
+        quantity: i.quantity,
+        unit_price: i.unit_price,
+        tax: 0,
+        total: i.total,
+      };
+    });
     await supabase.from("invoice_items").insert(invItems);
   }
 

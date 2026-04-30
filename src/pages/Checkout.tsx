@@ -115,11 +115,12 @@ export default function Checkout() {
     new Intl.NumberFormat("en-RW", { style: "currency", currency: "RWF", minimumFractionDigits: 0 }).format(price);
 
   const paymentMethods: { value: PaymentMethod; label: string; icon: React.ReactNode }[] = [
-    { value: "mtn_momo", label: "MTN Mobile Money", icon: <Smartphone className="h-4 w-4" /> },
-    { value: "airtel_money", label: "Airtel Money", icon: <Smartphone className="h-4 w-4" /> },
-    { value: "card", label: "Card Payment", icon: <CreditCard className="h-4 w-4" /> },
-    { value: "cash", label: "Cash on Delivery", icon: <Banknote className="h-4 w-4" /> },
+    { value: "mtn_momo", label: "MoMo (Mobile Money)", icon: <Smartphone className="h-4 w-4" /> },
+    { value: "cash", label: "Cash on Delivery (COD)", icon: <Banknote className="h-4 w-4" /> },
   ];
+
+  const MOMO_USSD = "*182*8*1*2067310#";
+  const MOMO_NAME = "ABIGAEL";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -420,18 +421,36 @@ export default function Checkout() {
                       onValueChange={(val) => setForm({ ...form, payment_method: val as PaymentMethod })}
                       className="space-y-3"
                     >
-                      {paymentMethods.map((pm) => (
-                        <label
-                          key={pm.value}
-                          className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${
-                            form.payment_method === pm.value ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-                          }`}
-                        >
-                          <RadioGroupItem value={pm.value} />
-                          {pm.icon}
-                          <span className="font-medium">{pm.label}</span>
-                        </label>
-                      ))}
+                      {paymentMethods.map((pm) => {
+                        const isSelected = form.payment_method === pm.value;
+                        return (
+                          <div key={pm.value}>
+                            <label
+                              className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${
+                                isSelected ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                              }`}
+                            >
+                              <RadioGroupItem value={pm.value} />
+                              {pm.icon}
+                              <span className="font-medium">{pm.label}</span>
+                            </label>
+                            {isSelected && pm.value === "mtn_momo" && (
+                              <div className="mt-2 ml-4 p-3 rounded-md bg-muted/50 border border-border text-sm space-y-1">
+                                <p className="font-mono font-semibold text-base">{MOMO_USSD}</p>
+                                <p className="text-muted-foreground">Name: <span className="font-medium text-foreground">{MOMO_NAME}</span></p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Dial the code above on your phone to pay, then place your order. We'll confirm once payment is received.
+                                </p>
+                              </div>
+                            )}
+                            {isSelected && pm.value === "cash" && (
+                              <div className="mt-2 ml-4 p-3 rounded-md bg-muted/50 border border-border text-xs text-muted-foreground">
+                                Pay in cash when your order is delivered.
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </RadioGroup>
                   </CardContent>
                 </Card>

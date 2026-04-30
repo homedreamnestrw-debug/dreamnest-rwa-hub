@@ -23,7 +23,7 @@ export function OrderDetailDialog({ orderId, open, onOpenChange }: OrderDetailDi
 
     Promise.all([
       supabase.from("orders").select("*").eq("id", orderId).single(),
-      supabase.from("order_items").select("*, product:products(name, images, sku)").eq("order_id", orderId),
+      supabase.from("order_items").select("*, product:products(name, images, sku), variant:product_variants(variant_name, sku, attributes)").eq("order_id", orderId),
     ]).then(([orderRes, itemsRes]) => {
       setOrder(orderRes.data);
       setItems(itemsRes.data || []);
@@ -123,20 +123,31 @@ export function OrderDetailDialog({ orderId, open, onOpenChange }: OrderDetailDi
             <div>
               <h3 className="text-sm font-medium text-muted-foreground mb-3">Items</h3>
               <div className="space-y-3">
-                {items.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-3">
-                      <Package className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="font-medium">{item.product?.name || "Unknown Product"}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatRWF(item.unit_price)} × {item.quantity}
-                        </p>
+                {items.map((item) => {
+                  const attrs = item.variant?.attributes as Record<string, string> | null | undefined;
+                  const attrParts = attrs ? Object.entries(attrs).map(([k, v]) => `${k}: ${v}`) : [];
+                  const variantLabel = item.variant?.variant_name || attrParts.join(" • ");
+                  return (
+                    <div key={item.id} className="flex items-start justify-between text-sm">
+                      <div className="flex items-start gap-3">
+                        <Package className="h-4 w-4 text-muted-foreground mt-0.5" />
+                        <div>
+                          <p className="font-medium">{item.product?.name || "Unknown Product"}</p>
+                          {variantLabel && (
+                            <p className="text-xs text-foreground/80">{variantLabel}</p>
+                          )}
+                          {item.variant?.sku && (
+                            <p className="text-[11px] text-muted-foreground font-mono">SKU: {item.variant.sku}</p>
+                          )}
+                          <p className="text-xs text-muted-foreground">
+                            {formatRWF(item.unit_price)} × {item.quantity}
+                          </p>
+                        </div>
                       </div>
+                      <span className="font-medium">{formatRWF(item.total)}</span>
                     </div>
-                    <span className="font-medium">{formatRWF(item.total)}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -175,7 +186,11 @@ export function OrderDetailDialog({ orderId, open, onOpenChange }: OrderDetailDi
             {/* WhatsApp Button */}
             {order.guest_phone && (() => {
               const phone = order.guest_phone.replace(/[^0-9+]/g, "").replace(/^\+/, "");
-              const itemsSummary = items.map((i) => `• ${i.product?.name || "Item"} ×${i.quantity}`).join("\n");
+              const itemsSummary = items.map((i) => {
+                const attrs = i.variant?.attributes as Record<string, string> | null | undefined;
+                const variantLabel = i.variant?.variant_name || (attrs ? Object.entries(attrs).map(([k, v]) => `${k}: ${v}`).join(", ") : "");
+                return `• ${i.product?.name || "Item"}${variantLabel ? ` (${variantLabel})` : ""} ×${i.quantity}`;
+              }).join("\n");
               const msg = `Hello ${customerName},\n\nThank you for your order #${order.order_number} from DreamNest! 🛏️\n\n${itemsSummary}\n\nTotal: ${formatRWF(order.total)}\n\nWe'll update you once your order is confirmed. Feel free to reach out if you have any questions!`;
               const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
               return (
