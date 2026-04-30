@@ -331,28 +331,36 @@ export default function ProductDetail() {
                       <p className="text-sm text-muted-foreground">{opt}</p>
                       <div className="flex flex-col gap-2">
                         {(optionsSchema[opt] ?? []).map((val) => {
-                          // A value is "in stock" if ANY variant with this value (and matching
-                          // already-selected OTHER options) has stock. We don't require the user
-                          // to have picked every option yet.
-                          const matchingVariants = variants!.filter((v: any) => {
-                            if ((v.attributes ?? {})[opt] !== val) return false;
-                            return optionNames.every((n) => {
+                          // Variants that contain this option value, regardless of other selections.
+                          // Buttons stay clickable so users can always change their selection;
+                          // we only show an "Out" hint when no combination with this value has stock.
+                          const variantsWithVal = variants!.filter(
+                            (v: any) => (v.attributes ?? {})[opt] === val
+                          );
+                          // Variants matching THIS value AND any already-selected other options
+                          const compatibleVariants = variantsWithVal.filter((v: any) =>
+                            optionNames.every((n) => {
                               if (n === opt) return true;
                               const sel = selectedOptions[n];
-                              if (!sel) return true; // ignore options not yet chosen
+                              if (!sel) return true;
                               return (v.attributes ?? {})[n] === sel;
-                            });
-                          });
-                          const inStock = matchingVariants.some(
+                            })
+                          );
+                          const anyStock = variantsWithVal.some(
                             (v: any) => (v.stock_quantity ?? 0) > 0
                           );
-                          const exists = matchingVariants.length > 0;
+                          const compatibleStock = compatibleVariants.some(
+                            (v: any) => (v.stock_quantity ?? 0) > 0
+                          );
                           const isSelected = selectedOptions[opt] === val;
+                          // Show Out hint only when this value has no stock at all in any variant
+                          const showOut = !anyStock && !isSelected;
+                          // Subtle dim if currently incompatible with other selections (but still selectable)
+                          const dim = !compatibleStock && anyStock && !isSelected;
                           return (
                             <button
                               key={val}
                               type="button"
-                              disabled={(!inStock || !exists) && !isSelected}
                               onClick={() => setSelectedOptions({ ...selectedOptions, [opt]: val })}
                               className={[
                                 "w-full text-left rounded-full border px-5 py-3 text-sm transition-all",
@@ -360,7 +368,8 @@ export default function ProductDetail() {
                                 isSelected
                                   ? "bg-foreground text-background border-foreground"
                                   : "bg-background text-foreground border-border hover:border-foreground",
-                                (!inStock || !exists) && !isSelected ? "opacity-50 line-through cursor-not-allowed" : "",
+                                showOut ? "opacity-60" : "",
+                                dim ? "opacity-75" : "",
                               ].join(" ")}
                             >
                               {isColor && (
@@ -371,8 +380,8 @@ export default function ProductDetail() {
                                 />
                               )}
                               <span className="flex-1">{val}</span>
-                              {(!inStock || !exists) && !isSelected && (
-                                <span className="text-xs uppercase tracking-wide">Out</span>
+                              {showOut && (
+                                <span className="text-xs uppercase tracking-wide text-muted-foreground">Out of stock</span>
                               )}
                             </button>
                           );
