@@ -186,7 +186,11 @@ export function OrderDetailDialog({ orderId, open, onOpenChange }: OrderDetailDi
             {/* WhatsApp Button */}
             {order.guest_phone && (() => {
               const phone = order.guest_phone.replace(/[^0-9+]/g, "").replace(/^\+/, "");
-              const itemsSummary = items.map((i) => `• ${i.product?.name || "Item"} ×${i.quantity}`).join("\n");
+              const itemsSummary = items.map((i) => {
+                const attrs = i.variant?.attributes as Record<string, string> | null | undefined;
+                const variantLabel = i.variant?.variant_name || (attrs ? Object.entries(attrs).map(([k, v]) => `${k}: ${v}`).join(", ") : "");
+                return `• ${i.product?.name || "Item"}${variantLabel ? ` (${variantLabel})` : ""} ×${i.quantity}`;
+              }).join("\n");
               const msg = `Hello ${customerName},\n\nThank you for your order #${order.order_number} from DreamNest! 🛏️\n\n${itemsSummary}\n\nTotal: ${formatRWF(order.total)}\n\nWe'll update you once your order is confirmed. Feel free to reach out if you have any questions!`;
               const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
               return (
