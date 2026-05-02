@@ -1,4 +1,4 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PublicLayout } from "@/components/layout/PublicLayout";
@@ -46,6 +46,7 @@ function cssColorFromName(label: string): string {
 }
 export default function ProductDetail() {
   const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
@@ -166,6 +167,44 @@ export default function ProductDetail() {
       hasVariants ? effectiveStock : undefined,
     );
     toast.success("Added to cart!");
+  };
+
+  const buyNow = async () => {
+    if (!product) return;
+    if (hasVariants && !matchedVariant) {
+      toast.error(`Please choose ${optionNames.join(" and ")}`);
+      return;
+    }
+    if (effectiveStock <= 0) {
+      toast.error("This item is out of stock");
+      return;
+    }
+    if (quantity > effectiveStock) {
+      toast.error(`Only ${effectiveStock} available in stock`);
+      return;
+    }
+    await addItem(
+      {
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        slug: product.slug,
+        images: product.images,
+        stock_quantity: product.stock_quantity,
+      },
+      quantity,
+      matchedVariant
+        ? {
+            id: matchedVariant.id,
+            variant_name: matchedVariant.variant_name,
+            price_override: matchedVariant.price_override ?? null,
+            attributes: (matchedVariant.attributes ?? null) as Record<string, string> | null,
+            sku: matchedVariant.sku ?? null,
+          }
+        : null,
+      hasVariants ? effectiveStock : undefined,
+    );
+    navigate("/checkout");
   };
 
   const addToWishlist = async () => {
