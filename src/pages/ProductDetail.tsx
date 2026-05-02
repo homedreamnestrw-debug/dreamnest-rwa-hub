@@ -461,6 +461,16 @@ export default function ProductDetail() {
               </Button>
             </div>
 
+            <Button
+              variant="secondary"
+              className="w-full"
+              size="lg"
+              disabled={effectiveStock <= 0 || (hasVariants && !matchedVariant)}
+              onClick={buyNow}
+            >
+              Buy It Now
+            </Button>
+
             {effectiveStock > 0 && effectiveStock <= product.low_stock_threshold && (
               <p className="text-sm text-destructive">Only {effectiveStock} left in stock</p>
             )}
