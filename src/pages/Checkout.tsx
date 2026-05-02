@@ -12,8 +12,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Loader2, CreditCard, Smartphone, Banknote, Gift, X } from "lucide-react";
+import { Loader2, CreditCard, Smartphone, Banknote, Gift, X, Package, MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { Database } from "@/integrations/supabase/types";
 import { useShopEnabled } from "@/hooks/useShopEnabled";
@@ -40,6 +41,9 @@ export default function Checkout() {
     shipping_city: "Kigali",
     notes: "",
     payment_method: "mtn_momo" as PaymentMethod,
+    delivery_method: "ship" as "ship" | "pickup",
+    marketing_opt_in: true,
+    save_info: true,
   });
 
   // Pre-fill from profile if logged in
