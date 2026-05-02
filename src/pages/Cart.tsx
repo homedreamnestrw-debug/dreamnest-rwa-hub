@@ -51,9 +51,7 @@ export default function Cart() {
     new Intl.NumberFormat("en-RW", { style: "currency", currency: "RWF", minimumFractionDigits: 0 }).format(price);
 
   const subtotal = cartItems.reduce((sum, item) => sum + (item.unit_price ?? item.product?.price ?? 0) * item.quantity, 0);
-  const taxRate = 0.18;
-  const tax = Math.round(subtotal * taxRate);
-  const total = subtotal + tax;
+  const total = subtotal;
 
   const hasStockIssue = cartItems.some((i) => {
     const max = stockFor(i);
@@ -132,7 +130,7 @@ export default function Cart() {
               <h2 className="font-serif text-xl">Order Summary</h2>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{formatPrice(subtotal)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">VAT (18%)</span><span>{formatPrice(tax)}</span></div>
+                <p className="text-xs text-muted-foreground">Prices are VAT inclusive.</p>
                 <div className="border-t pt-2 flex justify-between font-medium text-base">
                   <span>Total</span><span className="font-serif">{formatPrice(total)}</span>
                 </div>
