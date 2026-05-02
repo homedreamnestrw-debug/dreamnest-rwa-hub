@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { MapPin, Phone, Mail, User, StickyNote, Package, MessageCircle } from "lucide-react";
+import { MapPin, Phone, Mail, User, StickyNote, Package, MessageCircle, Truck, Mailbox, Save } from "lucide-react";
 
 interface OrderDetailDialogProps {
   orderId: string | null;
@@ -60,6 +60,12 @@ export function OrderDetailDialog({ orderId, open, onOpenChange }: OrderDetailDi
               {order.payment_method && (
                 <Badge variant="secondary" className="capitalize">{order.payment_method.replace("_", " ")}</Badge>
               )}
+              {order.delivery_method && (
+                <Badge variant="outline" className="capitalize gap-1">
+                  {order.delivery_method === "pickup" ? <MapPin className="h-3 w-3" /> : <Truck className="h-3 w-3" />}
+                  {order.delivery_method === "pickup" ? "Store Pickup" : "Ship"}
+                </Badge>
+              )}
             </div>
 
             {/* Customer Info */}
@@ -89,7 +95,18 @@ export function OrderDetailDialog({ orderId, open, onOpenChange }: OrderDetailDi
             <Separator />
 
             {/* Shipping Info */}
-            {(order.shipping_address || order.shipping_city) && (
+            {order.delivery_method === "pickup" ? (
+              <>
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-2">Fulfilment</h3>
+                  <div className="flex items-start gap-2 text-sm">
+                    <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                    <p>Customer will pick up at the store</p>
+                  </div>
+                </div>
+                <Separator />
+              </>
+            ) : (order.shipping_address || order.shipping_city) && (
               <>
                 <div>
                   <h3 className="text-sm font-medium text-muted-foreground mb-2">Shipping Address</h3>
@@ -99,6 +116,30 @@ export function OrderDetailDialog({ orderId, open, onOpenChange }: OrderDetailDi
                       {order.shipping_address && <p>{order.shipping_address}</p>}
                       {order.shipping_city && <p>{order.shipping_city}</p>}
                     </div>
+                  </div>
+                </div>
+                <Separator />
+              </>
+            )}
+
+            {/* Customer preferences */}
+            {(order.marketing_opt_in || order.save_info) && (
+              <>
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-2">Customer Preferences</h3>
+                  <div className="space-y-1.5 text-sm">
+                    {order.marketing_opt_in && (
+                      <div className="flex items-center gap-2">
+                        <Mailbox className="h-4 w-4 text-muted-foreground" />
+                        <span>Opted in to news & offers</span>
+                      </div>
+                    )}
+                    {order.save_info && (
+                      <div className="flex items-center gap-2">
+                        <Save className="h-4 w-4 text-muted-foreground" />
+                        <span>Asked to save info for next time</span>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <Separator />
