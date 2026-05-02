@@ -130,8 +130,12 @@ export default function Checkout() {
     e.preventDefault();
     if (cartItems.length === 0) return;
 
-    if (!form.full_name || !form.phone || !form.shipping_address) {
+    if (!form.full_name || !form.phone) {
       toast.error("Please fill in all required fields");
+      return;
+    }
+    if (form.delivery_method === "ship" && !form.shipping_address) {
+      toast.error("Please enter your shipping address");
       return;
     }
 
@@ -172,9 +176,12 @@ export default function Checkout() {
         tax_amount: taxAmount,
         discount_amount: voucherDiscount,
         total: Math.max(0, total),
-        shipping_address: form.shipping_address,
-        shipping_city: form.shipping_city,
+        shipping_address: form.delivery_method === "pickup" ? "Store Pickup" : form.shipping_address,
+        shipping_city: form.delivery_method === "pickup" ? "Store Pickup" : form.shipping_city,
         notes: form.notes || null,
+        delivery_method: form.delivery_method,
+        marketing_opt_in: form.marketing_opt_in,
+        save_info: form.save_info,
         payment_approved: isFullyPaidByVoucher ? true : false,
       };
 
