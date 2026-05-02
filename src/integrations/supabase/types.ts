@@ -757,12 +757,14 @@ export type Database = {
           channel: Database["public"]["Enums"]["sale_channel"]
           created_at: string
           customer_id: string | null
+          delivery_method: Database["public"]["Enums"]["delivery_method"]
           discount_amount: number
           guest_email: string | null
           guest_name: string | null
           guest_phone: string | null
           id: string
           location_id: string | null
+          marketing_opt_in: boolean
           notes: string | null
           order_number: number
           payment_approved: boolean
@@ -770,6 +772,7 @@ export type Database = {
           payment_approved_by: string | null
           payment_method: Database["public"]["Enums"]["payment_method"] | null
           payment_status: Database["public"]["Enums"]["payment_status"]
+          save_info: boolean
           served_by: string | null
           shipping_address: string | null
           shipping_city: string | null
@@ -783,12 +786,14 @@ export type Database = {
           channel?: Database["public"]["Enums"]["sale_channel"]
           created_at?: string
           customer_id?: string | null
+          delivery_method?: Database["public"]["Enums"]["delivery_method"]
           discount_amount?: number
           guest_email?: string | null
           guest_name?: string | null
           guest_phone?: string | null
           id?: string
           location_id?: string | null
+          marketing_opt_in?: boolean
           notes?: string | null
           order_number?: number
           payment_approved?: boolean
@@ -796,6 +801,7 @@ export type Database = {
           payment_approved_by?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
+          save_info?: boolean
           served_by?: string | null
           shipping_address?: string | null
           shipping_city?: string | null
@@ -809,12 +815,14 @@ export type Database = {
           channel?: Database["public"]["Enums"]["sale_channel"]
           created_at?: string
           customer_id?: string | null
+          delivery_method?: Database["public"]["Enums"]["delivery_method"]
           discount_amount?: number
           guest_email?: string | null
           guest_name?: string | null
           guest_phone?: string | null
           id?: string
           location_id?: string | null
+          marketing_opt_in?: boolean
           notes?: string | null
           order_number?: number
           payment_approved?: boolean
@@ -822,6 +830,7 @@ export type Database = {
           payment_approved_by?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
+          save_info?: boolean
           served_by?: string | null
           shipping_address?: string | null
           shipping_city?: string | null
@@ -1672,6 +1681,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "staff" | "customer"
+      delivery_method: "ship" | "pickup"
       document_status:
         | "draft"
         | "sent"
@@ -1832,6 +1842,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "staff", "customer"],
+      delivery_method: ["ship", "pickup"],
       document_status: [
         "draft",
         "sent",
