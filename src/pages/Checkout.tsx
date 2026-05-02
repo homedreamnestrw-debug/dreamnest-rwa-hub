@@ -368,11 +368,46 @@ export default function Checkout() {
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
             <div className="lg:col-span-2 space-y-8">
+              {/* Delivery method */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="font-serif text-xl">Delivery method</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-3">
+                    {([
+                      { value: "ship", label: "Ship", icon: <Package className="h-4 w-4" /> },
+                      { value: "pickup", label: "Pickup", icon: <MapPin className="h-4 w-4" /> },
+                    ] as const).map((opt) => {
+                      const selected = form.delivery_method === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setForm({ ...form, delivery_method: opt.value })}
+                          className={`flex items-center justify-center gap-2 p-4 rounded-lg border-2 transition-colors ${
+                            selected ? "border-primary bg-background" : "border-border bg-muted/40 hover:border-primary/50"
+                          }`}
+                        >
+                          {opt.icon}
+                          <span className="font-medium">{opt.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {form.delivery_method === "pickup" && (
+                    <p className="mt-3 text-xs text-muted-foreground">
+                      You'll pick up your order at our DreamNest store. We'll contact you when it's ready.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+
               {/* Contact & Shipping */}
               <Card>
                 <CardHeader>
                   <CardTitle className="font-serif text-xl">
-                    {user ? "Shipping Information" : "Your Information"}
+                    {form.delivery_method === "pickup" ? "Your Information" : (user ? "Shipping Information" : "Your Information")}
                   </CardTitle>
                   {!user && (
                     <p className="text-sm text-muted-foreground">
@@ -397,14 +432,39 @@ export default function Checkout() {
                       <Input id="email" type="email" required placeholder="your@email.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
                     </div>
                   )}
-                  <div className="space-y-2">
-                    <Label htmlFor="address">Shipping Address *</Label>
-                    <Input id="address" required value={form.shipping_address} onChange={(e) => setForm({ ...form, shipping_address: e.target.value })} />
+                  <div className="flex items-start gap-2 pt-1">
+                    <Checkbox
+                      id="marketing_opt_in"
+                      checked={form.marketing_opt_in}
+                      onCheckedChange={(c) => setForm({ ...form, marketing_opt_in: !!c })}
+                    />
+                    <Label htmlFor="marketing_opt_in" className="text-sm font-normal cursor-pointer leading-tight">
+                      Email me with news and offers
+                    </Label>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="city">City *</Label>
-                    <Input id="city" required value={form.shipping_city} onChange={(e) => setForm({ ...form, shipping_city: e.target.value })} />
-                  </div>
+
+                  {form.delivery_method === "ship" && (
+                    <>
+                      <div className="space-y-2 pt-2">
+                        <Label htmlFor="address">Shipping Address *</Label>
+                        <Input id="address" required value={form.shipping_address} onChange={(e) => setForm({ ...form, shipping_address: e.target.value })} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="city">City *</Label>
+                        <Input id="city" required value={form.shipping_city} onChange={(e) => setForm({ ...form, shipping_city: e.target.value })} />
+                      </div>
+                      <div className="flex items-start gap-2 pt-1">
+                        <Checkbox
+                          id="save_info"
+                          checked={form.save_info}
+                          onCheckedChange={(c) => setForm({ ...form, save_info: !!c })}
+                        />
+                        <Label htmlFor="save_info" className="text-sm font-normal cursor-pointer leading-tight">
+                          Save this information for next time
+                        </Label>
+                      </div>
+                    </>
+                  )}
                   <div className="space-y-2">
                     <Label htmlFor="notes">Order Notes (optional)</Label>
                     <Textarea id="notes" placeholder="Special delivery instructions..." value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
