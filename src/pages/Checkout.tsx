@@ -581,6 +581,7 @@ export default function Checkout() {
                   <Separator />
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{formatPrice(subtotal)}</span></div>
+                    <p className="text-xs text-muted-foreground">Prices are VAT inclusive.</p>
                     {voucherDiscount > 0 && (
                       <div className="flex justify-between text-green-600"><span>Voucher Discount</span><span>-{formatPrice(voucherDiscount)}</span></div>
                     )}
