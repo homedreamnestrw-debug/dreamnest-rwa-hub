@@ -257,7 +257,7 @@ export default function Checkout() {
         if (redeemErr) throw redeemErr;
       }
 
-      if (user) {
+      if (user && form.save_info) {
         await supabase
           .from("profiles")
           .update({
@@ -267,6 +267,12 @@ export default function Checkout() {
             city: form.shipping_city,
           })
           .eq("user_id", user.id);
+      }
+
+      // Newsletter opt-in
+      const optInEmail = (user ? user.email : form.email) || "";
+      if (form.marketing_opt_in && optInEmail) {
+        await supabase.from("newsletter_subscribers").insert({ email: optInEmail }).then(() => {}, () => {});
       }
 
       await clearCart();
@@ -292,14 +298,15 @@ export default function Checkout() {
               <p><strong>Customer:</strong> ${customerName}</p>
               <p><strong>Phone:</strong> ${form.phone}</p>
               ${customerEmail ? `<p><strong>Email:</strong> ${customerEmail}</p>` : ""}
-              <p><strong>Shipping:</strong> ${form.shipping_address}, ${form.shipping_city}</p>
+              <p><strong>Shipping:</strong> ${form.delivery_method === "pickup" ? "Store Pickup" : `${form.shipping_address}, ${form.shipping_city}`}</p>
+              <p><strong>Delivery:</strong> ${form.delivery_method === "pickup" ? "Pickup at store" : "Ship to address"}</p>
               <p><strong>Payment:</strong> ${paymentLabel}</p>
+              <p><strong>Marketing opt-in:</strong> ${form.marketing_opt_in ? "Yes" : "No"}</p>
               ${form.notes ? `<p><strong>Notes:</strong> ${form.notes}</p>` : ""}
               <hr style="border:none;border-top:1px solid #eee;margin:16px 0"/>
               <p style="font-size:14px">${itemsList}</p>
               <hr style="border:none;border-top:1px solid #eee;margin:16px 0"/>
-              <p><strong>Subtotal:</strong> ${formatPrice(subtotal)}</p>
-              <p><strong>VAT:</strong> ${formatPrice(taxAmount)}</p>
+              <p><strong>Subtotal (VAT incl.):</strong> ${formatPrice(subtotal)}</p>
               <p style="font-size:18px"><strong>Total: ${formatPrice(total)}</strong></p>
               <p style="color:#999;font-size:12px;margin-top:24px">This order requires payment approval before processing.</p>
             </div>`,
