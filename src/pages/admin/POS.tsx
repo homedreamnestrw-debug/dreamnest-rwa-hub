@@ -17,9 +17,10 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/componen
 import { toast } from "sonner";
 import {
   Search, Plus, Minus, Trash2, CreditCard, Smartphone, Banknote,
-  Loader2, Receipt, X, Printer, MapPin, Clock, Percent, Gift, Edit2,
+  Loader2, Receipt, X, Printer, Download, MapPin, Clock, Percent, Gift, Edit2,
 } from "lucide-react";
 import { format } from "date-fns";
+import { buildOrderInvoicePdfFromData } from "@/lib/receiptUtils";
 import type { Database } from "@/integrations/supabase/types";
 
 type PaymentMethod = Database["public"]["Enums"]["payment_method"];
@@ -566,6 +567,37 @@ export default function POS() {
   };
 
   const printReceipt = () => window.print();
+
+  const downloadReceipt = async () => {
+    if (!receiptOrder) return;
+    try {
+      await buildOrderInvoicePdfFromData({
+        documentType: "RECEIPT",
+        documentNumber: String(receiptOrder.order_number),
+        createdAt: new Date(receiptOrder.created_at),
+        status: receiptOrder.payment_status,
+        customerName: receiptOrder.customer_name || null,
+        customerPhone: receiptOrder.customer_phone || null,
+        paymentMethod: receiptOrder.payment_method,
+        servedBy: receiptOrder.served_by_name || null,
+        items: receiptOrder.items.map(i => ({
+          description: i.name,
+          quantity: i.quantity,
+          unit_price: i.selling_price,
+          total: i.selling_price * i.quantity,
+        })),
+        subtotal: receiptOrder.subtotal,
+        discount: receiptOrder.discount_amount,
+        taxRate: includeVat ? Math.round(vatRate * 100) : 0,
+        taxAmount: receiptOrder.tax,
+        total: receiptOrder.total,
+        amountPaid: receiptOrder.amount_paid ?? null,
+        notes: customerNote || null,
+      });
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to generate PDF");
+    }
+  };
 
   const paymentMethods: { value: PaymentMethod; label: string; icon: React.ReactNode }[] = [
     { value: "cash", label: "Cash", icon: <Banknote className="h-4 w-4" /> },
@@ -1236,9 +1268,10 @@ export default function POS() {
                 </div>
               )}
 
-              <div className="flex gap-3 pt-4 print:hidden">
-                <Button variant="outline" className="flex-1" onClick={printReceipt}><Printer className="mr-2 h-4 w-4" /> Print</Button>
-                <Button className="flex-1" onClick={() => { setReceiptOrder(null); searchRef.current?.focus(); }}>New Sale</Button>
+              <div className="flex flex-wrap gap-2 pt-4 print:hidden">
+                <Button variant="outline" className="flex-1 min-w-[120px]" onClick={printReceipt}><Printer className="mr-2 h-4 w-4" /> Print</Button>
+                <Button variant="outline" className="flex-1 min-w-[120px]" onClick={downloadReceipt}><Download className="mr-2 h-4 w-4" /> Download</Button>
+                <Button className="flex-1 min-w-[120px]" onClick={() => { setReceiptOrder(null); searchRef.current?.focus(); }}>New Sale</Button>
               </div>
             </div>
           )}
