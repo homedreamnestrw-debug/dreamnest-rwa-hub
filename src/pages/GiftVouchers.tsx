@@ -10,7 +10,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Loader2, Gift, Smartphone, CreditCard } from "lucide-react";
+import { Loader2, Gift, Smartphone } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useShopEnabled } from "@/hooks/useShopEnabled";
 import { ComingSoon } from "@/components/layout/ComingSoon";
 
@@ -35,6 +36,7 @@ export default function GiftVouchers() {
     recipient_phone: "",
     personal_message: "",
     payment_method: "mtn_momo",
+    marketing_opt_in: true,
   });
 
   if (!shopLoading && !shopEnabled) return <ComingSoon />;
@@ -43,8 +45,6 @@ export default function GiftVouchers() {
 
   const paymentMethods = [
     { value: "mtn_momo", label: "MTN Mobile Money", icon: <Smartphone className="h-4 w-4" /> },
-    { value: "airtel_money", label: "Airtel Money", icon: <Smartphone className="h-4 w-4" /> },
-    { value: "card", label: "Card Payment", icon: <CreditCard className="h-4 w-4" /> },
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -90,6 +90,10 @@ export default function GiftVouchers() {
       supabase.functions.invoke("send-voucher-emails", {
         body: { voucher_code: data.code, type: "purchased" },
       });
+
+      if (form.marketing_opt_in && form.buyer_email) {
+        await supabase.from("newsletter_subscribers").insert({ email: form.buyer_email }).then(() => {});
+      }
 
       navigate(`/gift-vouchers/confirmation/${data.code}`);
     } catch (err: any) {
@@ -187,6 +191,14 @@ export default function GiftVouchers() {
                     <Label>Email</Label>
                     <Input type="email" placeholder="your@email.com" value={form.buyer_email} onChange={(e) => setForm({ ...form, buyer_email: e.target.value })} />
                   </div>
+                  <label className="flex items-start gap-2 cursor-pointer">
+                    <Checkbox
+                      checked={form.marketing_opt_in}
+                      onCheckedChange={(c) => setForm({ ...form, marketing_opt_in: c === true })}
+                      className="mt-0.5"
+                    />
+                    <span className="text-sm">Email me with news and offers</span>
+                  </label>
                 </CardContent>
               </Card>
 
@@ -246,6 +258,14 @@ export default function GiftVouchers() {
                       </label>
                     ))}
                   </RadioGroup>
+                  {form.payment_method === "mtn_momo" && (
+                    <div className="mt-4 p-4 rounded-lg border bg-primary/5 space-y-2 text-sm">
+                      <div className="font-medium">Pay with MTN Mobile Money</div>
+                      <div>Dial <span className="font-mono font-bold">*182*8*1*2067310#</span> on your phone.</div>
+                      <div>Merchant name: <span className="font-semibold">DREAMNEST</span></div>
+                      <div className="text-muted-foreground">After payment, our team will confirm and activate your voucher.</div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
