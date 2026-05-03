@@ -187,6 +187,14 @@ export default function GiftVouchers() {
                     <Label>Email</Label>
                     <Input type="email" placeholder="your@email.com" value={form.buyer_email} onChange={(e) => setForm({ ...form, buyer_email: e.target.value })} />
                   </div>
+                  <label className="flex items-start gap-2 cursor-pointer">
+                    <Checkbox
+                      checked={form.marketing_opt_in}
+                      onCheckedChange={(c) => setForm({ ...form, marketing_opt_in: c === true })}
+                      className="mt-0.5"
+                    />
+                    <span className="text-sm">Email me with news and offers</span>
+                  </label>
                 </CardContent>
               </Card>
 
