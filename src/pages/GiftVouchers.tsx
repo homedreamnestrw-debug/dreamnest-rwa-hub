@@ -254,6 +254,14 @@ export default function GiftVouchers() {
                       </label>
                     ))}
                   </RadioGroup>
+                  {form.payment_method === "mtn_momo" && (
+                    <div className="mt-4 p-4 rounded-lg border bg-primary/5 space-y-2 text-sm">
+                      <div className="font-medium">Pay with MTN Mobile Money</div>
+                      <div>Dial <span className="font-mono font-bold">*182*8*1*2067310#</span> on your phone.</div>
+                      <div>Merchant name: <span className="font-semibold">DREAMNEST</span></div>
+                      <div className="text-muted-foreground">After payment, our team will confirm and activate your voucher.</div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
