@@ -79,84 +79,246 @@ export async function autoCreateReceiptForOrder(orderId: string): Promise<string
   return created.id;
 }
 
+async function loadImageAsDataUrl(url: string): Promise<{ dataUrl: string; w: number; h: number; format: "PNG" | "JPEG" } | null> {
+  try {
+    const res = await fetch(url, { mode: "cors" });
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    const dataUrl: string = await new Promise((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(fr.result as string);
+      fr.onerror = reject;
+      fr.readAsDataURL(blob);
+    });
+    const dims: { w: number; h: number } = await new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve({ w: img.width, h: img.height });
+      img.onerror = () => resolve({ w: 200, h: 200 });
+      img.src = dataUrl;
+    });
+    const format = blob.type.includes("jpeg") || blob.type.includes("jpg") ? "JPEG" : "PNG";
+    return { dataUrl, ...dims, format };
+  } catch {
+    return null;
+  }
+}
+
 /**
- * Generate and download a PDF for any invoice/receipt/proforma/quote document.
+ * Build a branded A4 PDF for an order or invoice/receipt.
+ * Used by both downloadInvoicePdf and the POS download button.
  */
-export async function downloadInvoicePdf(invoiceId: string) {
-  const [{ data: invoice }, { data: items }, { data: settingsArr }] = await Promise.all([
-    supabase.from("invoices").select("*").eq("id", invoiceId).single(),
-    supabase.from("invoice_items").select("*").eq("invoice_id", invoiceId).order("created_at"),
-    supabase.rpc("get_public_business_settings"),
-  ]);
+export async function buildOrderInvoicePdfFromData(opts: {
+  documentType: string; // RECEIPT, INVOICE, PROFORMA, QUOTE
+  documentNumber: string;
+  createdAt: Date;
+  status?: string;
+  customerName?: string | null;
+  customerPhone?: string | null;
+  customerEmail?: string | null;
+  paymentMethod?: string | null;
+  servedBy?: string | null;
+  items: Array<{ description: string; quantity: number; unit_price: number; total: number }>;
+  subtotal: number;
+  discount?: number;
+  taxRate?: number;
+  taxAmount?: number;
+  total: number;
+  amountPaid?: number | null;
+  notes?: string | null;
+}) {
+  const { data: settingsArr } = await supabase.rpc("get_public_business_settings");
+  const settings: any = settingsArr?.[0];
 
-  if (!invoice) return;
-  const settings = settingsArr?.[0];
-
-  const doc = new jsPDF();
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 14;
 
-  // Header — business info
-  doc.setFontSize(20);
+  // Logo
+  const logoUrl = settings?.receipt_logo_url || settings?.logo_url;
+  let headerBottom = 18;
+  if (logoUrl) {
+    const img = await loadImageAsDataUrl(logoUrl);
+    if (img) {
+      const maxH = 22;
+      const ratio = img.w / img.h;
+      const h = maxH;
+      const w = h * ratio;
+      try {
+        doc.addImage(img.dataUrl, img.format, margin, 12, w, h);
+        headerBottom = 12 + h;
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  // Business info — to the right of the logo (or at left if no logo)
+  const businessLeft = logoUrl ? margin + 28 : margin;
+  doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
-  doc.text(settings?.business_name || "DreamNest", 14, 18);
+  doc.text(settings?.business_name || "DreamNest", businessLeft, 18);
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.text(settings?.tagline || "", 14, 24);
-  doc.text(`${settings?.address || ""}, ${settings?.city || ""}`.trim(), 14, 29);
-  doc.text(`Tel: ${settings?.phone || ""}  Email: ${settings?.email || ""}`, 14, 34);
+  if (settings?.tagline) doc.text(settings.tagline, businessLeft, 23);
 
-  // Document title (right aligned)
-  const docType = (invoice.document_type as string).toUpperCase();
-  doc.setFontSize(18);
+  // Address right side
+  doc.setFontSize(8.5);
+  const rx = pageWidth - margin;
+  let ry = 14;
+  if (settings?.address) { doc.text(settings.address, rx, ry, { align: "right" }); ry += 4; }
+  if (settings?.city) { doc.text(`${settings.city}${settings?.country ? ", " + settings.country : ""}`, rx, ry, { align: "right" }); ry += 4; }
+  if (settings?.phone) { doc.text(`Tel: ${settings.phone}`, rx, ry, { align: "right" }); ry += 4; }
+  if (settings?.email) { doc.text(settings.email, rx, ry, { align: "right" }); ry += 4; }
+
+  let y = Math.max(headerBottom, ry) + 4;
+  doc.setDrawColor(120, 80, 50);
+  doc.setLineWidth(0.5);
+  doc.line(margin, y, pageWidth - margin, y);
+  y += 6;
+
+  // Document title
+  doc.setFontSize(20);
   doc.setFont("helvetica", "bold");
-  doc.text(docType, pageWidth - 14, 18, { align: "right" });
-  doc.setFontSize(10);
+  doc.text(opts.documentType.toUpperCase(), margin, y + 2);
+
+  // Right side: doc meta
+  doc.setFontSize(9.5);
   doc.setFont("helvetica", "normal");
-  doc.text(`No: ${invoice.document_number}`, pageWidth - 14, 25, { align: "right" });
-  doc.text(`Date: ${format(new Date(invoice.created_at), "MMM d, yyyy HH:mm")}`, pageWidth - 14, 30, { align: "right" });
-  doc.text(`Status: ${(invoice.status as string).toUpperCase()}`, pageWidth - 14, 35, { align: "right" });
+  let my = y - 2;
+  doc.text(`No: ${opts.documentNumber}`, rx, my, { align: "right" }); my += 5;
+  doc.text(`Date: ${format(opts.createdAt, "MMM d, yyyy HH:mm")}`, rx, my, { align: "right" }); my += 5;
+  if (opts.status) { doc.text(`Status: ${opts.status.toUpperCase()}`, rx, my, { align: "right" }); my += 5; }
+  if (opts.paymentMethod) { doc.text(`Payment: ${opts.paymentMethod.replace(/_/g, " ")}`, rx, my, { align: "right" }); }
+
+  y = Math.max(y + 6, my + 2);
+
+  // Customer block
+  if (opts.customerName || opts.customerPhone || opts.customerEmail) {
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.text("Bill To:", margin, y + 4);
+    doc.setFont("helvetica", "normal");
+    let cy = y + 9;
+    if (opts.customerName) { doc.text(opts.customerName, margin, cy); cy += 4.5; }
+    if (opts.customerPhone) { doc.text(opts.customerPhone, margin, cy); cy += 4.5; }
+    if (opts.customerEmail) { doc.text(opts.customerEmail, margin, cy); cy += 4.5; }
+    if (opts.servedBy) { doc.text(`Served by: ${opts.servedBy}`, margin, cy); cy += 4.5; }
+    y = Math.max(y + 12, cy);
+  } else {
+    y += 4;
+  }
 
   // Items table
-  const body = (items || []).map((it: any) => [
+  const body = opts.items.map((it, idx) => [
+    String(idx + 1),
     it.description,
     String(it.quantity),
     formatRWF(it.unit_price),
     formatRWF(it.total),
   ]);
-  if (body.length === 0) body.push(["—", "—", "—", "—"]);
+  if (body.length === 0) body.push(["—", "—", "—", "—", "—"]);
 
   autoTable(doc, {
-    startY: 50,
-    head: [["Description", "Qty", "Unit Price", "Total"]],
+    startY: y + 2,
+    head: [["#", "Description", "Qty", "Unit Price", "Total"]],
     body,
     theme: "striped",
-    headStyles: { fillColor: [120, 80, 50] },
-    styles: { fontSize: 10 },
+    headStyles: { fillColor: [120, 80, 50], textColor: 255 },
+    styles: { fontSize: 9.5, cellPadding: 2.5 },
+    columnStyles: {
+      0: { cellWidth: 10 },
+      2: { halign: "center", cellWidth: 18 },
+      3: { halign: "right", cellWidth: 32 },
+      4: { halign: "right", cellWidth: 32 },
+    },
+    margin: { left: margin, right: margin },
   });
 
-  const finalY = (doc as any).lastAutoTable.finalY + 8;
+  let finalY = (doc as any).lastAutoTable.finalY + 6;
 
   // Totals
+  const tx = pageWidth - margin;
+  const labelX = pageWidth - margin - 50;
   doc.setFontSize(10);
-  const tx = pageWidth - 14;
-  let y = finalY;
-  doc.text(`Subtotal: ${formatRWF(invoice.subtotal)}`, tx, y, { align: "right" }); y += 6;
-  if (invoice.discount > 0) {
-    doc.text(`Discount: -${formatRWF(invoice.discount)}`, tx, y, { align: "right" }); y += 6;
+  doc.setFont("helvetica", "normal");
+  doc.text("Subtotal", labelX, finalY); doc.text(formatRWF(opts.subtotal), tx, finalY, { align: "right" }); finalY += 5;
+  if (opts.discount && opts.discount > 0) {
+    doc.text("Discount", labelX, finalY); doc.text(`-${formatRWF(opts.discount)}`, tx, finalY, { align: "right" }); finalY += 5;
   }
-  doc.text(`Tax (${invoice.tax_rate}%): ${formatRWF(invoice.tax_amount)}`, tx, y, { align: "right" }); y += 6;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.text(`TOTAL: ${formatRWF(invoice.total)}`, tx, y, { align: "right" });
+  if (opts.taxAmount && opts.taxAmount > 0) {
+    doc.text(`VAT (${opts.taxRate || 18}%)`, labelX, finalY);
+    doc.text(formatRWF(opts.taxAmount), tx, finalY, { align: "right" });
+    finalY += 5;
+  }
+  doc.setDrawColor(0); doc.setLineWidth(0.3);
+  doc.line(labelX, finalY, tx, finalY); finalY += 5;
+  doc.setFont("helvetica", "bold"); doc.setFontSize(12);
+  doc.text("TOTAL", labelX, finalY); doc.text(formatRWF(opts.total), tx, finalY, { align: "right" });
+  finalY += 6;
+  if (opts.amountPaid != null && opts.amountPaid > 0) {
+    doc.setFont("helvetica", "normal"); doc.setFontSize(10);
+    doc.text("Amount Paid", labelX, finalY); doc.text(formatRWF(opts.amountPaid), tx, finalY, { align: "right" }); finalY += 5;
+    const balance = opts.total - opts.amountPaid;
+    if (balance > 0) {
+      doc.setFont("helvetica", "bold"); doc.setTextColor(180, 0, 0);
+      doc.text("Balance Due", labelX, finalY); doc.text(formatRWF(balance), tx, finalY, { align: "right" });
+      doc.setTextColor(0); finalY += 5;
+    }
+  }
+
+  // Notes
+  if (opts.notes) {
+    finalY += 4;
+    doc.setFont("helvetica", "bold"); doc.setFontSize(9);
+    doc.text("Notes:", margin, finalY); finalY += 4;
+    doc.setFont("helvetica", "normal");
+    const lines = doc.splitTextToSize(opts.notes, pageWidth - margin * 2);
+    doc.text(lines, margin, finalY);
+  }
 
   // Footer
-  if (settings?.receipt_footer) {
-    doc.setFont("helvetica", "italic");
-    doc.setFontSize(9);
-    doc.text(settings.receipt_footer, pageWidth / 2, 285, { align: "center" });
-  }
+  const footerText = settings?.receipt_footer || "Thank you for your purchase!";
+  doc.setFont("helvetica", "italic"); doc.setFontSize(9); doc.setTextColor(100);
+  doc.text(footerText, pageWidth / 2, pageHeight - 12, { align: "center" });
 
-  doc.save(`${docType}-${invoice.document_number}.pdf`);
+  doc.save(`${opts.documentType.toUpperCase()}-${opts.documentNumber}.pdf`);
+}
+
+/**
+ * Generate and download a PDF for any invoice/receipt/proforma/quote document.
+ */
+export async function downloadInvoicePdf(invoiceId: string) {
+  const [{ data: invoice }, { data: items }, { data: order }] = await Promise.all([
+    supabase.from("invoices").select("*").eq("id", invoiceId).single(),
+    supabase.from("invoice_items").select("*").eq("invoice_id", invoiceId).order("created_at"),
+    supabase.from("invoices").select("orders(order_number, guest_name, guest_phone, guest_email, payment_method)").eq("id", invoiceId).maybeSingle().then(r => ({ data: (r.data as any)?.orders })),
+  ]);
+
+  if (!invoice) return;
+
+  await buildOrderInvoicePdfFromData({
+    documentType: invoice.document_type as string,
+    documentNumber: invoice.document_number,
+    createdAt: new Date(invoice.created_at),
+    status: invoice.status as string,
+    customerName: order?.guest_name || null,
+    customerPhone: order?.guest_phone || null,
+    customerEmail: order?.guest_email || null,
+    paymentMethod: order?.payment_method || null,
+    items: (items || []).map((it: any) => ({
+      description: it.description,
+      quantity: it.quantity,
+      unit_price: it.unit_price,
+      total: it.total,
+    })),
+    subtotal: invoice.subtotal,
+    discount: invoice.discount,
+    taxRate: invoice.tax_rate,
+    taxAmount: invoice.tax_amount,
+    total: invoice.total,
+    notes: invoice.notes || null,
+  });
 }
 
 /**
