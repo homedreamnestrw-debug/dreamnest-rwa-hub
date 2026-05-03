@@ -10,7 +10,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Loader2, Gift, Smartphone, CreditCard } from "lucide-react";
+import { Loader2, Gift, Smartphone } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useShopEnabled } from "@/hooks/useShopEnabled";
 import { ComingSoon } from "@/components/layout/ComingSoon";
 
