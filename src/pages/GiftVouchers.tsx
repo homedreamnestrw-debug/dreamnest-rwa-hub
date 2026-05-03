@@ -36,6 +36,7 @@ export default function GiftVouchers() {
     recipient_phone: "",
     personal_message: "",
     payment_method: "mtn_momo",
+    marketing_opt_in: true,
   });
 
   if (!shopLoading && !shopEnabled) return <ComingSoon />;
