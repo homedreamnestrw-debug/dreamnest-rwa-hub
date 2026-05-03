@@ -1268,9 +1268,10 @@ export default function POS() {
                 </div>
               )}
 
-              <div className="flex gap-3 pt-4 print:hidden">
-                <Button variant="outline" className="flex-1" onClick={printReceipt}><Printer className="mr-2 h-4 w-4" /> Print</Button>
-                <Button className="flex-1" onClick={() => { setReceiptOrder(null); searchRef.current?.focus(); }}>New Sale</Button>
+              <div className="flex flex-wrap gap-2 pt-4 print:hidden">
+                <Button variant="outline" className="flex-1 min-w-[120px]" onClick={printReceipt}><Printer className="mr-2 h-4 w-4" /> Print</Button>
+                <Button variant="outline" className="flex-1 min-w-[120px]" onClick={downloadReceipt}><Download className="mr-2 h-4 w-4" /> Download</Button>
+                <Button className="flex-1 min-w-[120px]" onClick={() => { setReceiptOrder(null); searchRef.current?.focus(); }}>New Sale</Button>
               </div>
             </div>
           )}
