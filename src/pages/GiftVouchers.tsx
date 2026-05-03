@@ -45,8 +45,6 @@ export default function GiftVouchers() {
 
   const paymentMethods = [
     { value: "mtn_momo", label: "MTN Mobile Money", icon: <Smartphone className="h-4 w-4" /> },
-    { value: "airtel_money", label: "Airtel Money", icon: <Smartphone className="h-4 w-4" /> },
-    { value: "card", label: "Card Payment", icon: <CreditCard className="h-4 w-4" /> },
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
