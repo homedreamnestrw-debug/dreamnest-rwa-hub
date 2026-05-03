@@ -91,6 +91,10 @@ export default function GiftVouchers() {
         body: { voucher_code: data.code, type: "purchased" },
       });
 
+      if (form.marketing_opt_in && form.buyer_email) {
+        await supabase.from("newsletter_subscribers").insert({ email: form.buyer_email }).then(() => {});
+      }
+
       navigate(`/gift-vouchers/confirmation/${data.code}`);
     } catch (err: any) {
       toast.error(err.message || "Failed to purchase voucher");
