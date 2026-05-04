@@ -59,7 +59,6 @@ export default function AdminGiftVouchers() {
       if (error) throw error;
 
       // Send emails to recipient, buyer, and shop with PDF
-      const voucher = vouchers.find((v) => v.id === id);
       if (voucher) {
         await supabase.functions.invoke("send-voucher-emails", {
           body: { voucher_code: voucher.code, type: "approved" },
