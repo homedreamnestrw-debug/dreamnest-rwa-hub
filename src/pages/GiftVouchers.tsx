@@ -68,7 +68,7 @@ export default function GiftVouchers() {
         .insert({
           code: "",
           amount,
-          balance: amount,
+          balance: 0,
           buyer_name: form.buyer_name,
           buyer_email: form.buyer_email || null,
           buyer_phone: form.buyer_phone,
