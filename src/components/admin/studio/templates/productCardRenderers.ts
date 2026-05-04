@@ -11,6 +11,7 @@ import {
   TAGLINE,
   SITE_URL,
   BRAND_NAME,
+  WHATSAPP_NUMBER,
 } from "./brandTokens";
 
 export interface OverlayToggles {
@@ -57,72 +58,71 @@ export interface RenderConfig {
   format: PlatformFormat;
   font: FontKey;
   color: ColorKey;
-  overlayOpacity: number; // 0-80
+  overlayOpacity: number;
   logoPosition: LogoPosition;
   textPosition: TextPosition;
   overlays: OverlayToggles;
 }
 
-// ---------- Style presets ----------
-
-interface StylePreset {
-  bg: ColorKey | "image";
-  textColor: string;
-  accent: ColorKey;
-  defaultFont: FontKey;
-  showImage: boolean;
-  overlayBoost: number; // additional opacity factor for image-on-bg
-}
-
-export const STYLE_PRESETS: Record<StyleVariant, StylePreset> = {
-  classic: {
-    bg: "image",
-    textColor: COLORS.warmWhite,
-    accent: "terracotta",
-    defaultFont: "serif",
-    showImage: true,
-    overlayBoost: 0.4,
-  },
-  bold: {
-    bg: "charcoal",
-    textColor: COLORS.warmWhite,
-    accent: "terracotta",
-    defaultFont: "display",
-    showImage: true,
-    overlayBoost: 0.6,
-  },
-  minimal: {
-    bg: "warmWhite" as ColorKey,
-    textColor: COLORS.charcoal,
-    accent: "taupe",
-    defaultFont: "sans",
-    showImage: true,
-    overlayBoost: 0.05,
-  },
-  cozy: {
-    bg: "cream",
-    textColor: COLORS.charcoal,
-    accent: "dustyRose",
-    defaultFont: "script",
-    showImage: true,
-    overlayBoost: 0.25,
-  },
-  urgent: {
-    bg: "image",
-    textColor: COLORS.warmWhite,
-    accent: "terracotta",
-    defaultFont: "display",
-    showImage: true,
-    overlayBoost: 0.45,
-  },
-};
-
-// Some helpers
-
 export function fmtRWF(n: number) {
   return `RWF ${Math.round(n).toLocaleString("en-US")}`;
 }
 
+export function getDimensions(format: PlatformFormat) {
+  return FORMATS[format];
+}
+
+export function fontFamily(key: FontKey) {
+  return FONTS[key];
+}
+
+export const TAG = TAGLINE;
+export const URL = SITE_URL;
+export const BRAND = BRAND_NAME;
+export const PHONE = WHATSAPP_NUMBER;
+
+// Layout meta — describes background tone so picker swatch is meaningful
+export interface LayoutMeta {
+  bg: "cream" | "warmWhite" | "charcoal" | "midnight" | "accent";
+  description: string;
+}
+
+export const LAYOUT_META: Record<StyleVariant, LayoutMeta> = {
+  editorial: {
+    bg: "cream",
+    description: "Clean rounded image panel · serif headline beside",
+  },
+  editorial_soft: {
+    bg: "cream",
+    description: "Image with soft top/bottom gradient · headline below",
+  },
+  magazine: {
+    bg: "warmWhite",
+    description: "Big serif over image with caps tagline above",
+  },
+  bold_banner: {
+    bg: "midnight",
+    description: "Dark bg · curved gold accent · circular discount badge",
+  },
+  catalogue: {
+    bg: "charcoal",
+    description: "Hero image left · feature list right · price tag",
+  },
+  ribbon: {
+    bg: "accent",
+    description: "Centered image card on accent ribbon background",
+  },
+  minimal_poster: {
+    bg: "warmWhite",
+    description: "Tons of white space · small image · tiny serif label",
+  },
+  split_dark: {
+    bg: "charcoal",
+    description: "Half image / half dark text panel — editorial split",
+  },
+};
+
+// Logo position helper kept for backward compat with controls
 export function getLogoBox(
   pos: LogoPosition,
   w: number,
@@ -154,15 +154,3 @@ export function getTextBlockY(pos: TextPosition, h: number) {
       return Math.round(h * 0.7);
   }
 }
-
-export function getDimensions(format: PlatformFormat) {
-  return FORMATS[format];
-}
-
-export function fontFamily(key: FontKey) {
-  return FONTS[key];
-}
-
-export const TAG = TAGLINE;
-export const URL = SITE_URL;
-export const BRAND = BRAND_NAME;
