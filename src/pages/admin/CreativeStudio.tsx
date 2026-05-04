@@ -31,7 +31,7 @@ export default function CreativeStudio() {
   const { log } = useCreativeHistory();
 
   const [product, setProduct] = useState<ProductData | null>(null);
-  const [style, setStyle] = useState<StyleVariant>("classic");
+  const [style, setStyle] = useState<StyleVariant>("editorial");
   const [format, setFormat] = useState<PlatformFormat>("ig_post");
   const [styleValue, setStyleValue] = useState<StyleControlsValue>({
     font: "serif",
