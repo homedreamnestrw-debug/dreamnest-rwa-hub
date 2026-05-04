@@ -45,12 +45,14 @@ export default function AdminGiftVouchers() {
 
   const approveMutation = useMutation({
     mutationFn: async (id: string) => {
+      const voucher = vouchers.find((v) => v.id === id);
       const { error } = await supabase
         .from("gift_vouchers")
         .update({
           payment_approved: true,
           payment_status: "paid",
           status: "active",
+          balance: voucher?.amount ?? 0,
           payment_approved_at: new Date().toISOString(),
         })
         .eq("id", id);
