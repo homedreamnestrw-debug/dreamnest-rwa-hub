@@ -50,15 +50,28 @@ export const FORMATS: Record<
   fb_post: { w: 1200, h: 630, label: "Facebook Post" },
 };
 
-export type StyleVariant = "classic" | "bold" | "minimal" | "cozy" | "urgent";
+export type StyleVariant =
+  | "editorial"
+  | "editorial_soft"
+  | "magazine"
+  | "bold_banner"
+  | "catalogue"
+  | "ribbon"
+  | "minimal_poster"
+  | "split_dark";
 
 export const STYLE_VARIANTS: { key: StyleVariant; label: string }[] = [
-  { key: "classic", label: "Classic" },
-  { key: "bold", label: "Bold" },
-  { key: "minimal", label: "Minimal" },
-  { key: "cozy", label: "Cozy" },
-  { key: "urgent", label: "Urgent" },
+  { key: "editorial", label: "Editorial Frame" },
+  { key: "editorial_soft", label: "Editorial Soft" },
+  { key: "magazine", label: "Magazine Stack" },
+  { key: "bold_banner", label: "Bold Banner" },
+  { key: "catalogue", label: "Catalogue Hero" },
+  { key: "ribbon", label: "Image Ribbon" },
+  { key: "minimal_poster", label: "Minimal Poster" },
+  { key: "split_dark", label: "Split Dark" },
 ];
+
+export const SOFT_GOLD = "#D4A24A";
 
 export type LogoPosition =
   | "top-left"

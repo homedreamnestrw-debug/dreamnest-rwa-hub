@@ -26,7 +26,7 @@ export function VariationGrid({
   const scale = thumbW / dim.w;
 
   return (
-    <div className="grid grid-cols-5 gap-2">
+    <div className="grid grid-cols-4 gap-2">
       {STYLE_VARIANTS.map((s) => {
         const isSel = s.key === selected;
         return (
