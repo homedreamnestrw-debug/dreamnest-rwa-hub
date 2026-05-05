@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { ProductImageUpload } from "@/components/admin/ProductImageUpload";
 import { VariantManager, persistVariants, type OptionsSchema, type VariantRow } from "@/components/admin/VariantManager";
@@ -30,6 +30,29 @@ export default function Products() {
   const [locationStock, setLocationStock] = useState<Record<string, number>>({});
   const [optionsSchema, setOptionsSchema] = useState<OptionsSchema>({});
   const [variantRows, setVariantRows] = useState<VariantRow[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  const generateDescription = async () => {
+    if (!form.name) {
+      toast({ title: "Enter a product name first", variant: "destructive" });
+      return;
+    }
+    setAiLoading(true);
+    try {
+      const cat = categories.find((c) => c.id === form.category_id)?.name;
+      const { data, error } = await supabase.functions.invoke("gemini-generate", {
+        body: { mode: "description", product: { name: form.name, price: form.price, category: cat } },
+      });
+      if (error) throw error;
+      if (!data?.text) throw new Error("Empty response");
+      setForm((f) => ({ ...f, description: data.text }));
+      toast({ title: "Description generated" });
+    } catch (e: any) {
+      toast({ title: "AI failed", description: e.message, variant: "destructive" });
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const [form, setForm] = useState({
     name: "",
@@ -215,8 +238,14 @@ export default function Products() {
                 <Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} placeholder="auto-generated" />
               </div>
               <div>
-                <Label>Description</Label>
-                <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+                <div className="flex items-center justify-between">
+                  <Label>Description</Label>
+                  <Button type="button" size="sm" variant="outline" onClick={generateDescription} disabled={aiLoading}>
+                    {aiLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                    Generate with AI
+                  </Button>
+                </div>
+                <Textarea rows={5} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div><Label>Price (RWF)</Label><Input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: +e.target.value })} /></div>
