@@ -17,8 +17,7 @@ const ROWS: { key: keyof OverlayToggles; label: string }[] = [
   { key: "showSale", label: "Sale badge (% off)" },
   { key: "showSku", label: "SKU / product code" },
   { key: "showDescription", label: "Description excerpt" },
-  { key: "showWatermarkUrl", label: "dreamnestrw.com watermark" },
-  { key: "showLogo", label: "DreamNest logo" },
+  { key: "showWatermarkUrl", label: "Tagline watermark" },
 ];
 
 export function OverlayTogglesPanel({ value, onChange }: Props) {
