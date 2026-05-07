@@ -40,7 +40,7 @@ export function ProductPicker({ selectedId, onSelect }: ProductPickerProps) {
       const { data } = await supabase
         .from("products")
         .select(
-          "id, name, description, price, sku, stock_quantity, low_stock_threshold, images, category_id",
+          "id, name, description, price, sku, stock_quantity, low_stock_threshold, images, category_id, categories(name)",
         )
         .eq("is_active", true)
         .order("name")
@@ -114,6 +114,8 @@ export function ProductPicker({ selectedId, onSelect }: ProductPickerProps) {
                     stock: p.stock_quantity,
                     lowStockThreshold: p.low_stock_threshold,
                     imageUrl: img,
+                    images: Array.isArray(p.images) ? p.images : [],
+                    categoryName: (p as any).categories?.name ?? null,
                   })
                 }
                 className={cn(
