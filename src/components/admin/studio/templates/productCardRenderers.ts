@@ -83,6 +83,8 @@ export interface ProductData {
   stock?: number | null;
   lowStockThreshold?: number | null;
   imageUrl?: string | null;
+  images?: string[] | null;
+  categoryName?: string | null;
 }
 
 export interface RenderConfig {
