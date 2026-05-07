@@ -26,6 +26,23 @@ export interface OverlayToggles {
   showDescription: boolean;
   showWatermarkUrl: boolean;
   showLogo: boolean;
+  // New
+  showCategoryStrip: boolean;
+  categoryStripText: string;
+  categoryStripStyle: "plain" | "terracotta" | "dark" | "underline";
+  categoryStripFontSize: "sm" | "md";
+  showAddress: boolean;
+  addressText: string;
+  showActionPhone: boolean;
+  showActionWeb: boolean;
+  showActionAddress: boolean;
+  actionBarBg: "dark" | "terracotta" | "transparent";
+  // Logo controls
+  logoSize: "sm" | "md" | "lg";
+  logoOpacity: number; // 50-100
+  logoBg: "none" | "white" | "dark";
+  // Gallery
+  galleryView: boolean;
 }
 
 export const DEFAULT_OVERLAYS: OverlayToggles = {
@@ -40,6 +57,21 @@ export const DEFAULT_OVERLAYS: OverlayToggles = {
   showDescription: false,
   showWatermarkUrl: true,
   showLogo: true,
+  showCategoryStrip: true,
+  categoryStripText:
+    "Duvet | Bedsheet | Bedcovers | Storage Box | Blankets | Mattress Topper | Bathrobes | Towels",
+  categoryStripStyle: "terracotta",
+  categoryStripFontSize: "sm",
+  showAddress: false,
+  addressText: "31 KG 1 Ave, Kigali, Rwanda",
+  showActionPhone: true,
+  showActionWeb: true,
+  showActionAddress: false,
+  actionBarBg: "dark",
+  logoSize: "md",
+  logoOpacity: 100,
+  logoBg: "none",
+  galleryView: false,
 };
 
 export interface ProductData {
@@ -51,6 +83,8 @@ export interface ProductData {
   stock?: number | null;
   lowStockThreshold?: number | null;
   imageUrl?: string | null;
+  images?: string[] | null;
+  categoryName?: string | null;
 }
 
 export interface RenderConfig {
