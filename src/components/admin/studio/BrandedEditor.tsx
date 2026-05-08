@@ -982,16 +982,20 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
             {/* Bottom feature bar — independent list */}
             {config.overlays.showFeatureBar && config.overlays.featureBarItems.length > 0 && (() => {
               const items = config.overlays.featureBarItems;
-              const barH = Math.round(w * 0.11);
+              const fbScale = config.overlays.featureBarScale ?? 1;
+              const fbAccent = config.overlays.featureBarAccent || SOFT_GOLD;
+              const fbText = config.overlays.featureBarTextColor || COLORS.warmWhite;
+              const fbBg = config.overlays.featureBarBgColor || COLORS.charcoal;
+              const barH = Math.round(w * 0.11 * fbScale);
               const sy = positions.featureBar?.y ?? h - barH - Math.round(w * 0.095);
               const sx = positions.featureBar?.x ?? 0;
               const colW = w / items.length;
               const iconSize = Math.round(barH * 0.5);
-              const labelSize = Math.round(w * 0.022);
+              const labelSize = Math.round(w * 0.022 * fbScale);
               const glyphs = ["✦", "↑", "☾", "✿", "★"];
               return (
                 <Group x={sx} y={sy} {...makeDragHandlers("featureBar")}>
-                  <Rect width={w} height={barH} fill={COLORS.charcoal} opacity={0.85} />
+                  <Rect width={w} height={barH} fill={fbBg} opacity={0.92} />
                   {items.map((label, i) => {
                     const key = `featureBar_${i}`;
                     return (
@@ -1001,7 +1005,7 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                           x={Math.round(w * 0.04)}
                           y={(barH - iconSize) / 2}
                           fontSize={iconSize}
-                          fill={SOFT_GOLD}
+                          fill={fbAccent}
                         />
                         <Text
                           text={T(key, label)}
@@ -1012,13 +1016,13 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                           fontFamily={FONTS.sans}
                           fontStyle="900"
                           fontSize={labelSize}
-                          fill={COLORS.warmWhite}
+                          fill={fbText}
                           letterSpacing={2}
                           onDblClick={handleDblClick(key, T(key, label))}
                           onDblTap={handleDblClick(key, T(key, label))}
                         />
                         {i < items.length - 1 && (
-                          <Rect x={colW - 1} y={barH * 0.2} width={1} height={barH * 0.6} fill={SOFT_GOLD} opacity={0.5} />
+                          <Rect x={colW - 1} y={barH * 0.2} width={1} height={barH * 0.6} fill={fbAccent} opacity={0.5} />
                         )}
                       </Group>
                     );
