@@ -43,6 +43,8 @@ export interface OverlayToggles {
   logoBg: "none" | "white" | "dark";
   // Gallery
   galleryView: boolean;
+  galleryPosition: "right" | "left" | "below";
+  gallerySatCount: number; // 1..6
   // Feature badges (reference-style)
   showSpecialDeal: boolean;
   specialDealOldPrice: string;
