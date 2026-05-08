@@ -28,7 +28,13 @@ export function VariationGrid({
   const scale = thumbW / dim.w;
 
   return (
-    <div className="grid grid-cols-4 gap-2">
+    <div
+      className={cn(
+        orientation === "row"
+          ? "flex gap-2 overflow-x-auto pb-1"
+          : "grid grid-cols-4 gap-2",
+      )}
+    >
       {STYLE_VARIANTS.map((s) => {
         const isSel = s.key === selected;
         return (
