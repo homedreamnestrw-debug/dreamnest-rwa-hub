@@ -264,7 +264,7 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
 
     // Defaults — positions are stored as absolute pixel coords on the unscaled canvas
     const pad = Math.round(w * 0.05);
-    const logoPx = logoSizePx(config.overlays.logoSize, w);
+    const logoPx = Math.round(logoSizePx(config.overlays.logoSize, w) * ((config.overlays.logoScale ?? 100) / 100));
 
     const defaultPositions = useMemo<ElementPositions>(() => {
       const def: ElementPositions = {};
