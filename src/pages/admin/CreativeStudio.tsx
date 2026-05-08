@@ -71,6 +71,7 @@ export default function CreativeStudio() {
     canvasHistory.set((prev) => ({ ...prev, texts: t }));
   const [editMode, setEditMode] = useState(false);
   const [locked, setLocked] = useState(false);
+  const [polishedUrl, setPolishedUrl] = useState<string | null>(null);
   const [editing, setEditing] = useState<
     | { key: string; value: string; rect: { x: number; y: number; w: number; h: number } }
     | null
