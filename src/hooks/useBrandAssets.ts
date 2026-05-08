@@ -22,24 +22,12 @@ export function useBrandAssets() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      let url = FALLBACK_LOGO;
+      // Always use the same artistic logo as the website Header
       try {
-        const { data } = await supabase.rpc("get_public_business_settings");
-        const row = (data as any)?.[0];
-        if (row?.logo_url) url = row.logo_url as string;
-      } catch {
-        // ignore – will fall back
-      }
-      try {
-        const img = await loadImage(url);
+        const img = await loadImage(FALLBACK_LOGO);
         if (!cancelled) setLogo(img);
       } catch {
-        try {
-          const img = await loadImage(FALLBACK_LOGO);
-          if (!cancelled) setLogo(img);
-        } catch {
-          if (!cancelled) setLogo(null);
-        }
+        if (!cancelled) setLogo(null);
       } finally {
         if (!cancelled) setLoading(false);
       }
