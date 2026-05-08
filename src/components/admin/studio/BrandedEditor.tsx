@@ -299,6 +299,11 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
           return { x: Math.round(w * 0.12), y: Math.round(h * 0.2), w: Math.round(w * 0.45), h: Math.round(h * 0.55) };
         case "product_focus":
           return { x: 0, y: 0, w, h };
+        case "mirror_reflection": {
+          const cw = Math.round(w * 0.74);
+          const ch = isVerticalLayout ? Math.round(h * 0.5) : Math.round(h * 0.62);
+          return { x: Math.round((w - cw) / 2), y: Math.round(h * 0.18), w: cw, h: ch };
+        }
         default:
           return { x: pad, y: Math.round(h * 0.18), w: w - pad * 2, h: isVerticalLayout ? Math.round(h * 0.42) : Math.round(h * 0.5) };
       }
