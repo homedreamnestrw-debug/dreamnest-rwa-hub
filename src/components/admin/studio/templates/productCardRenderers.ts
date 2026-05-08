@@ -82,6 +82,8 @@ export const DEFAULT_OVERLAYS: OverlayToggles = {
   logoOpacity: 100,
   logoBg: "none",
   galleryView: false,
+  galleryPosition: "right",
+  gallerySatCount: 4,
   showSpecialDeal: false,
   specialDealOldPrice: "130,000",
   specialDealNewPrice: "100,000",
