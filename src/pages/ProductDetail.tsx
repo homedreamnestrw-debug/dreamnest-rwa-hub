@@ -89,7 +89,7 @@ export default function ProductDetail() {
     queryFn: async () => {
       const { data } = await supabase
         .from("product_variants")
-        .select("id, variant_name, sku, price_override, attributes, stock_quantity, is_active, variant_stock(quantity)")
+        .select("id, variant_name, sku, price_override, attributes, stock_quantity, is_active, image_url, variant_stock(quantity)")
         .eq("product_id", product!.id)
         .eq("is_active", true);
       // Defensive: if stock_quantity is 0 but variant_stock rows have qty, use the sum.
