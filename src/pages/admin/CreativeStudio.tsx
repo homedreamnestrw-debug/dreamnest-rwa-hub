@@ -163,10 +163,30 @@ export default function CreativeStudio() {
                     </AccordionContent>
                   </AccordionItem>
 
+                  <AccordionItem value="layout">
+                    <AccordionTrigger className="text-sm">3. Frame layout</AccordionTrigger>
+                    <AccordionContent>
+                      <VariationGrid
+                        baseConfig={config}
+                        product={product}
+                        logo={logo}
+                        selected={style}
+                        onSelect={setStyle}
+                      />
+                    </AccordionContent>
+                  </AccordionItem>
+
                   <AccordionItem value="style">
-                    <AccordionTrigger className="text-sm">3. Style controls</AccordionTrigger>
+                    <AccordionTrigger className="text-sm">4. Style controls</AccordionTrigger>
                     <AccordionContent>
                       <StyleControls value={styleValue} onChange={setStyleValue} />
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="features">
+                    <AccordionTrigger className="text-sm">5. Feature badges (Special Deal, etc.)</AccordionTrigger>
+                    <AccordionContent>
+                      <FeatureBadgesPanel value={overlays} onChange={setOverlays} />
                     </AccordionContent>
                   </AccordionItem>
 
