@@ -825,6 +825,7 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
               const titleSize = Math.round(w * 0.075);
               const labelSize = Math.round(w * 0.022);
               const priceSize = Math.round(w * 0.062);
+              const sdAccent = config.overlays.specialDealAccent || SOFT_GOLD;
               return (
                 <Group x={sx} y={sy} {...makeDragHandlers("specialDeal")}>
                   <Text
