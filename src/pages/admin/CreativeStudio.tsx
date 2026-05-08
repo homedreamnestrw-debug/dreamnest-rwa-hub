@@ -258,16 +258,32 @@ export default function CreativeStudio() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => {
-                            setPositions({});
-                            setTexts({});
-                          }}
+                          disabled={!canvasHistory.canUndo}
+                          onClick={canvasHistory.undo}
+                        >
+                          <Undo2 className="h-3.5 w-3.5" /> Undo
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={!canvasHistory.canRedo}
+                          onClick={canvasHistory.redo}
+                        >
+                          <Redo2 className="h-3.5 w-3.5" /> Redo
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            canvasHistory.set({ positions: {}, texts: {} })
+                          }
                         >
                           <RotateCcw className="h-3.5 w-3.5" /> Reset positions
                         </Button>
                       </div>
                       <p className="text-[11px] text-muted-foreground">
                         Double-click any text in Edit Mode to edit. Drag to reposition (when unlocked).
+                        Cmd/Ctrl+Z to undo, Shift+Cmd/Ctrl+Z to redo.
                       </p>
                     </AccordionContent>
                   </AccordionItem>
