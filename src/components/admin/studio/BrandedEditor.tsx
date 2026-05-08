@@ -303,21 +303,22 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
     const satSideAreaW = imgAreaW - mainImgW - gap;
     const satSideCols = gallerySatCount <= 2 ? 1 : 2;
     const satSideRows = Math.max(1, Math.ceil(gallerySatCount / satSideCols));
-    const satCellSideW = (satSideAreaW - gap * (satSideCols - 1)) / satSideCols;
-    const satCellSideH = (mainImgH - gap * (satSideRows - 1)) / satSideRows;
-    // Auto-fit: square aspect for circle/diamond looks best — use min dimension when shape isn't square
-    const satSideBaseW = satCellSideW;
-    const satSideBaseH = gallerySatShape === "square" ? satCellSideH : Math.min(satCellSideW, satCellSideH);
-    const satSideW = satSideBaseW * gallerySatSize;
-    const satSideH = satSideBaseH * gallerySatSize;
+    const cellSideW = (satSideAreaW - gap * (satSideCols - 1)) / satSideCols;
+    const cellSideH = (mainImgH - gap * (satSideRows - 1)) / satSideRows;
+    const sideTileBase = gallerySatShape === "square"
+      ? { w: cellSideW, h: cellSideH }
+      : { w: Math.min(cellSideW, cellSideH), h: Math.min(cellSideW, cellSideH) };
+    const tileSideW = sideTileBase.w * gallerySatSize;
+    const tileSideH = sideTileBase.h * gallerySatSize;
 
     // Satellite row (below): single row of N
-    const satCellBelowH = imgAreaH - mainImgH - gap;
-    const satCellBelowW = (imgAreaW - gap * (gallerySatCount - 1)) / gallerySatCount;
-    const satBelowBaseW = satCellBelowW;
-    const satBelowBaseH = gallerySatShape === "square" ? satCellBelowH : Math.min(satCellBelowW, satCellBelowH);
-    const satBelowW = satBelowBaseW * gallerySatSize;
-    const satBelowH = satBelowBaseH * gallerySatSize;
+    const cellBelowH = imgAreaH - mainImgH - gap;
+    const cellBelowW = (imgAreaW - gap * (gallerySatCount - 1)) / gallerySatCount;
+    const belowTileBase = gallerySatShape === "square"
+      ? { w: cellBelowW, h: cellBelowH }
+      : { w: Math.min(cellBelowW, cellBelowH), h: Math.min(cellBelowW, cellBelowH) };
+    const tileBelowW = belowTileBase.w * gallerySatSize;
+    const tileBelowH = belowTileBase.h * gallerySatSize;
 
     // Backwards-compat (used by older code paths) — kept harmless
     const satCellW = satSideAreaW;
