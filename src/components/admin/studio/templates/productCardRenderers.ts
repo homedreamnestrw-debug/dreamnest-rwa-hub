@@ -43,6 +43,17 @@ export interface OverlayToggles {
   logoBg: "none" | "white" | "dark";
   // Gallery
   galleryView: boolean;
+  // Feature badges (reference-style)
+  showSpecialDeal: boolean;
+  specialDealOldPrice: string;
+  specialDealNewPrice: string;
+  showFeaturePills: boolean; // top-right gold circle pills
+  featurePill1: string; // e.g. "KING SIZE"
+  featurePill2: string; // e.g. "PURE COTTON"
+  showFeatureBar: boolean; // bottom 3-up gold-icon strip
+  featureBar1: string; // "PREMIUM QUALITY"
+  featureBar2: string; // "SOFT & BREATHABLE"
+  featureBar3: string; // "COMFORT ALL NIGHT"
 }
 
 export const DEFAULT_OVERLAYS: OverlayToggles = {
