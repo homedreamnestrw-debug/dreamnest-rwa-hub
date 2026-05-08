@@ -178,33 +178,47 @@ export default function Stock() {
             };
             const { data: prod, error } = await supabase.from("products").upsert(payload, { onConflict: "slug" }).select("id").single();
             if (error) throw error;
-
-            // Variants: upsert by (product_id, variant_name)
-            for (const vr of variantRows) {
-              let attributes: any = {};
-              if (vr.variant_attributes) {
-                try { attributes = JSON.parse(vr.variant_attributes); }
-                catch { throw new Error(`variant "${vr.variant_name}": invalid JSON in variant_attributes`); }
-              }
-              const { data: existing } = await supabase
-                .from("product_variants").select("id")
-                .eq("product_id", prod!.id).eq("variant_name", vr.variant_name).maybeSingle();
-              const vPayload: any = {
-                product_id: prod!.id,
-                variant_name: vr.variant_name,
-                sku: vr.variant_sku || null,
-                price_override: vr.variant_price ? Number(vr.variant_price) : null,
-                stock_quantity: Number(vr.variant_stock || 0),
-                attributes,
-                is_active: true,
-              };
-              const { error: vErr } = existing
-                ? await supabase.from("product_variants").update(vPayload).eq("id", existing.id)
-                : await supabase.from("product_variants").insert(vPayload);
-              if (vErr) throw vErr;
-            }
             ok++;
-          } catch (e: any) { failed++; errors.push(`${slugKey}: ${e.message}`); }
+
+            // Variants: upsert by (product_id, variant_name) — each variant is its own try/catch row
+            for (const vr of variantRows) {
+              try {
+                let attributes: any = {};
+                if (vr.variant_attributes) {
+                  try { attributes = JSON.parse(vr.variant_attributes); }
+                  catch { throw new Error(`invalid JSON in variant_attributes`); }
+                }
+                const { data: existing, error: selErr } = await supabase
+                  .from("product_variants").select("id")
+                  .eq("product_id", prod!.id).eq("variant_name", vr.variant_name).maybeSingle();
+                if (selErr) throw selErr;
+                const vPayload: any = {
+                  product_id: prod!.id,
+                  variant_name: vr.variant_name,
+                  sku: vr.variant_sku ? vr.variant_sku : null,
+                  price_override: vr.variant_price ? Number(vr.variant_price) : null,
+                  stock_quantity: Number(vr.variant_stock || 0),
+                  attributes,
+                  is_active: true,
+                };
+                const { error: vErr } = existing
+                  ? await supabase.from("product_variants").update(vPayload).eq("id", existing.id)
+                  : await supabase.from("product_variants").insert(vPayload);
+                if (vErr) throw vErr;
+                ok++;
+              } catch (ve: any) {
+                failed++;
+                const msg = ve?.message || ve?.details || JSON.stringify(ve);
+                errors.push(`variant "${vr.variant_name}": ${msg}`);
+                console.error("[import variant failed]", vr, ve);
+              }
+            }
+          } catch (e: any) {
+            failed++;
+            const msg = e?.message || e?.details || JSON.stringify(e);
+            errors.push(`${slugKey}: ${msg}`);
+            console.error("[import product failed]", slugKey, e);
+          }
         }
         return { ok, failed, errors };
       }}
