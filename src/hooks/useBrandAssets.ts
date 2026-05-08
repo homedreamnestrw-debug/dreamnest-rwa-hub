@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import brandLogo from "@/assets/logo.png";
 
-const FALLBACK_LOGO = "/logo.png";
+// Use the same artistic logo as the website Header
+const FALLBACK_LOGO = brandLogo;
 
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
