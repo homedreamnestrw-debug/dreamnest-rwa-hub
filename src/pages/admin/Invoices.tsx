@@ -134,7 +134,15 @@ export default function Invoices() {
         } as InvoiceRow;
       });
 
-    const realRows: InvoiceRow[] = (invoiceData || []).map((inv) => ({ ...inv } as InvoiceRow));
+    const realRows: InvoiceRow[] = (invoiceData || []).map((inv) => {
+      const o = inv.order_id ? orderById.get(inv.order_id) : null;
+      return {
+        ...inv,
+        _order_channel: (o?.channel as "online" | "in_store" | null) ?? null,
+        _order_number: o?.order_number ?? null,
+        _order_id: o?.id ?? null,
+      } as InvoiceRow;
+    });
 
     // Merge & sort by created_at desc
     const merged = [...realRows, ...virtualRows].sort(
