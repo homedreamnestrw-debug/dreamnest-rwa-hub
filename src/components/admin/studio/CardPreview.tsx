@@ -1113,6 +1113,12 @@ export const CardPreview = forwardRef<Konva.Stage, CardPreviewProps>(
           {config.style === "minimal_poster" && LayoutMinimalPoster(ctx)}
           {config.style === "split_dark" && LayoutSplitDark(ctx)}
           {config.style === "mirror_reflection" && LayoutMirrorReflection(ctx)}
+          {config.style === "image_only" && (
+            <>
+              <Rect width={ctx.w} height={ctx.h} fill={COLORS.warmWhite} />
+              <ImageInPanel img={ctx.productImg} x={0} y={0} w={ctx.w} h={ctx.h} />
+            </>
+          )}
         </Layer>
       </Stage>
     );
