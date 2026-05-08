@@ -634,6 +634,7 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
               );
             })()}
             {/* Product image / gallery */}
+            {config.style !== "image_only" && (<>
             {config.style !== "product_focus" && (
             <Group
               x={P("productImage").x}
@@ -1335,6 +1336,7 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                 </Group>
               );
             })}
+            </>)}
 
             {/* Snap guides overlay */}
             {guides.x !== undefined && (
