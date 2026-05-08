@@ -141,6 +141,7 @@ export const DEFAULT_OVERLAYS: OverlayToggles = {
   featurePillScale: 1,
   featurePillAccent: "#D4A24A",
   featurePillTextColor: "",
+  featurePillLayout: "horizontal",
   featureBarScale: 1,
   featureBarAccent: "#D4A24A",
   featureBarTextColor: "#F5EFE3",
