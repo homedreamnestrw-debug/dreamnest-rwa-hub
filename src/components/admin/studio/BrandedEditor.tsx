@@ -413,6 +413,18 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                   {s === "minimal_poster" && (
                     <Line points={[w * 0.1, h * 0.5, w * 0.22, h * 0.5]} stroke={accent} strokeWidth={3} />
                   )}
+                  {s === "invitation" && (
+                    <Line
+                      closed
+                      points={[
+                        w * 0.05, h * 0.14,
+                        w * 0.62, h * 0.14,
+                        w * 0.52, h * 0.78,
+                        w * 0.05, h * 0.78,
+                      ]}
+                      fill={COLORS.teal}
+                    />
+                  )}
                   {s !== "bold_banner" && s !== "ribbon" && s !== "split_dark" && (
                     <Rect width={w} height={h} fill={accent} opacity={0.06} />
                   )}
