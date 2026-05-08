@@ -588,7 +588,7 @@ export default function POS() {
         })),
         subtotal: receiptOrder.subtotal,
         discount: receiptOrder.discount_amount,
-        taxRate: includeVat ? Math.round(vatRate * 100) : 0,
+        taxRate: Math.round(vatRate * 100),
         taxAmount: receiptOrder.tax,
         total: receiptOrder.total,
         amountPaid: receiptOrder.amount_paid ?? null,
