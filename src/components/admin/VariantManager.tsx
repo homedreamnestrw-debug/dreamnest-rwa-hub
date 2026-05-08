@@ -325,8 +325,9 @@ export async function persistVariants(
           attributes: v.attributes,
           sku: v.sku || null,
           price_override: v.price_override,
+          image_url: v.image_url ?? null,
           is_active: true,
-        })
+        } as any)
         .eq("id", match.id);
       if (error) return { error: error.message };
       variantId = match.id;
@@ -339,8 +340,9 @@ export async function persistVariants(
           attributes: v.attributes,
           sku: v.sku || null,
           price_override: v.price_override,
+          image_url: v.image_url ?? null,
           is_active: true,
-        })
+        } as any)
         .select("id")
         .single();
       if (error || !data) return { error: error?.message ?? "insert failed" };
