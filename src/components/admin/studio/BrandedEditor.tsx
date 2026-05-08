@@ -391,63 +391,123 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
               y={P("productImage").y}
               {...makeDragHandlers("productImage")}
             >
-              <CoverImage
-                img={mainImg ?? undefined}
-                w={mainImgW}
-                h={mainImgH}
-                cornerRadius={Math.round(w * 0.02)}
-              />
-              {galleryView && (
-                <>
-                  {/* Terracotta border between main and satellites */}
-                  <Rect
-                    x={mainImgW + Math.round(w * 0.005)}
-                    y={0}
-                    width={Math.round(w * 0.005)}
-                    height={mainImgH}
-                    fill={COLORS.terracotta}
-                  />
-                  {/* 2x2 grid */}
-                  {[0, 1, 2, 3].map((i) => {
-                    const col = i % 2;
-                    const row = Math.floor(i / 2);
-                    const sx = mainImgW + Math.round(w * 0.015) + col * (satHalfW + Math.round(w * 0.01));
-                    const sy = row * (satHalfH + Math.round(w * 0.01));
-                    return (
-                      <Group
-                        key={i}
-                        x={sx}
-                        y={sy}
-                        onClick={() => {
-                          if (satelliteUrls[i] && onSwapMainImage) onSwapMainImage(satelliteUrls[i]);
-                        }}
-                        onTap={() => {
-                          if (satelliteUrls[i] && onSwapMainImage) onSwapMainImage(satelliteUrls[i]);
-                        }}
-                      >
-                        <CoverImage
-                          img={sats[i] ?? undefined}
-                          w={satHalfW}
-                          h={satHalfH}
-                          cornerRadius={Math.round(w * 0.012)}
-                        />
-                        <Rect
-                          width={satHalfW}
-                          height={satHalfH}
-                          stroke={COLORS.terracotta}
-                          strokeWidth={2}
-                          cornerRadius={Math.round(w * 0.012)}
-                        />
-                      </Group>
-                    );
-                  })}
-                </>
-              )}
-              {editMode && (
+              {/* Main image — position depends on layout */}
+              <Group
+                x={sideMode && galleryPosition === "left" ? satSideAreaW + gap : 0}
+                y={0}
+              >
+                <CoverImage
+                  img={mainImg ?? undefined}
+                  w={mainImgW}
+                  h={mainImgH}
+                  cornerRadius={Math.round(w * 0.02)}
+                />
+              </Group>
+
+              {galleryView && (() => {
+                const indices = Array.from({ length: gallerySatCount }, (_, i) => i);
+                const dividerThickness = Math.round(w * 0.005);
+                if (sideMode) {
+                  const isLeft = galleryPosition === "left";
+                  const satOriginX = isLeft ? 0 : mainImgW + gap;
+                  const dividerX = isLeft ? satSideAreaW + Math.round(gap / 2) : mainImgW + Math.round(gap / 2);
+                  return (
+                    <>
+                      <Rect
+                        x={dividerX}
+                        y={0}
+                        width={dividerThickness}
+                        height={mainImgH}
+                        fill={COLORS.terracotta}
+                      />
+                      {indices.map((i) => {
+                        const col = i % satSideCols;
+                        const row = Math.floor(i / satSideCols);
+                        const sx = satOriginX + col * (satSideW + gap);
+                        const sy = row * (satSideH + gap);
+                        return (
+                          <Group
+                            key={i}
+                            x={sx}
+                            y={sy}
+                            onClick={() => {
+                              if (satelliteUrls[i] && onSwapMainImage) onSwapMainImage(satelliteUrls[i]);
+                            }}
+                            onTap={() => {
+                              if (satelliteUrls[i] && onSwapMainImage) onSwapMainImage(satelliteUrls[i]);
+                            }}
+                          >
+                            <CoverImage
+                              img={sats[i] ?? undefined}
+                              w={satSideW}
+                              h={satSideH}
+                              cornerRadius={Math.round(w * 0.012)}
+                            />
+                            <Rect
+                              width={satSideW}
+                              height={satSideH}
+                              stroke={COLORS.terracotta}
+                              strokeWidth={2}
+                              cornerRadius={Math.round(w * 0.012)}
+                            />
+                          </Group>
+                        );
+                      })}
+                    </>
+                  );
+                }
+                // belowMode
+                return (
+                  <>
+                    <Rect
+                      x={0}
+                      y={mainImgH + Math.round(gap / 2)}
+                      width={imgAreaW}
+                      height={dividerThickness}
+                      fill={COLORS.terracotta}
+                    />
+                    {indices.map((i) => {
+                      const sx = i * (satBelowW + gap);
+                      const sy = mainImgH + gap;
+                      return (
+                        <Group
+                          key={i}
+                          x={sx}
+                          y={sy}
+                          onClick={() => {
+                            if (satelliteUrls[i] && onSwapMainImage) onSwapMainImage(satelliteUrls[i]);
+                          }}
+                          onTap={() => {
+                            if (satelliteUrls[i] && onSwapMainImage) onSwapMainImage(satelliteUrls[i]);
+                          }}
+                        >
+                          <CoverImage
+                            img={sats[i] ?? undefined}
+                            w={satBelowW}
+                            h={satBelowH}
+                            cornerRadius={Math.round(w * 0.012)}
+                          />
+                          <Rect
+                            width={satBelowW}
+                            height={satBelowH}
+                            stroke={COLORS.terracotta}
+                            strokeWidth={2}
+                            cornerRadius={Math.round(w * 0.012)}
+                          />
+                        </Group>
+                      );
+                    })}
+                  </>
+                );
+              })()}
+
+              {(editMode || selectedKey === "productImage") && (
                 <Rect
                   width={galleryView ? imgAreaW : mainImgW}
-                  height={mainImgH}
-                  {...editStroke}
+                  height={imgAreaH}
+                  stroke={selectedKey === "productImage" ? COLORS.terracotta : accent}
+                  strokeWidth={selectedKey === "productImage" ? 2 : 1}
+                  dash={selectedKey === "productImage" ? [] : [6, 4]}
                   fill="transparent"
                 />
               )}
