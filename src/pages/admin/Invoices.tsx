@@ -490,6 +490,7 @@ export default function Invoices() {
           onClick={() => setFilterSource("manual")}
         >
           <FileText className="h-3.5 w-3.5 mr-1" /> Generated ({counts.manual})
+        </Button>
       </div>
 
       <div className="flex flex-wrap gap-3">
