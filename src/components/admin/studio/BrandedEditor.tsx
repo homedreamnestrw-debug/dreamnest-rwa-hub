@@ -196,7 +196,7 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
       return { x: snappedX, y: snappedY, gx, gy };
     }
 
-    const draggable = !locked;
+    void locked;
 
     function makeDragHandlers(key: string) {
       const isSelected = selectedKey === key;
