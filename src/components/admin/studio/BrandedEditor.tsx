@@ -7,6 +7,7 @@ import {
   Text,
   Group,
   Line,
+  Circle,
 } from "react-konva";
 import useImage from "use-image";
 import Konva from "konva";
@@ -301,6 +302,9 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
       config.overlays.showActionWeb ||
       (config.overlays.showActionAddress && config.overlays.showAddress);
 
+    const onDarkStyle = ["bold_banner", "catalogue", "split_dark"].includes(config.style);
+    const textOnBg = onDarkStyle ? COLORS.warmWhite : COLORS.charcoal;
+
     return (
       <>
         <Stage
@@ -311,12 +315,48 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
           scaleY={scale}
         >
           <Layer>
-            {/* Background */}
-            <Rect width={w} height={h} fill={COLORS.cream} />
-
-            {/* Background tone tied to color shade for ambience */}
-            <Rect width={w} height={h} fill={accent} opacity={0.06} />
-
+            {/* Style-driven background */}
+            {(() => {
+              const s = config.style;
+              const bgFill =
+                s === "bold_banner" ? COLORS.midnight
+                : s === "catalogue" || s === "split_dark" ? COLORS.charcoal
+                : s === "ribbon" ? accent
+                : s === "magazine" || s === "minimal_poster" ? COLORS.warmWhite
+                : COLORS.cream;
+              return (
+                <>
+                  <Rect width={w} height={h} fill={bgFill} />
+                  {/* Style-specific accent shapes */}
+                  {s === "bold_banner" && (
+                    <Circle x={w * 0.95} y={h * 0.1} radius={w * 0.55} fill={SOFT_GOLD} opacity={0.95} />
+                  )}
+                  {s === "ribbon" && (
+                    <Rect x={0} y={h * 0.18} width={w} height={h * 0.64} fill={COLORS.cream} />
+                  )}
+                  {s === "split_dark" && (
+                    <Rect x={0} y={0} width={w / 2} height={h} fill={COLORS.cream} />
+                  )}
+                  {s === "editorial_soft" && (
+                    <Rect
+                      x={0}
+                      y={Math.round(h * 0.55)}
+                      width={w}
+                      height={Math.round(h * 0.45)}
+                      fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+                      fillLinearGradientEndPoint={{ x: 0, y: Math.round(h * 0.45) }}
+                      fillLinearGradientColorStops={[0, "rgba(0,0,0,0)", 1, "rgba(0,0,0,0.35)"]}
+                    />
+                  )}
+                  {s === "minimal_poster" && (
+                    <Line points={[w * 0.1, h * 0.5, w * 0.22, h * 0.5]} stroke={accent} strokeWidth={3} />
+                  )}
+                  {s !== "bold_banner" && s !== "ribbon" && s !== "split_dark" && (
+                    <Rect width={w} height={h} fill={accent} opacity={0.06} />
+                  )}
+                </>
+              );
+            })()}
             {/* Product image / gallery */}
             <Group
               x={P("productImage").x}
@@ -476,7 +516,7 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                   fontFamily={FONTS[config.font]}
                   fontStyle="700"
                   fontSize={Math.round(w * 0.062)}
-                  fill={COLORS.charcoal}
+                  fill={textOnBg}
                   lineHeight={1.05}
                   onDblClick={handleDblClick("productName", T("productName", product.name))}
                   onDblTap={handleDblClick("productName", T("productName", product.name))}
@@ -555,7 +595,7 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                   width={w - pad * 2}
                   fontFamily={FONTS.serif}
                   fontSize={Math.round(w * 0.022)}
-                  fill={COLORS.charcoal}
+                  fill={textOnBg}
                   opacity={0.75}
                   onDblClick={handleDblClick("tagline", T("tagline", TAG))}
                   onDblTap={handleDblClick("tagline", T("tagline", TAG))}
@@ -572,7 +612,7 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                   width={w - pad * 2}
                   fontFamily={FONTS.sans}
                   fontSize={Math.round(w * 0.02)}
-                  fill={COLORS.charcoal}
+                  fill={textOnBg}
                   opacity={0.6}
                   onDblClick={handleDblClick("address", T("address", config.overlays.addressText))}
                   onDblTap={handleDblClick("address", T("address", config.overlays.addressText))}
@@ -699,23 +739,24 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
               );
             })()}
 
-            {/* Top-right feature pills (gold circle + label) */}
-            {config.overlays.showFeaturePills && (() => {
+            {/* Top-right feature pills (gold circle + label) — independent list */}
+            {config.overlays.showFeaturePills && config.overlays.featurePills.length > 0 && (() => {
+              const pills = config.overlays.featurePills;
               const sx = positions.featurePills?.x ?? Math.round(w * 0.55);
               const sy = positions.featurePills?.y ?? Math.round(w * 0.05);
-              const circle = Math.round(w * 0.09);
-              const gap = Math.round(w * 0.03);
-              const labelSize = Math.round(w * 0.024);
-              const items = [
-                { label: T("featurePill1", config.overlays.featurePill1), key: "featurePill1" },
-                { label: T("featurePill2", config.overlays.featurePill2), key: "featurePill2" },
-              ];
+              const circle = Math.round(w * 0.08);
+              const gap = Math.round(w * 0.025);
+              const labelSize = Math.round(w * 0.022);
+              const glyphs = ["♛", "❀", "✦", "✿", "★"];
+              const onDarkBg = ["bold_banner", "catalogue", "split_dark"].includes(config.style);
+              const labelFill = onDarkBg ? COLORS.warmWhite : COLORS.charcoal;
               return (
                 <Group x={sx} y={sy} {...makeDragHandlers("featurePills")}>
-                  {items.map((it, i) => {
+                  {pills.map((label, i) => {
                     const cx = i * (circle * 2 + gap);
+                    const key = `featurePill_${i}`;
                     return (
-                      <Group key={it.key} x={cx}>
+                      <Group key={key} x={cx}>
                         <Rect
                           width={circle * 2}
                           height={circle * 2}
@@ -723,9 +764,8 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                           stroke={SOFT_GOLD}
                           strokeWidth={Math.max(2, Math.round(w * 0.005))}
                         />
-                        {/* simple gold glyph (★) as icon stand-in */}
                         <Text
-                          text={i === 0 ? "♛" : "❀"}
+                          text={glyphs[i % glyphs.length]}
                           width={circle * 2}
                           height={circle * 2}
                           align="center"
@@ -737,14 +777,14 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                           y={circle * 2 + Math.round(w * 0.012)}
                           width={circle * 2}
                           align="center"
-                          text={it.label}
+                          text={T(key, label)}
                           fontFamily={FONTS.sans}
                           fontStyle="900"
                           fontSize={labelSize}
-                          fill={COLORS.warmWhite}
+                          fill={labelFill}
                           letterSpacing={2}
-                          onDblClick={handleDblClick(it.key, it.label)}
-                          onDblTap={handleDblClick(it.key, it.label)}
+                          onDblClick={handleDblClick(key, T(key, label))}
+                          onDblTap={handleDblClick(key, T(key, label))}
                         />
                         <Line
                           points={[
@@ -763,50 +803,50 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
               );
             })()}
 
-            {/* Bottom feature bar (3 gold icons) */}
-            {config.overlays.showFeatureBar && (() => {
+            {/* Bottom feature bar — independent list */}
+            {config.overlays.showFeatureBar && config.overlays.featureBarItems.length > 0 && (() => {
+              const items = config.overlays.featureBarItems;
               const barH = Math.round(w * 0.11);
               const sy = positions.featureBar?.y ?? h - barH - Math.round(w * 0.095);
               const sx = positions.featureBar?.x ?? 0;
-              const colW = w / 3;
+              const colW = w / items.length;
               const iconSize = Math.round(barH * 0.5);
               const labelSize = Math.round(w * 0.022);
-              const items = [
-                { glyph: "✦", label: T("featureBar1", config.overlays.featureBar1), key: "featureBar1" },
-                { glyph: "↑", label: T("featureBar2", config.overlays.featureBar2), key: "featureBar2" },
-                { glyph: "☾", label: T("featureBar3", config.overlays.featureBar3), key: "featureBar3" },
-              ];
+              const glyphs = ["✦", "↑", "☾", "✿", "★"];
               return (
                 <Group x={sx} y={sy} {...makeDragHandlers("featureBar")}>
                   <Rect width={w} height={barH} fill={COLORS.charcoal} opacity={0.85} />
-                  {items.map((it, i) => (
-                    <Group key={it.key} x={i * colW}>
-                      <Text
-                        text={it.glyph}
-                        x={Math.round(w * 0.04)}
-                        y={(barH - iconSize) / 2}
-                        fontSize={iconSize}
-                        fill={SOFT_GOLD}
-                      />
-                      <Text
-                        text={it.label}
-                        x={Math.round(w * 0.04) + iconSize + Math.round(w * 0.015)}
-                        width={colW - iconSize - Math.round(w * 0.06)}
-                        height={barH}
-                        verticalAlign="middle"
-                        fontFamily={FONTS.sans}
-                        fontStyle="900"
-                        fontSize={labelSize}
-                        fill={COLORS.warmWhite}
-                        letterSpacing={2}
-                        onDblClick={handleDblClick(it.key, it.label)}
-                        onDblTap={handleDblClick(it.key, it.label)}
-                      />
-                      {i < 2 && (
-                        <Rect x={colW - 1} y={barH * 0.2} width={1} height={barH * 0.6} fill={SOFT_GOLD} opacity={0.5} />
-                      )}
-                    </Group>
-                  ))}
+                  {items.map((label, i) => {
+                    const key = `featureBar_${i}`;
+                    return (
+                      <Group key={key} x={i * colW}>
+                        <Text
+                          text={glyphs[i % glyphs.length]}
+                          x={Math.round(w * 0.04)}
+                          y={(barH - iconSize) / 2}
+                          fontSize={iconSize}
+                          fill={SOFT_GOLD}
+                        />
+                        <Text
+                          text={T(key, label)}
+                          x={Math.round(w * 0.04) + iconSize + Math.round(w * 0.015)}
+                          width={colW - iconSize - Math.round(w * 0.06)}
+                          height={barH}
+                          verticalAlign="middle"
+                          fontFamily={FONTS.sans}
+                          fontStyle="900"
+                          fontSize={labelSize}
+                          fill={COLORS.warmWhite}
+                          letterSpacing={2}
+                          onDblClick={handleDblClick(key, T(key, label))}
+                          onDblTap={handleDblClick(key, T(key, label))}
+                        />
+                        {i < items.length - 1 && (
+                          <Rect x={colW - 1} y={barH * 0.2} width={1} height={barH * 0.6} fill={SOFT_GOLD} opacity={0.5} />
+                        )}
+                      </Group>
+                    );
+                  })}
                   {editMode && <Rect width={w} height={barH} {...editStroke} fill="transparent" />}
                 </Group>
               );

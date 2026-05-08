@@ -41,7 +41,8 @@ import {
 } from "@/components/admin/studio/templates/productCardRenderers";
 import { useBrandAssets } from "@/hooks/useBrandAssets";
 import { useCreativeHistory } from "@/hooks/useCreativeHistory";
-import { Sparkles, Edit3, Lock, Unlock, RotateCcw } from "lucide-react";
+import { Sparkles, Edit3, Lock, Unlock, RotateCcw, Undo2, Redo2 } from "lucide-react";
+import { useUndoRedo } from "@/hooks/useUndoRedo";
 
 export default function CreativeStudio() {
   const { logo } = useBrandAssets();
@@ -60,8 +61,14 @@ export default function CreativeStudio() {
   });
   const [overlays, setOverlays] = useState(DEFAULT_OVERLAYS);
   const [caption, setCaption] = useState("");
-  const [positions, setPositions] = useState<ElementPositions>({});
-  const [texts, setTexts] = useState<ElementTexts>({});
+  const canvasHistory = useUndoRedo<{ positions: ElementPositions; texts: ElementTexts }>(
+    { positions: {}, texts: {} },
+  );
+  const { positions, texts } = canvasHistory.value;
+  const setPositions = (p: ElementPositions) =>
+    canvasHistory.set((prev) => ({ ...prev, positions: p }));
+  const setTexts = (t: ElementTexts) =>
+    canvasHistory.set((prev) => ({ ...prev, texts: t }));
   const [editMode, setEditMode] = useState(false);
   const [locked, setLocked] = useState(false);
   const [editing, setEditing] = useState<
@@ -77,9 +84,28 @@ export default function CreativeStudio() {
     } else {
       setMainImageUrl(product?.imageUrl ?? null);
     }
-    setPositions({});
-    setTexts({});
+    canvasHistory.reset({ positions: {}, texts: {} });
   }, [product?.id]);
+
+  // Keyboard shortcuts: Cmd/Ctrl+Z = undo, Cmd/Ctrl+Shift+Z (or +Y) = redo
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && /input|textarea/i.test(target.tagName)) return;
+      const meta = e.metaKey || e.ctrlKey;
+      if (!meta) return;
+      if (e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        if (e.shiftKey) canvasHistory.redo();
+        else canvasHistory.undo();
+      } else if (e.key.toLowerCase() === "y") {
+        e.preventDefault();
+        canvasHistory.redo();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [canvasHistory]);
 
   const config: RenderConfig = useMemo(
     () => ({
@@ -232,16 +258,32 @@ export default function CreativeStudio() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => {
-                            setPositions({});
-                            setTexts({});
-                          }}
+                          disabled={!canvasHistory.canUndo}
+                          onClick={canvasHistory.undo}
+                        >
+                          <Undo2 className="h-3.5 w-3.5" /> Undo
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={!canvasHistory.canRedo}
+                          onClick={canvasHistory.redo}
+                        >
+                          <Redo2 className="h-3.5 w-3.5" /> Redo
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            canvasHistory.set({ positions: {}, texts: {} })
+                          }
                         >
                           <RotateCcw className="h-3.5 w-3.5" /> Reset positions
                         </Button>
                       </div>
                       <p className="text-[11px] text-muted-foreground">
                         Double-click any text in Edit Mode to edit. Drag to reposition (when unlocked).
+                        Cmd/Ctrl+Z to undo, Shift+Cmd/Ctrl+Z to redo.
                       </p>
                     </AccordionContent>
                   </AccordionItem>
