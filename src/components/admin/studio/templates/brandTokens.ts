@@ -62,7 +62,8 @@ export type StyleVariant =
   | "split_dark"
   | "invitation"
   | "product_focus"
-  | "mirror_reflection";
+  | "mirror_reflection"
+  | "image_only";
 
 export const STYLE_VARIANTS: { key: StyleVariant; label: string }[] = [
   { key: "editorial", label: "Editorial Frame" },
@@ -76,6 +77,7 @@ export const STYLE_VARIANTS: { key: StyleVariant; label: string }[] = [
   { key: "invitation", label: "Invitation Frame" },
   { key: "product_focus", label: "Product Focus" },
   { key: "mirror_reflection", label: "Mirror Reflection" },
+  { key: "image_only", label: "Pure Product" },
 ];
 
 export const SOFT_GOLD = "#D4A24A";

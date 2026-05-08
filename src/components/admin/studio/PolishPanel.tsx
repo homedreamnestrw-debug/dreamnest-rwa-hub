@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Sparkles, Loader2, RotateCcw } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Sparkles, Loader2, RotateCcw, Wand2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -17,6 +18,7 @@ export interface PolishOptions {
   upscale: boolean; // 2x AI
   saturation: number; // -100..100
   brightness: number; // -100..100
+  bgReplacePrompt: string; // Generative AI background prompt (empty = off)
 }
 
 const DEFAULT_POLISH: PolishOptions = {
@@ -27,6 +29,7 @@ const DEFAULT_POLISH: PolishOptions = {
   upscale: false,
   saturation: 0,
   brightness: 0,
+  bgReplacePrompt: "",
 };
 
 interface Props {
@@ -37,7 +40,17 @@ interface Props {
 
 function buildTransformations(opts: PolishOptions): string {
   const parts: string[] = [];
-  if (opts.removeBg) parts.push("e_background_removal");
+  const prompt = opts.bgReplacePrompt.trim();
+  if (prompt) {
+    // Generative AI background replacement (Cloudinary add-on)
+    const safe = prompt
+      .replace(/[^a-zA-Z0-9\s,.-]/g, "")
+      .trim()
+      .replace(/\s+/g, "%20");
+    parts.push(`e_gen_background_replace:prompt_${safe}`);
+  } else if (opts.removeBg) {
+    parts.push("e_background_removal");
+  }
   if (opts.autoEnhance) parts.push("e_improve");
   if (opts.autoColor) parts.push("e_auto_color");
   if (opts.sharpen > 0) parts.push(`e_sharpen:${Math.round(opts.sharpen)}`);
@@ -196,6 +209,43 @@ export function PolishPanel({ sourceUrl, onPolished, onReset }: Props) {
             onValueChange={(v) => update({ brightness: v[0] })}
             disabled={!publicId}
           />
+        </div>
+
+        <div className="space-y-1 rounded-md border border-dashed p-2">
+          <div className="flex items-center gap-1">
+            <Wand2 className="h-3.5 w-3.5 text-primary" />
+            <Label className="text-[11px] font-medium">AI Background Replace</Label>
+          </div>
+          <p className="text-[10px] text-muted-foreground">
+            Describe a new scene · Cloudinary Generative AI swaps the background. Leave empty to keep original.
+          </p>
+          <div className="flex gap-1">
+            <Input
+              value={opts.bgReplacePrompt}
+              onChange={(e) => setOpts({ ...opts, bgReplacePrompt: e.target.value })}
+              placeholder="e.g. cozy bedroom with morning light"
+              disabled={!publicId}
+              className="h-8 text-xs"
+            />
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={!publicId}
+              onClick={() => apply(opts)}
+            >
+              Apply
+            </Button>
+          </div>
+          {opts.bgReplacePrompt && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 px-2 text-[11px]"
+              onClick={() => update({ bgReplacePrompt: "" })}
+            >
+              Clear background prompt
+            </Button>
+          )}
         </div>
       </div>
     </div>

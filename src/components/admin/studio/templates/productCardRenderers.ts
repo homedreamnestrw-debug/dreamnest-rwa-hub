@@ -242,6 +242,10 @@ export const LAYOUT_META: Record<StyleVariant, LayoutMeta> = {
     bg: "cream",
     description: "Faded mirrored product as backdrop · crisp centered card",
   },
+  image_only: {
+    bg: "warmWhite",
+    description: "Only the product image · perfect for AI background replace",
+  },
 };
 
 // Logo position helper kept for backward compat with controls

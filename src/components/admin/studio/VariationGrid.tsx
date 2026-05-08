@@ -31,7 +31,7 @@ export function VariationGrid({
     <div
       className={cn(
         orientation === "row"
-          ? "flex gap-2 overflow-x-auto pb-1"
+          ? "flex w-full max-w-full gap-2 overflow-x-auto overflow-y-hidden pb-2 [scrollbar-width:thin]"
           : "grid grid-cols-4 gap-2",
       )}
     >

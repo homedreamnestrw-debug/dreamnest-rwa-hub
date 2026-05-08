@@ -340,7 +340,7 @@ export default function CreativeStudio() {
             </Card>
 
             {/* RIGHT canvas */}
-            <div className="space-y-4">
+            <div className="min-w-0 space-y-4">
               <Card>
                 <CardContent className="space-y-2 p-3">
                   <div className="text-xs font-medium text-muted-foreground">Platform format</div>
