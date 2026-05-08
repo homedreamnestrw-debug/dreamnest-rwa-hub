@@ -99,14 +99,11 @@ function CoverImage({
     );
   }
   const r = coverRect(img, w, h);
-  // Apply zoom around the center of the visible frame, then pan via percentage offsets
   const z = Math.max(0.1, zoom);
   const scaledW = r.width * z;
   const scaledH = r.height * z;
-  const cx = w / 2;
-  const cy = h / 2;
-  const baseX = cx - scaledW / 2 + (r.x - (r.width - scaledW) / 2 - r.x);
-  const baseY = cy - scaledH / 2 + (r.y - (r.height - scaledH) / 2 - r.y);
+  const baseX = w / 2 - scaledW / 2;
+  const baseY = h / 2 - scaledH / 2;
   const dx = (offsetXPct / 100) * w;
   const dy = (offsetYPct / 100) * h;
   return (
