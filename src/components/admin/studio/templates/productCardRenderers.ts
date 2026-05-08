@@ -43,6 +43,17 @@ export interface OverlayToggles {
   logoBg: "none" | "white" | "dark";
   // Gallery
   galleryView: boolean;
+  // Feature badges (reference-style)
+  showSpecialDeal: boolean;
+  specialDealOldPrice: string;
+  specialDealNewPrice: string;
+  showFeaturePills: boolean; // top-right gold circle pills
+  featurePill1: string; // e.g. "KING SIZE"
+  featurePill2: string; // e.g. "PURE COTTON"
+  showFeatureBar: boolean; // bottom 3-up gold-icon strip
+  featureBar1: string; // "PREMIUM QUALITY"
+  featureBar2: string; // "SOFT & BREATHABLE"
+  featureBar3: string; // "COMFORT ALL NIGHT"
 }
 
 export const DEFAULT_OVERLAYS: OverlayToggles = {
@@ -72,6 +83,16 @@ export const DEFAULT_OVERLAYS: OverlayToggles = {
   logoOpacity: 100,
   logoBg: "none",
   galleryView: false,
+  showSpecialDeal: false,
+  specialDealOldPrice: "130,000",
+  specialDealNewPrice: "100,000",
+  showFeaturePills: false,
+  featurePill1: "KING SIZE",
+  featurePill2: "PURE COTTON",
+  showFeatureBar: false,
+  featureBar1: "PREMIUM QUALITY",
+  featureBar2: "SOFT & BREATHABLE",
+  featureBar3: "COMFORT ALL NIGHT",
 };
 
 export interface ProductData {

@@ -620,6 +620,198 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
               </Group>
             )}
 
+            {/* Special Deal banner (top-left) */}
+            {config.overlays.showSpecialDeal && (() => {
+              const sx = positions.specialDeal?.x ?? Math.round(w * 0.04);
+              const sy = positions.specialDeal?.y ?? Math.round(w * 0.04);
+              const blockW = Math.round(w * 0.4);
+              const titleSize = Math.round(w * 0.075);
+              const labelSize = Math.round(w * 0.022);
+              const priceSize = Math.round(w * 0.062);
+              return (
+                <Group x={sx} y={sy} {...makeDragHandlers("specialDeal")}>
+                  <Text
+                    text="SPECIAL"
+                    fontFamily={FONTS.sans}
+                    fontStyle="900"
+                    fontSize={titleSize}
+                    fill={COLORS.warmWhite}
+                    letterSpacing={2}
+                  />
+                  <Text
+                    y={titleSize * 1.05}
+                    text="DEAL"
+                    fontFamily={FONTS.sans}
+                    fontStyle="900"
+                    fontSize={titleSize}
+                    fill={SOFT_GOLD}
+                    letterSpacing={2}
+                  />
+                  {/* divider sparkles */}
+                  <Line
+                    points={[0, titleSize * 2.35, blockW * 0.35, titleSize * 2.35]}
+                    stroke={SOFT_GOLD}
+                    strokeWidth={2}
+                  />
+                  <Text
+                    y={titleSize * 2.55}
+                    text="PRICE WAS"
+                    fontFamily={FONTS.sans}
+                    fontStyle="700"
+                    fontSize={labelSize}
+                    fill={COLORS.warmWhite}
+                    letterSpacing={2}
+                  />
+                  <Text
+                    y={titleSize * 2.55 + labelSize * 1.2}
+                    text={T("specialDealOld", config.overlays.specialDealOldPrice)}
+                    fontFamily={FONTS.sans}
+                    fontStyle="900"
+                    fontSize={priceSize}
+                    fill={COLORS.warmWhite}
+                    textDecoration="line-through"
+                    onDblClick={handleDblClick("specialDealOld", T("specialDealOld", config.overlays.specialDealOldPrice))}
+                    onDblTap={handleDblClick("specialDealOld", T("specialDealOld", config.overlays.specialDealOldPrice))}
+                  />
+                  <Text
+                    y={titleSize * 2.55 + labelSize * 1.2 + priceSize * 1.25}
+                    text="NOW"
+                    fontFamily={FONTS.sans}
+                    fontStyle="700"
+                    fontSize={labelSize}
+                    fill={COLORS.warmWhite}
+                    letterSpacing={2}
+                  />
+                  <Text
+                    y={titleSize * 2.55 + labelSize * 2.4 + priceSize * 1.25}
+                    text={T("specialDealNew", config.overlays.specialDealNewPrice)}
+                    fontFamily={FONTS.sans}
+                    fontStyle="900"
+                    fontSize={priceSize * 1.15}
+                    fill={SOFT_GOLD}
+                    onDblClick={handleDblClick("specialDealNew", T("specialDealNew", config.overlays.specialDealNewPrice))}
+                    onDblTap={handleDblClick("specialDealNew", T("specialDealNew", config.overlays.specialDealNewPrice))}
+                  />
+                  {editMode && (
+                    <Rect width={blockW} height={titleSize * 4.5 + priceSize * 1.5} {...editStroke} fill="transparent" />
+                  )}
+                </Group>
+              );
+            })()}
+
+            {/* Top-right feature pills (gold circle + label) */}
+            {config.overlays.showFeaturePills && (() => {
+              const sx = positions.featurePills?.x ?? Math.round(w * 0.55);
+              const sy = positions.featurePills?.y ?? Math.round(w * 0.05);
+              const circle = Math.round(w * 0.09);
+              const gap = Math.round(w * 0.03);
+              const labelSize = Math.round(w * 0.024);
+              const items = [
+                { label: T("featurePill1", config.overlays.featurePill1), key: "featurePill1" },
+                { label: T("featurePill2", config.overlays.featurePill2), key: "featurePill2" },
+              ];
+              return (
+                <Group x={sx} y={sy} {...makeDragHandlers("featurePills")}>
+                  {items.map((it, i) => {
+                    const cx = i * (circle * 2 + gap);
+                    return (
+                      <Group key={it.key} x={cx}>
+                        <Rect
+                          width={circle * 2}
+                          height={circle * 2}
+                          cornerRadius={circle}
+                          stroke={SOFT_GOLD}
+                          strokeWidth={Math.max(2, Math.round(w * 0.005))}
+                        />
+                        {/* simple gold glyph (★) as icon stand-in */}
+                        <Text
+                          text={i === 0 ? "♛" : "❀"}
+                          width={circle * 2}
+                          height={circle * 2}
+                          align="center"
+                          verticalAlign="middle"
+                          fontSize={circle * 0.95}
+                          fill={SOFT_GOLD}
+                        />
+                        <Text
+                          y={circle * 2 + Math.round(w * 0.012)}
+                          width={circle * 2}
+                          align="center"
+                          text={it.label}
+                          fontFamily={FONTS.sans}
+                          fontStyle="900"
+                          fontSize={labelSize}
+                          fill={COLORS.warmWhite}
+                          letterSpacing={2}
+                          onDblClick={handleDblClick(it.key, it.label)}
+                          onDblTap={handleDblClick(it.key, it.label)}
+                        />
+                        <Line
+                          points={[
+                            circle * 0.5,
+                            circle * 2 + labelSize * 1.6 + Math.round(w * 0.012),
+                            circle * 1.5,
+                            circle * 2 + labelSize * 1.6 + Math.round(w * 0.012),
+                          ]}
+                          stroke={SOFT_GOLD}
+                          strokeWidth={2}
+                        />
+                      </Group>
+                    );
+                  })}
+                </Group>
+              );
+            })()}
+
+            {/* Bottom feature bar (3 gold icons) */}
+            {config.overlays.showFeatureBar && (() => {
+              const barH = Math.round(w * 0.11);
+              const sy = positions.featureBar?.y ?? h - barH - Math.round(w * 0.095);
+              const sx = positions.featureBar?.x ?? 0;
+              const colW = w / 3;
+              const iconSize = Math.round(barH * 0.5);
+              const labelSize = Math.round(w * 0.022);
+              const items = [
+                { glyph: "✦", label: T("featureBar1", config.overlays.featureBar1), key: "featureBar1" },
+                { glyph: "↑", label: T("featureBar2", config.overlays.featureBar2), key: "featureBar2" },
+                { glyph: "☾", label: T("featureBar3", config.overlays.featureBar3), key: "featureBar3" },
+              ];
+              return (
+                <Group x={sx} y={sy} {...makeDragHandlers("featureBar")}>
+                  <Rect width={w} height={barH} fill={COLORS.charcoal} opacity={0.85} />
+                  {items.map((it, i) => (
+                    <Group key={it.key} x={i * colW}>
+                      <Text
+                        text={it.glyph}
+                        x={Math.round(w * 0.04)}
+                        y={(barH - iconSize) / 2}
+                        fontSize={iconSize}
+                        fill={SOFT_GOLD}
+                      />
+                      <Text
+                        text={it.label}
+                        x={Math.round(w * 0.04) + iconSize + Math.round(w * 0.015)}
+                        width={colW - iconSize - Math.round(w * 0.06)}
+                        height={barH}
+                        verticalAlign="middle"
+                        fontFamily={FONTS.sans}
+                        fontStyle="900"
+                        fontSize={labelSize}
+                        fill={COLORS.warmWhite}
+                        letterSpacing={2}
+                        onDblClick={handleDblClick(it.key, it.label)}
+                        onDblTap={handleDblClick(it.key, it.label)}
+                      />
+                      {i < 2 && (
+                        <Rect x={colW - 1} y={barH * 0.2} width={1} height={barH * 0.6} fill={SOFT_GOLD} opacity={0.5} />
+                      )}
+                    </Group>
+                  ))}
+                  {editMode && <Rect width={w} height={barH} {...editStroke} fill="transparent" />}
+                </Group>
+              );
+            })()}
+
             {/* Snap guides overlay */}
             {guides.x !== undefined && (
               <Line points={[guides.x, 0, guides.x, h]} stroke="#3b82f6" strokeWidth={1} dash={[8, 6]} />
