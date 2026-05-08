@@ -825,6 +825,7 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
               const titleSize = Math.round(w * 0.075);
               const labelSize = Math.round(w * 0.022);
               const priceSize = Math.round(w * 0.062);
+              const sdAccent = config.overlays.specialDealAccent || SOFT_GOLD;
               return (
                 <Group x={sx} y={sy} {...makeDragHandlers("specialDeal")}>
                   <Text
@@ -841,13 +842,13 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                     fontFamily={FONTS.sans}
                     fontStyle="900"
                     fontSize={titleSize}
-                    fill={SOFT_GOLD}
+                    fill={sdAccent}
                     letterSpacing={2}
                   />
                   {/* divider sparkles */}
                   <Line
                     points={[0, titleSize * 2.35, blockW * 0.35, titleSize * 2.35]}
-                    stroke={SOFT_GOLD}
+                    stroke={sdAccent}
                     strokeWidth={2}
                   />
                   <Text
@@ -885,7 +886,7 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                     fontFamily={FONTS.sans}
                     fontStyle="900"
                     fontSize={priceSize * 1.15}
-                    fill={SOFT_GOLD}
+                    fill={sdAccent}
                     onDblClick={handleDblClick("specialDealNew", T("specialDealNew", config.overlays.specialDealNewPrice))}
                     onDblTap={handleDblClick("specialDealNew", T("specialDealNew", config.overlays.specialDealNewPrice))}
                   />
@@ -901,24 +902,47 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
               const pills = config.overlays.featurePills;
               const sx = positions.featurePills?.x ?? Math.round(w * 0.55);
               const sy = positions.featurePills?.y ?? Math.round(w * 0.05);
-              const circle = Math.round(w * 0.08);
-              const gap = Math.round(w * 0.025);
-              const labelSize = Math.round(w * 0.022);
+              const scale = config.overlays.featurePillScale ?? 1;
+              const accent = config.overlays.featurePillAccent || SOFT_GOLD;
+              const circle = Math.round(w * 0.08 * scale);
+              const gap = Math.round(w * 0.025 * scale);
+              const labelSize = Math.round(w * 0.022 * scale);
               const glyphs = ["♛", "❀", "✦", "✿", "★"];
               const onDarkBg = ["bold_banner", "catalogue", "split_dark"].includes(config.style);
-              const labelFill = onDarkBg ? COLORS.warmWhite : COLORS.charcoal;
+              const autoLabel = onDarkBg ? COLORS.warmWhite : COLORS.charcoal;
+              const labelFill = config.overlays.featurePillTextColor || autoLabel;
+              // Approximate auto-wrap line count given Konva renders bold caps in `circle*2` width.
+              const avgCharW = labelSize * 0.62;
+              const availW = circle * 2;
+              const estimateLines = (txt: string) => {
+                const words = txt.split(/\s+/).filter(Boolean);
+                let lines = 1;
+                let used = 0;
+                for (const word of words) {
+                  const ww = word.length * avgCharW;
+                  if (used === 0) used = ww;
+                  else if (used + avgCharW + ww <= availW) used += avgCharW + ww;
+                  else { lines += 1; used = ww; }
+                }
+                return Math.max(1, lines);
+              };
               return (
                 <Group x={sx} y={sy} {...makeDragHandlers("featurePills")}>
                   {pills.map((label, i) => {
                     const cx = i * (circle * 2 + gap);
                     const key = `featurePill_${i}`;
+                    const text = T(key, label);
+                    const lines = estimateLines(text);
+                    const textBlockH = lines * labelSize * 1.15;
+                    const underlineY =
+                      circle * 2 + Math.round(w * 0.012) + textBlockH + Math.round(w * 0.008);
                     return (
                       <Group key={key} x={cx}>
                         <Rect
                           width={circle * 2}
                           height={circle * 2}
                           cornerRadius={circle}
-                          stroke={SOFT_GOLD}
+                          stroke={accent}
                           strokeWidth={Math.max(2, Math.round(w * 0.005))}
                         />
                         <Text
@@ -928,29 +952,25 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                           align="center"
                           verticalAlign="middle"
                           fontSize={circle * 0.95}
-                          fill={SOFT_GOLD}
+                          fill={accent}
                         />
                         <Text
                           y={circle * 2 + Math.round(w * 0.012)}
                           width={circle * 2}
                           align="center"
-                          text={T(key, label)}
+                          text={text}
                           fontFamily={FONTS.sans}
                           fontStyle="900"
                           fontSize={labelSize}
                           fill={labelFill}
                           letterSpacing={2}
-                          onDblClick={handleDblClick(key, T(key, label))}
-                          onDblTap={handleDblClick(key, T(key, label))}
+                          lineHeight={1.15}
+                          onDblClick={handleDblClick(key, text)}
+                          onDblTap={handleDblClick(key, text)}
                         />
                         <Line
-                          points={[
-                            circle * 0.5,
-                            circle * 2 + labelSize * 1.6 + Math.round(w * 0.012),
-                            circle * 1.5,
-                            circle * 2 + labelSize * 1.6 + Math.round(w * 0.012),
-                          ]}
-                          stroke={SOFT_GOLD}
+                          points={[circle * 0.5, underlineY, circle * 1.5, underlineY]}
+                          stroke={accent}
                           strokeWidth={2}
                         />
                       </Group>
@@ -963,16 +983,20 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
             {/* Bottom feature bar — independent list */}
             {config.overlays.showFeatureBar && config.overlays.featureBarItems.length > 0 && (() => {
               const items = config.overlays.featureBarItems;
-              const barH = Math.round(w * 0.11);
+              const fbScale = config.overlays.featureBarScale ?? 1;
+              const fbAccent = config.overlays.featureBarAccent || SOFT_GOLD;
+              const fbText = config.overlays.featureBarTextColor || COLORS.warmWhite;
+              const fbBg = config.overlays.featureBarBgColor || COLORS.charcoal;
+              const barH = Math.round(w * 0.11 * fbScale);
               const sy = positions.featureBar?.y ?? h - barH - Math.round(w * 0.095);
               const sx = positions.featureBar?.x ?? 0;
               const colW = w / items.length;
               const iconSize = Math.round(barH * 0.5);
-              const labelSize = Math.round(w * 0.022);
+              const labelSize = Math.round(w * 0.022 * fbScale);
               const glyphs = ["✦", "↑", "☾", "✿", "★"];
               return (
                 <Group x={sx} y={sy} {...makeDragHandlers("featureBar")}>
-                  <Rect width={w} height={barH} fill={COLORS.charcoal} opacity={0.85} />
+                  <Rect width={w} height={barH} fill={fbBg} opacity={0.92} />
                   {items.map((label, i) => {
                     const key = `featureBar_${i}`;
                     return (
@@ -982,7 +1006,7 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                           x={Math.round(w * 0.04)}
                           y={(barH - iconSize) / 2}
                           fontSize={iconSize}
-                          fill={SOFT_GOLD}
+                          fill={fbAccent}
                         />
                         <Text
                           text={T(key, label)}
@@ -993,13 +1017,13 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                           fontFamily={FONTS.sans}
                           fontStyle="900"
                           fontSize={labelSize}
-                          fill={COLORS.warmWhite}
+                          fill={fbText}
                           letterSpacing={2}
                           onDblClick={handleDblClick(key, T(key, label))}
                           onDblTap={handleDblClick(key, T(key, label))}
                         />
                         {i < items.length - 1 && (
-                          <Rect x={colW - 1} y={barH * 0.2} width={1} height={barH * 0.6} fill={SOFT_GOLD} opacity={0.5} />
+                          <Rect x={colW - 1} y={barH * 0.2} width={1} height={barH * 0.6} fill={fbAccent} opacity={0.5} />
                         )}
                       </Group>
                     );

@@ -60,6 +60,17 @@ export interface OverlayToggles {
   mainImageZoom: number; // 0.5..3 (1 = cover-fit)
   mainImageOffsetX: number; // -50..50 % of frame width
   mainImageOffsetY: number; // -50..50 % of frame height
+  // Feature pills styling
+  featurePillScale: number; // 0.5..2
+  featurePillAccent: string; // hex (gold ring + glyph + underline)
+  featurePillTextColor: string; // hex; empty = auto (depends on bg)
+  // Feature bar styling
+  featureBarScale: number; // 0.5..2
+  featureBarAccent: string; // hex
+  featureBarTextColor: string; // hex
+  featureBarBgColor: string; // hex
+  // Special deal styling
+  specialDealAccent: string; // hex
 }
 
 export const DEFAULT_OVERLAYS: OverlayToggles = {
@@ -104,6 +115,14 @@ export const DEFAULT_OVERLAYS: OverlayToggles = {
   mainImageZoom: 1,
   mainImageOffsetX: 0,
   mainImageOffsetY: 0,
+  featurePillScale: 1,
+  featurePillAccent: "#D4A24A",
+  featurePillTextColor: "",
+  featureBarScale: 1,
+  featureBarAccent: "#D4A24A",
+  featureBarTextColor: "#F5EFE3",
+  featureBarBgColor: "#1F1A14",
+  specialDealAccent: "#D4A24A",
 };
 
 export interface ProductData {
