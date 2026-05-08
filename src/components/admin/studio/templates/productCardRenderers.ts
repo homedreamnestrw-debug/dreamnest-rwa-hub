@@ -228,6 +228,10 @@ export const LAYOUT_META: Record<StyleVariant, LayoutMeta> = {
     bg: "charcoal",
     description: "Half image / half dark text panel — editorial split",
   },
+  invitation: {
+    bg: "cream",
+    description: "Cream bg · teal trapezoid behind image · invitation poster",
+  },
 };
 
 // Logo position helper kept for backward compat with controls
