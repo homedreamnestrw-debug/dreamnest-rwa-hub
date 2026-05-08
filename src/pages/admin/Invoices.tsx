@@ -99,6 +99,7 @@ export default function Invoices() {
       .order("created_at", { ascending: false });
 
     const billedOrderIds = new Set((invoiceData || []).filter(i => i.order_id).map(i => i.order_id as string));
+    const orderById = new Map((orderData || []).map(o => [o.id, o] as const));
 
     const virtualRows: InvoiceRow[] = (orderData || [])
       .filter(o => !billedOrderIds.has(o.id))
