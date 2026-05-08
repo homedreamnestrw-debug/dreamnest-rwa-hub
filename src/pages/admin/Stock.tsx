@@ -45,7 +45,7 @@ export default function Stock() {
       templateHeaders={["name","slug","sku","price","cost_price","stock_quantity","low_stock_threshold","category_name","is_active","featured","tax_enabled","description"]}
       exportRows={async () => {
         const [{ data: prods }, { data: cats }] = await Promise.all([
-          supabase.from("products").select("*").order("name"),
+          supabase.rpc("get_admin_products_with_costs"),
           supabase.from("categories").select("id,name"),
         ]);
         const catMap = new Map((cats || []).map((c) => [c.id, c.name]));
@@ -284,7 +284,7 @@ export default function Stock() {
   const reportInventory = async () => {
     const [{ data: stock }, { data: prods }, { data: locs }] = await Promise.all([
       supabase.from("product_stock").select("product_id,location_id,quantity"),
-      supabase.from("products").select("id,name,sku,price,cost_price,low_stock_threshold"),
+      supabase.rpc("get_admin_products_with_costs"),
       supabase.from("stock_locations").select("id,name"),
     ]);
     const pMap = new Map((prods || []).map((p) => [p.id, p]));
@@ -337,7 +337,7 @@ export default function Stock() {
 
   const reportCategorySummary = async () => {
     const [{ data: prods }, { data: cats }] = await Promise.all([
-      supabase.from("products").select("category_id,stock_quantity,cost_price,price"),
+      supabase.rpc("get_admin_products_with_costs"),
       supabase.from("categories").select("id,name"),
     ]);
     const map = new Map<string, { name: string; product_count: number; units: number; cost_value: number; retail_value: number }>();

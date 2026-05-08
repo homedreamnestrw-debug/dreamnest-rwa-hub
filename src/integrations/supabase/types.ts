@@ -1601,6 +1601,34 @@ export type Database = {
         }[]
       }
       generate_voucher_code: { Args: never; Returns: string }
+      get_admin_products_with_costs: {
+        Args: never
+        Returns: {
+          category_id: string | null
+          cost_price: number
+          created_at: string
+          description: string | null
+          featured: boolean
+          id: string
+          images: string[] | null
+          is_active: boolean
+          low_stock_threshold: number
+          name: string
+          price: number
+          sku: string | null
+          slug: string
+          stock_quantity: number
+          tax_enabled: boolean
+          updated_at: string
+          variant_attributes: Json
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "products"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_public_business_settings: {
         Args: never
         Returns: {
