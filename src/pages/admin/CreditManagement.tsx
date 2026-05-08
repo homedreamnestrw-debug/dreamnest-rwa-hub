@@ -59,26 +59,26 @@ export default function CreditManagement() {
 
   const fetch = async () => {
     setLoading(true);
+    // All credit payments (these reveal which orders had credit)
+    const { data: allPayments } = await supabase
+      .from("credit_payments")
+      .select("*")
+      .order("created_at", { ascending: false });
+    const paidOrderIds = new Set((allPayments || []).map((p: any) => p.order_id));
+
+    // Orders currently unpaid/partial OR previously had credit payments
     const { data: orders } = await supabase
       .from("orders")
       .select("id, order_number, total, payment_status, payment_method, channel, guest_name, guest_phone, guest_email, customer_id, created_at, status")
-      .in("payment_status", ["unpaid", "partial", "paid"])
       .neq("status", "cancelled")
       .order("created_at", { ascending: false });
 
-    const ids = (orders || []).map((o) => o.id);
-    let payments: CreditPayment[] = [];
-    if (ids.length > 0) {
-      const { data: pays } = await supabase
-        .from("credit_payments")
-        .select("*")
-        .in("order_id", ids)
-        .order("created_at", { ascending: false });
-      payments = (pays as CreditPayment[]) || [];
-    }
+    const creditOrders = (orders || []).filter(
+      (o: any) => o.payment_status === "unpaid" || o.payment_status === "partial" || paidOrderIds.has(o.id),
+    );
 
-    const merged: Row[] = (orders || []).map((o: any) => {
-      const ps = payments.filter((p) => p.order_id === o.id);
+    const merged: Row[] = creditOrders.map((o: any) => {
+      const ps = ((allPayments as CreditPayment[]) || []).filter((p) => p.order_id === o.id);
       const paid = ps.reduce((s, p) => s + Number(p.amount || 0), 0);
       return { ...o, paid, balance: Number(o.total) - paid, payments: ps };
     });
