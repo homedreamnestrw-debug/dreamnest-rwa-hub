@@ -1,7 +1,30 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
+
+function toCSV(rows: Record<string, any>[]): string {
+  if (!rows.length) return "";
+  const headers = Object.keys(rows[0]);
+  const escape = (v: any) => {
+    const s = v == null ? "" : String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  return [headers.join(","), ...rows.map((r) => headers.map((h) => escape(r[h])).join(","))].join("\n");
+}
+
+function downloadCSV(filename: string, rows: Record<string, any>[]) {
+  const csv = toCSV(rows);
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 const COLORS = ["hsl(25, 35%, 28%)", "hsl(40, 50%, 72%)", "hsl(32, 25%, 65%)", "hsl(0, 72%, 51%)", "hsl(210, 60%, 50%)"];
 
@@ -50,7 +73,19 @@ export default function Analytics() {
 
   return (
     <div className="space-y-6">
-      <h1 className="font-serif text-2xl font-semibold">Analytics</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="font-serif text-2xl font-semibold">Analytics</h1>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={() => downloadCSV(`analytics-all-${new Date().toISOString().slice(0,10)}.csv`, [
+            ...data.channelData.map((r) => ({ section: "Channel", name: r.name, value: r.value })),
+            ...data.statusData.map((r) => ({ section: "Status", name: r.name, value: r.value })),
+            ...data.paymentData.map((r) => ({ section: "Payment Revenue (RWF)", name: r.name, value: r.value })),
+            ...data.topProducts.map((r) => ({ section: "Top Product", name: r.name, value: r.revenue, qty: r.qty })),
+          ])}>
+            <Download className="h-4 w-4 mr-2" /> Export CSV
+          </Button>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
