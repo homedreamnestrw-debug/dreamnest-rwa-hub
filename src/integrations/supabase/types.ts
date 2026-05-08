@@ -128,13 +128,6 @@ export type Database = {
             foreignKeyName: "cart_items_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
-            referencedRelation: "admin_products_with_costs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cart_items_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
@@ -740,13 +733,6 @@ export type Database = {
             foreignKeyName: "order_items_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
-            referencedRelation: "admin_products_with_costs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "order_items_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
@@ -901,13 +887,6 @@ export type Database = {
             foreignKeyName: "product_stock_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
-            referencedRelation: "admin_products_with_costs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "product_stock_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
@@ -961,13 +940,6 @@ export type Database = {
           variant_name?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "product_variants_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "admin_products_with_costs"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "product_variants_product_id_fkey"
             columns: ["product_id"]
@@ -1124,13 +1096,6 @@ export type Database = {
             foreignKeyName: "purchase_order_items_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
-            referencedRelation: "admin_products_with_costs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "purchase_order_items_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
@@ -1246,13 +1211,6 @@ export type Database = {
             foreignKeyName: "reviews_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
-            referencedRelation: "admin_products_with_costs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reviews_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
@@ -1338,13 +1296,6 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "stock_locations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "stock_movements_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "admin_products_with_costs"
             referencedColumns: ["id"]
           },
           {
@@ -1553,13 +1504,6 @@ export type Database = {
             foreignKeyName: "wishlist_items_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
-            referencedRelation: "admin_products_with_costs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wishlist_items_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
@@ -1574,74 +1518,6 @@ export type Database = {
       }
     }
     Views: {
-      admin_products_with_costs: {
-        Row: {
-          category_id: string | null
-          cost_price: number | null
-          created_at: string | null
-          description: string | null
-          featured: boolean | null
-          id: string | null
-          images: string[] | null
-          is_active: boolean | null
-          low_stock_threshold: number | null
-          name: string | null
-          price: number | null
-          sku: string | null
-          slug: string | null
-          stock_quantity: number | null
-          tax_enabled: boolean | null
-          updated_at: string | null
-          variant_attributes: Json | null
-        }
-        Insert: {
-          category_id?: string | null
-          cost_price?: number | null
-          created_at?: string | null
-          description?: string | null
-          featured?: boolean | null
-          id?: string | null
-          images?: string[] | null
-          is_active?: boolean | null
-          low_stock_threshold?: number | null
-          name?: string | null
-          price?: number | null
-          sku?: string | null
-          slug?: string | null
-          stock_quantity?: number | null
-          tax_enabled?: boolean | null
-          updated_at?: string | null
-          variant_attributes?: Json | null
-        }
-        Update: {
-          category_id?: string | null
-          cost_price?: number | null
-          created_at?: string | null
-          description?: string | null
-          featured?: boolean | null
-          id?: string | null
-          images?: string[] | null
-          is_active?: boolean | null
-          low_stock_threshold?: number | null
-          name?: string | null
-          price?: number | null
-          sku?: string | null
-          slug?: string | null
-          stock_quantity?: number | null
-          tax_enabled?: boolean | null
-          updated_at?: string | null
-          variant_attributes?: Json | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "products_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "categories"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       products_public: {
         Row: {
           category_id: string | null
@@ -1725,6 +1601,34 @@ export type Database = {
         }[]
       }
       generate_voucher_code: { Args: never; Returns: string }
+      get_admin_products_with_costs: {
+        Args: never
+        Returns: {
+          category_id: string | null
+          cost_price: number
+          created_at: string
+          description: string | null
+          featured: boolean
+          id: string
+          images: string[] | null
+          is_active: boolean
+          low_stock_threshold: number
+          name: string
+          price: number
+          sku: string | null
+          slug: string
+          stock_quantity: number
+          tax_enabled: boolean
+          updated_at: string
+          variant_attributes: Json
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "products"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_public_business_settings: {
         Args: never
         Returns: {
