@@ -7,6 +7,7 @@ export const COLORS = {
   dustyRose: "#D4A5A0",
   forest: "#4A6B52",
   midnight: "#1F2A44",
+  teal: "#1F8A93",
 } as const;
 
 export type ColorKey = keyof typeof COLORS;
@@ -58,7 +59,8 @@ export type StyleVariant =
   | "catalogue"
   | "ribbon"
   | "minimal_poster"
-  | "split_dark";
+  | "split_dark"
+  | "invitation";
 
 export const STYLE_VARIANTS: { key: StyleVariant; label: string }[] = [
   { key: "editorial", label: "Editorial Frame" },
@@ -69,6 +71,7 @@ export const STYLE_VARIANTS: { key: StyleVariant; label: string }[] = [
   { key: "ribbon", label: "Image Ribbon" },
   { key: "minimal_poster", label: "Minimal Poster" },
   { key: "split_dark", label: "Split Dark" },
+  { key: "invitation", label: "Invitation Frame" },
 ];
 
 export const SOFT_GOLD = "#D4A24A";
