@@ -320,10 +320,6 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
     const tileBelowW = belowTileBase.w * gallerySatSize;
     const tileBelowH = belowTileBase.h * gallerySatSize;
 
-    // Backwards-compat (used by older code paths) — kept harmless
-    const satCellW = satSideAreaW;
-    const satHalfH = satSideH;
-    const satHalfW = satSideW;
 
     // Action bar background
     const actionBarFill =
