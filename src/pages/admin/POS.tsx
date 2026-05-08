@@ -557,7 +557,7 @@ export default function POS() {
       setDiscountValue("");
       setVoucherCode("");
       setVoucherData(null);
-      setIncludeVat(false);
+      // VAT is always inclusive — no toggle to reset
       clearCustomer();
     } catch (err: any) {
       toast.error(err.message || "Failed to process sale");
