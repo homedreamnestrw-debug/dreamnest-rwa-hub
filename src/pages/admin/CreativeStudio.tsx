@@ -83,6 +83,7 @@ export default function CreativeStudio() {
     | null
   >(null);
   const stageRef = useRef<Konva.Stage>(null);
+  const { language, setLanguage } = useStudioLanguage();
 
   // When product changes, default main image
   useEffect(() => {
