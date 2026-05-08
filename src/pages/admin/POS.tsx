@@ -1014,14 +1014,7 @@ export default function POS() {
                             )}
                           </div>
 
-                          {/* VAT Toggle */}
-                          <div className="flex items-center justify-between rounded-md border bg-muted/30 p-2">
-                            <div className="flex items-center gap-2">
-                              <Receipt className="h-3.5 w-3.5 text-muted-foreground" />
-                              <p className="text-xs font-medium">Add VAT ({Math.round(vatRate * 100)}%)</p>
-                            </div>
-                            <Switch checked={includeVat} onCheckedChange={setIncludeVat} />
-                          </div>
+                          {/* VAT included in price — no toggle */}
 
                           {!isFullyPaidByVoucher && (
                             <>
