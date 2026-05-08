@@ -343,6 +343,12 @@ export default function CreativeStudio() {
             <div className="space-y-4">
               <Card>
                 <CardContent className="space-y-2 p-3">
+                  <div className="text-xs font-medium text-muted-foreground">Platform format</div>
+                  <PlatformFormatTabs value={format} onChange={setFormat} />
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="space-y-2 p-3">
                   <div className="text-xs font-medium text-muted-foreground">Frame layout</div>
                   <VariationGrid
                     baseConfig={config}
