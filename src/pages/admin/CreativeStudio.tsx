@@ -191,35 +191,35 @@ export default function CreativeStudio() {
                   </AccordionItem>
 
                   <AccordionItem value="logo">
-                    <AccordionTrigger className="text-sm">4. Logo</AccordionTrigger>
+                    <AccordionTrigger className="text-sm">6. Logo</AccordionTrigger>
                     <AccordionContent>
                       <LogoControlsPanel value={overlays} onChange={setOverlays} />
                     </AccordionContent>
                   </AccordionItem>
 
                   <AccordionItem value="catstrip">
-                    <AccordionTrigger className="text-sm">5. Category strip</AccordionTrigger>
+                    <AccordionTrigger className="text-sm">7. Category strip</AccordionTrigger>
                     <AccordionContent>
                       <CategoryStripPanel value={overlays} onChange={setOverlays} />
                     </AccordionContent>
                   </AccordionItem>
 
                   <AccordionItem value="overlays">
-                    <AccordionTrigger className="text-sm">6. Overlays</AccordionTrigger>
+                    <AccordionTrigger className="text-sm">8. Overlays</AccordionTrigger>
                     <AccordionContent>
                       <OverlayTogglesPanel value={overlays} onChange={setOverlays} />
                     </AccordionContent>
                   </AccordionItem>
 
                   <AccordionItem value="actionbar">
-                    <AccordionTrigger className="text-sm">7. Action bar & address</AccordionTrigger>
+                    <AccordionTrigger className="text-sm">9. Action bar & address</AccordionTrigger>
                     <AccordionContent>
                       <ActionBarPanel value={overlays} onChange={setOverlays} />
                     </AccordionContent>
                   </AccordionItem>
 
                   <AccordionItem value="canvas">
-                    <AccordionTrigger className="text-sm">8. Canvas controls</AccordionTrigger>
+                    <AccordionTrigger className="text-sm">10. Canvas controls</AccordionTrigger>
                     <AccordionContent className="space-y-2">
                       <div className="flex flex-wrap gap-2">
                         <Toggle pressed={editMode} onPressedChange={setEditMode} size="sm" variant="outline">
