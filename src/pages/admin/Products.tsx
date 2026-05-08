@@ -292,14 +292,38 @@ export default function Products() {
                 <Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} placeholder="auto-generated" />
               </div>
               <div>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <Label>Description</Label>
-                  <Button type="button" size="sm" variant="outline" onClick={generateDescription} disabled={aiLoading}>
+                  <LanguageSelector value={descLang} onChange={setDescLang} size="xs" />
+                </div>
+                <div className="flex flex-wrap gap-2 my-2">
+                  <Button type="button" size="sm" variant="outline" onClick={generateDescription} disabled={aiLoading || aiBatchLoading}>
                     {aiLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-                    Generate with AI
+                    Generate ({descLang.toUpperCase()})
+                  </Button>
+                  <Button type="button" size="sm" variant="secondary" onClick={generateAllDescriptions} disabled={aiLoading || aiBatchLoading}>
+                    {aiBatchLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Languages className="h-3.5 w-3.5" />}
+                    Generate All Languages
                   </Button>
                 </div>
-                <Textarea rows={5} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+                <Tabs value={descLang} onValueChange={(v) => setDescLang(v as StudioLanguage)}>
+                  <TabsList className="grid grid-cols-3">
+                    {LANGUAGE_OPTIONS.map((opt) => (
+                      <TabsTrigger key={opt.value} value={opt.value} className="text-xs">
+                        {opt.flag} {opt.value.toUpperCase()}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                  <TabsContent value="en" className="mt-2">
+                    <Textarea rows={5} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="English description" />
+                  </TabsContent>
+                  <TabsContent value="fr" className="mt-2">
+                    <Textarea rows={5} value={form.description_fr} onChange={(e) => setForm({ ...form, description_fr: e.target.value })} placeholder="Description en français" />
+                  </TabsContent>
+                  <TabsContent value="rw" className="mt-2">
+                    <Textarea rows={5} value={form.description_rw} onChange={(e) => setForm({ ...form, description_rw: e.target.value })} placeholder="Incamake mu Kinyarwanda" />
+                  </TabsContent>
+                </Tabs>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div><Label>Price (RWF)</Label><Input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: +e.target.value })} /></div>
