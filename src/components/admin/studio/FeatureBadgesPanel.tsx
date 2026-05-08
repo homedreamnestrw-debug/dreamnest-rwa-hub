@@ -176,23 +176,30 @@ export function FeatureBadgesPanel({ value, onChange }: Props) {
           />
         </div>
         {value.showSpecialDeal && (
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label className="text-[10px] text-muted-foreground">Was</Label>
-              <Input
-                className="h-8 text-xs"
-                value={value.specialDealOldPrice}
-                onChange={(e) => set("specialDealOldPrice", e.target.value)}
-              />
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-[10px] text-muted-foreground">Was</Label>
+                <Input
+                  className="h-8 text-xs"
+                  value={value.specialDealOldPrice}
+                  onChange={(e) => set("specialDealOldPrice", e.target.value)}
+                />
+              </div>
+              <div>
+                <Label className="text-[10px] text-muted-foreground">Now</Label>
+                <Input
+                  className="h-8 text-xs"
+                  value={value.specialDealNewPrice}
+                  onChange={(e) => set("specialDealNewPrice", e.target.value)}
+                />
+              </div>
             </div>
-            <div>
-              <Label className="text-[10px] text-muted-foreground">Now</Label>
-              <Input
-                className="h-8 text-xs"
-                value={value.specialDealNewPrice}
-                onChange={(e) => set("specialDealNewPrice", e.target.value)}
-              />
-            </div>
+            <ColorRow
+              label="Accent (gold)"
+              value={value.specialDealAccent}
+              onChange={(v) => set("specialDealAccent", v)}
+            />
           </div>
         )}
       </div>
@@ -207,14 +214,32 @@ export function FeatureBadgesPanel({ value, onChange }: Props) {
           />
         </div>
         {value.showFeaturePills && (
-          <ListEditor
-            label="Pills"
-            items={value.featurePills}
-            onChange={(next) => set("featurePills", next)}
-            placeholder="e.g. KING SIZE"
-            presets={PILL_PRESETS}
-            max={4}
-          />
+          <div className="space-y-2">
+            <ListEditor
+              label="Pills"
+              items={value.featurePills}
+              onChange={(next) => set("featurePills", next)}
+              placeholder="e.g. KING SIZE"
+              presets={PILL_PRESETS}
+              max={4}
+            />
+            <ScaleRow
+              label="Size"
+              value={value.featurePillScale}
+              onChange={(v) => set("featurePillScale", v)}
+            />
+            <ColorRow
+              label="Accent color"
+              value={value.featurePillAccent}
+              onChange={(v) => set("featurePillAccent", v)}
+            />
+            <ColorRow
+              label="Text color"
+              value={value.featurePillTextColor}
+              onChange={(v) => set("featurePillTextColor", v)}
+              allowAuto
+            />
+          </div>
         )}
       </div>
 
@@ -228,14 +253,36 @@ export function FeatureBadgesPanel({ value, onChange }: Props) {
           />
         </div>
         {value.showFeatureBar && (
-          <ListEditor
-            label="Items"
-            items={value.featureBarItems}
-            onChange={(next) => set("featureBarItems", next)}
-            placeholder="e.g. PREMIUM QUALITY"
-            presets={PILL_PRESETS}
-            max={5}
-          />
+          <div className="space-y-2">
+            <ListEditor
+              label="Items"
+              items={value.featureBarItems}
+              onChange={(next) => set("featureBarItems", next)}
+              placeholder="e.g. PREMIUM QUALITY"
+              presets={PILL_PRESETS}
+              max={5}
+            />
+            <ScaleRow
+              label="Size"
+              value={value.featureBarScale}
+              onChange={(v) => set("featureBarScale", v)}
+            />
+            <ColorRow
+              label="Background"
+              value={value.featureBarBgColor}
+              onChange={(v) => set("featureBarBgColor", v)}
+            />
+            <ColorRow
+              label="Accent (icons/divider)"
+              value={value.featureBarAccent}
+              onChange={(v) => set("featureBarAccent", v)}
+            />
+            <ColorRow
+              label="Text color"
+              value={value.featureBarTextColor}
+              onChange={(v) => set("featureBarTextColor", v)}
+            />
+          </div>
         )}
       </div>
     </div>
