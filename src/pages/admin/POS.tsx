@@ -94,8 +94,7 @@ export default function POS() {
   const [variantPickerOptions, setVariantPickerOptions] = useState<VariantOption[]>([]);
   const [variantPickerSelections, setVariantPickerSelections] = useState<Record<string, string>>({});
   const [variantPickerLoading, setVariantPickerLoading] = useState(false);
-  // VAT toggle
-  const [includeVat, setIncludeVat] = useState(false);
+  // VAT is always inclusive in displayed price (no toggle)
   // Discount
   const [discountType, setDiscountType] = useState<"none" | "percent" | "amount">("none");
   const [discountValue, setDiscountValue] = useState<string>("");
@@ -358,7 +357,7 @@ export default function POS() {
   };
 
   const removeFromCart = (key: string) => setCart((prev) => prev.filter((i) => cartKey(i.product_id, i.variant_id) !== key));
-  const clearCart = () => { setCart([]); setCustomerNote(""); setIsCredit(false); setAmountPaid(""); setDiscountType("none"); setDiscountValue(""); setVoucherCode(""); setVoucherData(null); setIncludeVat(false); clearCustomer(); searchRef.current?.focus(); };
+  const clearCart = () => { setCart([]); setCustomerNote(""); setIsCredit(false); setAmountPaid(""); setDiscountType("none"); setDiscountValue(""); setVoucherCode(""); setVoucherData(null); clearCustomer(); searchRef.current?.focus(); };
 
   const subtotal = cart.reduce((s, i) => s + i.selling_price * i.quantity, 0);
 
@@ -371,8 +370,9 @@ export default function POS() {
   }
 
   const afterDiscount = subtotal - discountAmount;
-  const taxAmount = includeVat ? Math.round(afterDiscount * vatRate) : 0;
-  const preVoucherTotal = afterDiscount + taxAmount;
+  // VAT included in price: extract VAT portion from the gross amount
+  const taxAmount = Math.round(afterDiscount - afterDiscount / (1 + vatRate));
+  const preVoucherTotal = afterDiscount;
   const voucherDiscount = voucherData ? Math.min(voucherData.balance, preVoucherTotal) : 0;
   const total = preVoucherTotal - voucherDiscount;
   const isFullyPaidByVoucher = voucherDiscount > 0 && total <= 0;
@@ -501,7 +501,7 @@ export default function POS() {
         order_id: order.id,
         customer_id: selectedCustomer?.user_id || null,
         subtotal,
-        tax_rate: includeVat ? Math.round(vatRate * 100) : 0,
+        tax_rate: Math.round(vatRate * 100),
         tax_amount: taxAmount,
         discount: discountAmount + voucherDiscount,
         total: Math.max(0, total),
@@ -526,7 +526,7 @@ export default function POS() {
           description: i.name,
           quantity: i.quantity,
           unit_price: i.selling_price,
-          tax: includeVat ? Math.round(i.selling_price * i.quantity * vatRate) : 0,
+          tax: Math.round((i.selling_price * i.quantity) - (i.selling_price * i.quantity) / (1 + vatRate)),
           total: i.selling_price * i.quantity,
         }));
         await supabase.from("invoice_items").insert(invoiceItems);
@@ -557,7 +557,7 @@ export default function POS() {
       setDiscountValue("");
       setVoucherCode("");
       setVoucherData(null);
-      setIncludeVat(false);
+      // VAT is always inclusive — no toggle to reset
       clearCustomer();
     } catch (err: any) {
       toast.error(err.message || "Failed to process sale");
@@ -588,7 +588,7 @@ export default function POS() {
         })),
         subtotal: receiptOrder.subtotal,
         discount: receiptOrder.discount_amount,
-        taxRate: includeVat ? Math.round(vatRate * 100) : 0,
+        taxRate: Math.round(vatRate * 100),
         taxAmount: receiptOrder.tax,
         total: receiptOrder.total,
         amountPaid: receiptOrder.amount_paid ?? null,
@@ -1014,14 +1014,7 @@ export default function POS() {
                             )}
                           </div>
 
-                          {/* VAT Toggle */}
-                          <div className="flex items-center justify-between rounded-md border bg-muted/30 p-2">
-                            <div className="flex items-center gap-2">
-                              <Receipt className="h-3.5 w-3.5 text-muted-foreground" />
-                              <p className="text-xs font-medium">Add VAT ({Math.round(vatRate * 100)}%)</p>
-                            </div>
-                            <Switch checked={includeVat} onCheckedChange={setIncludeVat} />
-                          </div>
+                          {/* VAT included in price — no toggle */}
 
                           {!isFullyPaidByVoucher && (
                             <>
@@ -1081,8 +1074,8 @@ export default function POS() {
                             {discountAmount > 0 && (
                               <div className="flex justify-between text-red-600"><span>Discount{discountType === "percent" ? ` (${discountValue}%)` : ""}</span><span>-{formatPrice(discountAmount)}</span></div>
                             )}
-                            {includeVat && (
-                              <div className="flex justify-between"><span className="text-muted-foreground">VAT ({Math.round(vatRate * 100)}%)</span><span>{formatPrice(taxAmount)}</span></div>
+                            {taxAmount > 0 && (
+                              <div className="flex justify-between text-xs text-muted-foreground"><span>VAT incl. ({Math.round(vatRate * 100)}%)</span><span>{formatPrice(taxAmount)}</span></div>
                             )}
                             {voucherDiscount > 0 && (
                               <div className="flex justify-between text-green-600"><span>Voucher</span><span>-{formatPrice(voucherDiscount)}</span></div>
