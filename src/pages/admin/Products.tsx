@@ -372,6 +372,7 @@ export default function Products() {
                 onOptionsChange={setOptionsSchema}
                 variants={variantRows}
                 onVariantsChange={setVariantRows}
+                productImages={form.images}
               />
 
               <div>
