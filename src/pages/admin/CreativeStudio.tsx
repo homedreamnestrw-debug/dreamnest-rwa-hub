@@ -232,19 +232,6 @@ export default function CreativeStudio() {
                     </AccordionContent>
                   </AccordionItem>
 
-                  <AccordionItem value="layout">
-                    <AccordionTrigger className="text-sm">3. Frame layout</AccordionTrigger>
-                    <AccordionContent>
-                      <VariationGrid
-                        baseConfig={config}
-                        product={product}
-                        logo={logo}
-                        selected={style}
-                        onSelect={setStyle}
-                      />
-                    </AccordionContent>
-                  </AccordionItem>
-
                   <AccordionItem value="style">
                     <AccordionTrigger className="text-sm">4. Style controls</AccordionTrigger>
                     <AccordionContent>
