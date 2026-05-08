@@ -12,6 +12,7 @@ interface Props {
   logo: HTMLImageElement | null;
   selected: RenderConfig["style"];
   onSelect: (s: RenderConfig["style"]) => void;
+  orientation?: "grid" | "row";
 }
 
 export function VariationGrid({
@@ -20,13 +21,20 @@ export function VariationGrid({
   logo,
   selected,
   onSelect,
+  orientation = "grid",
 }: Props) {
   const dim = FORMATS[baseConfig.format];
-  const thumbW = 160;
+  const thumbW = orientation === "row" ? 92 : 160;
   const scale = thumbW / dim.w;
 
   return (
-    <div className="grid grid-cols-4 gap-2">
+    <div
+      className={cn(
+        orientation === "row"
+          ? "flex gap-2 overflow-x-auto pb-1"
+          : "grid grid-cols-4 gap-2",
+      )}
+    >
       {STYLE_VARIANTS.map((s) => {
         const isSel = s.key === selected;
         return (
@@ -35,6 +43,7 @@ export function VariationGrid({
             onClick={() => onSelect(s.key)}
             className={cn(
               "group flex flex-col items-stretch overflow-hidden rounded-md border bg-card p-1 text-left transition-colors hover:border-primary",
+              orientation === "row" && "flex-shrink-0",
               isSel && "border-primary ring-2 ring-primary/40",
             )}
           >
