@@ -108,6 +108,8 @@ export default function Products() {
     name: "",
     slug: "",
     description: "",
+    description_fr: "",
+    description_rw: "",
     price: 0,
     cost_price: 0,
     sku: "",
