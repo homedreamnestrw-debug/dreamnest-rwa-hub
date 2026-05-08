@@ -18,6 +18,7 @@ import { LogoControlsPanel } from "@/components/admin/studio/LogoControlsPanel";
 import { CategoryStripPanel } from "@/components/admin/studio/CategoryStripPanel";
 import { ActionBarPanel } from "@/components/admin/studio/ActionBarPanel";
 import { FeatureBadgesPanel } from "@/components/admin/studio/FeatureBadgesPanel";
+import { PolishPanel } from "@/components/admin/studio/PolishPanel";
 import { VariationGrid } from "@/components/admin/studio/VariationGrid";
 import { PlatformFormatTabs } from "@/components/admin/studio/PlatformFormatTabs";
 import {
@@ -71,6 +72,7 @@ export default function CreativeStudio() {
     canvasHistory.set((prev) => ({ ...prev, texts: t }));
   const [editMode, setEditMode] = useState(false);
   const [locked, setLocked] = useState(false);
+  const [polishedUrl, setPolishedUrl] = useState<string | null>(null);
   const [editing, setEditing] = useState<
     | { key: string; value: string; rect: { x: number; y: number; w: number; h: number } }
     | null
@@ -129,6 +131,12 @@ export default function CreativeStudio() {
     () => allImages.filter((u) => u !== mainImageUrl).slice(0, 6),
     [allImages, mainImageUrl],
   );
+  const displayedMainUrl = polishedUrl ?? mainImageUrl;
+
+  // Reset polish when main source changes
+  useEffect(() => {
+    setPolishedUrl(null);
+  }, [mainImageUrl]);
 
   const handleLog = () => {
     if (!product) return;
@@ -223,6 +231,17 @@ export default function CreativeStudio() {
                     <AccordionTrigger className="text-sm">5. Feature badges (Special Deal, etc.)</AccordionTrigger>
                     <AccordionContent>
                       <FeatureBadgesPanel value={overlays} onChange={setOverlays} />
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="polish">
+                    <AccordionTrigger className="text-sm">✨ AI Polish (Cloudinary)</AccordionTrigger>
+                    <AccordionContent>
+                      <PolishPanel
+                        sourceUrl={mainImageUrl}
+                        onPolished={setPolishedUrl}
+                        onReset={() => setPolishedUrl(null)}
+                      />
                     </AccordionContent>
                   </AccordionItem>
 
@@ -341,7 +360,7 @@ export default function CreativeStudio() {
                         product={product}
                         logo={logo}
                         scale={previewScale}
-                        mainImageUrl={mainImageUrl}
+                        mainImageUrl={displayedMainUrl}
                         satelliteUrls={satellites}
                         positions={positions}
                         onPositionsChange={setPositions}
