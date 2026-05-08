@@ -177,6 +177,10 @@ export default function CreativeStudio() {
                           onSelect={setMainImageUrl}
                           galleryView={overlays.galleryView}
                           onToggleGallery={(v) => setOverlays({ ...overlays, galleryView: v })}
+                          galleryPosition={overlays.galleryPosition}
+                          onGalleryPositionChange={(v) => setOverlays({ ...overlays, galleryPosition: v })}
+                          gallerySatCount={overlays.gallerySatCount}
+                          onGallerySatCountChange={(n) => setOverlays({ ...overlays, gallerySatCount: n })}
                         />
                       )}
                     </AccordionContent>
