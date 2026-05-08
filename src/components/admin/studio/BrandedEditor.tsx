@@ -571,7 +571,41 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                       })()}
                     </>
                   )}
-                  {s !== "bold_banner" && s !== "ribbon" && s !== "split_dark" && s !== "invitation" && s !== "product_focus" && (
+                  {s === "mirror_reflection" && (
+                    <Group
+                      clipFunc={(ctx) => {
+                        ctx.beginPath();
+                        ctx.rect(0, 0, w, h);
+                        ctx.closePath();
+                      }}
+                    >
+                      {/* Mirrored, faded backdrop of the main image */}
+                      <Group scaleX={-1} x={w} opacity={0.28}>
+                        <CoverImage
+                          img={mainImg ?? undefined}
+                          w={w}
+                          h={h}
+                          cornerRadius={0}
+                          zoom={(config.overlays.mainImageZoom ?? 1) * 1.15}
+                          offsetXPct={config.overlays.mainImageOffsetX ?? 0}
+                          offsetYPct={config.overlays.mainImageOffsetY ?? 0}
+                        />
+                      </Group>
+                      {/* Soft cream wash to push backdrop further back */}
+                      <Rect width={w} height={h} fill={COLORS.cream} opacity={0.45} />
+                      {/* Subtle vignette for focus on the centered card */}
+                      <Rect
+                        width={w}
+                        height={h}
+                        fillRadialGradientStartPoint={{ x: w / 2, y: h / 2 }}
+                        fillRadialGradientStartRadius={Math.min(w, h) * 0.25}
+                        fillRadialGradientEndPoint={{ x: w / 2, y: h / 2 }}
+                        fillRadialGradientEndRadius={Math.max(w, h) * 0.7}
+                        fillRadialGradientColorStops={[0, "rgba(0,0,0,0)", 1, "rgba(0,0,0,0.25)"]}
+                      />
+                    </Group>
+                  )}
+                  {s !== "bold_banner" && s !== "ribbon" && s !== "split_dark" && s !== "invitation" && s !== "product_focus" && s !== "mirror_reflection" && (
                     <Rect width={w} height={h} fill={accent} opacity={0.06} />
                   )}
                 </>
