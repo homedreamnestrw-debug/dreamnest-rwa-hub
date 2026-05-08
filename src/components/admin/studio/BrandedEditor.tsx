@@ -430,6 +430,9 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                   w={mainImgW}
                   h={mainImgH}
                   cornerRadius={Math.round(w * 0.02)}
+                  zoom={config.overlays.mainImageZoom ?? 1}
+                  offsetXPct={config.overlays.mainImageOffsetX ?? 0}
+                  offsetYPct={config.overlays.mainImageOffsetY ?? 0}
                 />
               </Group>
 
