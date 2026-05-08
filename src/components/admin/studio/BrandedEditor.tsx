@@ -25,6 +25,7 @@ import {
   URL as SITE,
   PHONE,
 } from "./templates/productCardRenderers";
+import { CANVAS_STRINGS, StudioLanguage } from "@/lib/studioLanguage";
 
 export interface ElementPositions {
   [key: string]: { x: number; y: number };
@@ -49,6 +50,7 @@ interface BrandedEditorProps {
   locked: boolean;
   onEditElement: (key: string, currentText: string, screenRect: { x: number; y: number; w: number; h: number }) => void;
   onSwapMainImage?: (newMain: string) => void;
+  language?: StudioLanguage;
 }
 
 function coverRect(img: HTMLImageElement, w: number, h: number) {
