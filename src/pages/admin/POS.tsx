@@ -501,7 +501,7 @@ export default function POS() {
         order_id: order.id,
         customer_id: selectedCustomer?.user_id || null,
         subtotal,
-        tax_rate: includeVat ? Math.round(vatRate * 100) : 0,
+        tax_rate: Math.round(vatRate * 100),
         tax_amount: taxAmount,
         discount: discountAmount + voucherDiscount,
         total: Math.max(0, total),
