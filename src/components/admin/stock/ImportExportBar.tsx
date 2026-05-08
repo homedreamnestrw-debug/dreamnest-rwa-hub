@@ -48,6 +48,7 @@ export function ImportExportBar(props: Props) {
         onImport={props.onImport}
         onDone={props.onImported}
         notes={props.importNotes}
+        xlsxTemplate={props.xlsxTemplate}
       />
     </div>
   );
