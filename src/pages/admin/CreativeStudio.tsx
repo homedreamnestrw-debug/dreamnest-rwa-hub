@@ -181,6 +181,10 @@ export default function CreativeStudio() {
                           onGalleryPositionChange={(v) => setOverlays({ ...overlays, galleryPosition: v })}
                           gallerySatCount={overlays.gallerySatCount}
                           onGallerySatCountChange={(n) => setOverlays({ ...overlays, gallerySatCount: n })}
+                          gallerySatSize={overlays.gallerySatSize}
+                          onGallerySatSizeChange={(n) => setOverlays({ ...overlays, gallerySatSize: n })}
+                          gallerySatShape={overlays.gallerySatShape}
+                          onGallerySatShapeChange={(s) => setOverlays({ ...overlays, gallerySatShape: s })}
                         />
                       )}
                     </AccordionContent>
