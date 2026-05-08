@@ -101,6 +101,9 @@ export const DEFAULT_OVERLAYS: OverlayToggles = {
   featurePills: ["KING SIZE", "PURE COTTON"],
   showFeatureBar: false,
   featureBarItems: ["PREMIUM QUALITY", "SOFT & BREATHABLE", "COMFORT ALL NIGHT"],
+  mainImageZoom: 1,
+  mainImageOffsetX: 0,
+  mainImageOffsetY: 0,
 };
 
 export interface ProductData {
