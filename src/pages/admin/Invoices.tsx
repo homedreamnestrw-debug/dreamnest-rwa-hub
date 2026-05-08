@@ -571,7 +571,7 @@ export default function Invoices() {
                       {!isVirtual && (
                         <Button variant="ghost" size="icon" onClick={() => fetchAuditLog(inv.id)} title="Audit trail"><History className="h-4 w-4" /></Button>
                       )}
-                      {isVirtual && (
+                      {isVirtual && inv._order_channel !== "online" && (
                         <Button
                           variant="outline"
                           size="sm"
