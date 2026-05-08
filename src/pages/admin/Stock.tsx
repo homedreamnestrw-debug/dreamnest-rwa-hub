@@ -131,7 +131,7 @@ export default function Stock() {
         const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
         return { blob, filename: "products-template.xlsx" };
       }}
-      importNotes="One row per product. Add extra rows with the same slug (and variant_name filled) to attach variants. Category is matched by name (created if missing). variant_attributes must be JSON, e.g. {\"Size\":\"Queen\"}."
+      importNotes={`One row per product. Add extra rows with the same slug (and variant_name filled) to attach variants. Category is matched by name (created if missing). variant_attributes must be JSON, e.g. {"Size":"Queen"}.`}
       onImport={async (rows): Promise<ImportResult> => {
         const errors: string[] = [];
         let ok = 0, failed = 0;
