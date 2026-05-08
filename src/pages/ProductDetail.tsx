@@ -359,8 +359,8 @@ export default function ProductDetail() {
 
             <p className="text-3xl font-serif">{formatPrice(effectivePrice)}</p>
 
-            {product.description && (
-              <p className="text-muted-foreground leading-relaxed">{product.description}</p>
+            {localizedDescription && (
+              <p className="text-muted-foreground leading-relaxed">{localizedDescription}</p>
             )}
 
             {hasVariants && (
