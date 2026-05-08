@@ -458,49 +458,72 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                           1, "rgba(245,240,232,0)",
                         ]}
                       />
-                      {/* Floral accents along the left edge */}
+                      {/* Delicate white botanical sprigs (top-left & bottom-left) */}
                       {(() => {
-                        const cx = Math.round(w * 0.07);
-                        const positionsY = [0.12, 0.32, 0.55, 0.78, 0.92];
-                        const petalR = Math.round(w * 0.018);
-                        const centerR = Math.round(w * 0.012);
-                        return positionsY.map((py, i) => {
-                          const cy = Math.round(h * py);
-                          const offset = petalR * 1.4;
-                          const petalColor = i % 2 === 0 ? COLORS.dustyRose : SOFT_GOLD;
+                        const stroke = "#FFFFFF";
+                        const sw = Math.max(2, Math.round(w * 0.0035));
+                        const leafLen = Math.round(w * 0.022);
+                        const leafW = Math.round(w * 0.009);
+
+                        const Leaf = ({
+                          x, y, rotation, len = leafLen, wd = leafW,
+                        }: { x: number; y: number; rotation: number; len?: number; wd?: number }) => (
+                          <Group x={x} y={y} rotation={rotation}>
+                            <Line
+                              closed
+                              tension={0.6}
+                              points={[0, 0, len * 0.5, -wd, len, 0, len * 0.5, wd]}
+                              fill={stroke}
+                              opacity={0.95}
+                            />
+                          </Group>
+                        );
+
+                        const Sprig = ({
+                          x, y, rotation, scale = 1, mirror = false,
+                        }: { x: number; y: number; rotation: number; scale?: number; mirror?: boolean }) => {
+                          const sx = mirror ? -scale : scale;
+                          const stemLen = Math.round(w * 0.18);
+                          // Curved stem points
+                          const pts = [
+                            0, 0,
+                            stemLen * 0.25, -stemLen * 0.05,
+                            stemLen * 0.55, -stemLen * 0.18,
+                            stemLen * 0.85, -stemLen * 0.40,
+                            stemLen, -stemLen * 0.62,
+                          ];
                           return (
-                            <Group key={`flower-${i}`} x={cx} y={cy}>
-                              {/* Leaves */}
+                            <Group x={x} y={y} rotation={rotation} scaleX={sx} scaleY={scale}>
                               <Line
-                                points={[
-                                  -offset * 1.6, offset * 0.6,
-                                  -offset * 0.4, offset * 0.1,
-                                  -offset * 0.2, offset * 1.1,
-                                ]}
-                                closed
-                                fill={COLORS.forest}
-                                opacity={0.85}
+                                points={pts}
+                                stroke={stroke}
+                                strokeWidth={sw}
+                                tension={0.5}
+                                lineCap="round"
+                                opacity={0.95}
                               />
-                              <Line
-                                points={[
-                                  offset * 1.6, -offset * 0.4,
-                                  offset * 0.4, -offset * 0.1,
-                                  offset * 0.2, -offset * 1.0,
-                                ]}
-                                closed
-                                fill={COLORS.forest}
-                                opacity={0.7}
-                              />
-                              {/* Petals */}
-                              <Circle x={-offset} y={0} radius={petalR} fill={petalColor} opacity={0.95} />
-                              <Circle x={offset} y={0} radius={petalR} fill={petalColor} opacity={0.95} />
-                              <Circle x={0} y={-offset} radius={petalR} fill={petalColor} opacity={0.95} />
-                              <Circle x={0} y={offset} radius={petalR} fill={petalColor} opacity={0.95} />
-                              {/* Center */}
-                              <Circle x={0} y={0} radius={centerR} fill={SOFT_GOLD} />
+                              {/* Leaves alternating along stem */}
+                              <Leaf x={stemLen * 0.18} y={-stemLen * 0.04} rotation={-25} />
+                              <Leaf x={stemLen * 0.30} y={-stemLen * 0.02} rotation={45} />
+                              <Leaf x={stemLen * 0.45} y={-stemLen * 0.13} rotation={-35} />
+                              <Leaf x={stemLen * 0.58} y={-stemLen * 0.18} rotation={55} />
+                              <Leaf x={stemLen * 0.72} y={-stemLen * 0.28} rotation={-40} />
+                              <Leaf x={stemLen * 0.84} y={-stemLen * 0.40} rotation={60} />
+                              <Leaf x={stemLen * 0.95} y={-stemLen * 0.55} rotation={-30} len={leafLen * 0.8} />
                             </Group>
                           );
-                        });
+                        };
+
+                        return (
+                          <>
+                            {/* Top-left sprig curving up & right */}
+                            <Sprig x={Math.round(w * 0.02)} y={Math.round(h * 0.18)} rotation={-10} scale={1} />
+                            {/* Bottom-left larger sprig curving up */}
+                            <Sprig x={Math.round(w * 0.01)} y={Math.round(h * 0.96)} rotation={-25} scale={1.25} />
+                            {/* Mid-left small accent */}
+                            <Sprig x={Math.round(w * 0.0)} y={Math.round(h * 0.62)} rotation={15} scale={0.7} />
+                          </>
+                        );
                       })()}
                     </>
                   )}
