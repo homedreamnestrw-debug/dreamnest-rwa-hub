@@ -87,6 +87,26 @@ export default function CreativeStudio() {
     canvasHistory.reset({ positions: {}, texts: {} });
   }, [product?.id]);
 
+  // Keyboard shortcuts: Cmd/Ctrl+Z = undo, Cmd/Ctrl+Shift+Z (or +Y) = redo
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && /input|textarea/i.test(target.tagName)) return;
+      const meta = e.metaKey || e.ctrlKey;
+      if (!meta) return;
+      if (e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        if (e.shiftKey) canvasHistory.redo();
+        else canvasHistory.undo();
+      } else if (e.key.toLowerCase() === "y") {
+        e.preventDefault();
+        canvasHistory.redo();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [canvasHistory]);
+
   const config: RenderConfig = useMemo(
     () => ({
       style,
