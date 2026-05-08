@@ -115,6 +115,14 @@ export const DEFAULT_OVERLAYS: OverlayToggles = {
   mainImageZoom: 1,
   mainImageOffsetX: 0,
   mainImageOffsetY: 0,
+  featurePillScale: 1,
+  featurePillAccent: "#D4A24A",
+  featurePillTextColor: "",
+  featureBarScale: 1,
+  featureBarAccent: "#D4A24A",
+  featureBarTextColor: "#F5EFE3",
+  featureBarBgColor: "#1F1A14",
+  specialDealAccent: "#D4A24A",
 };
 
 export interface ProductData {
