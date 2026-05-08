@@ -236,6 +236,10 @@ export const LAYOUT_META: Record<StyleVariant, LayoutMeta> = {
     bg: "cream",
     description: "Full-bleed product image · floral accents on left edge",
   },
+  mirror_reflection: {
+    bg: "cream",
+    description: "Faded mirrored product as backdrop · crisp centered card",
+  },
 };
 
 // Logo position helper kept for backward compat with controls

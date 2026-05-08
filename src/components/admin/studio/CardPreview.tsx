@@ -875,6 +875,70 @@ function LayoutMinimalPoster(ctx: LayoutCtx) {
 }
 
 // ---------- Layout: Split Dark ----------
+function LayoutMirrorReflection(ctx: LayoutCtx) {
+  const { w, h, product, productImg, logo, accent, badges, finalPrice, isOnSale, config } = ctx;
+  const pad = Math.round(w * 0.05);
+  const cw = Math.round(w * 0.74);
+  const ch = Math.round(h * 0.5);
+  const cx = Math.round((w - cw) / 2);
+  const cy = Math.round(h * 0.18);
+  return (
+    <>
+      <Rect width={w} height={h} fill={COLORS.cream} />
+      {/* Mirrored faded backdrop */}
+      <Group scaleX={-1} x={w} opacity={0.28}>
+        <ImageInPanel img={productImg} x={0} y={0} w={w} h={h} />
+      </Group>
+      <Rect width={w} height={h} fill={COLORS.cream} opacity={0.45} />
+      <Rect
+        width={w}
+        height={h}
+        fillRadialGradientStartPoint={{ x: w / 2, y: h / 2 }}
+        fillRadialGradientStartRadius={Math.min(w, h) * 0.25}
+        fillRadialGradientEndPoint={{ x: w / 2, y: h / 2 }}
+        fillRadialGradientEndRadius={Math.max(w, h) * 0.7}
+        fillRadialGradientColorStops={[0, "rgba(0,0,0,0)", 1, "rgba(0,0,0,0.25)"]}
+      />
+      {/* Centered crisp card */}
+      <ImageInPanel img={productImg} x={cx} y={cy} w={cw} h={ch} cornerRadius={Math.round(w * 0.02)} />
+      {logo && config.overlays.showLogo && (
+        <KImage image={logo} x={pad} y={pad} width={Math.round(w * 0.09)} height={Math.round(w * 0.09)} />
+      )}
+      {badges.length > 0 && (
+        <BadgeRow badges={badges.slice(0, 2)} x={pad} y={cy - Math.round(w * 0.085)} w={w} />
+      )}
+      {product && config.overlays.showName && (
+        <Text
+          x={pad}
+          y={cy + ch + Math.round(h * 0.04)}
+          width={w - pad * 2}
+          align="center"
+          text={product.name}
+          fontFamily={FONTS.serif}
+          fontStyle="700"
+          fontSize={Math.round(w * 0.065)}
+          fill={COLORS.charcoal}
+          lineHeight={1.05}
+        />
+      )}
+      {product && config.overlays.showPrice && (
+        <Text
+          x={pad}
+          y={h - Math.round(h * 0.16)}
+          width={w - pad * 2}
+          align="center"
+          text={fmtRWF(finalPrice)}
+          fontFamily={FONTS.sans}
+          fontStyle="900"
+          fontSize={Math.round(w * 0.06)}
+          fill={accent}
+        />
+      )}
+      <FooterStrip x={pad} y={h - Math.round(w * 0.05)} w={w - pad * 2} color={COLORS.charcoal} showUrl={config.overlays.showWatermarkUrl} />
+    </>
+  );
+}
+
 function LayoutSplitDark(ctx: LayoutCtx) {
   const { w, h, product, productImg, logo, accent, badges, finalPrice, isOnSale, config } = ctx;
   const isVertical = h > w;
@@ -1048,6 +1112,7 @@ export const CardPreview = forwardRef<Konva.Stage, CardPreviewProps>(
           {config.style === "ribbon" && LayoutRibbon(ctx)}
           {config.style === "minimal_poster" && LayoutMinimalPoster(ctx)}
           {config.style === "split_dark" && LayoutSplitDark(ctx)}
+          {config.style === "mirror_reflection" && LayoutMirrorReflection(ctx)}
         </Layer>
       </Stage>
     );
