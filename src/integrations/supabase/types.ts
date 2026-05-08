@@ -905,6 +905,7 @@ export type Database = {
           barcode: string | null
           created_at: string
           id: string
+          image_url: string | null
           is_active: boolean
           price_override: number | null
           product_id: string
@@ -918,6 +919,7 @@ export type Database = {
           barcode?: string | null
           created_at?: string
           id?: string
+          image_url?: string | null
           is_active?: boolean
           price_override?: number | null
           product_id: string
@@ -931,6 +933,7 @@ export type Database = {
           barcode?: string | null
           created_at?: string
           id?: string
+          image_url?: string | null
           is_active?: boolean
           price_override?: number | null
           product_id?: string
