@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Plus, X, Sparkles } from "lucide-react";
+import { Plus, X, Sparkles, ImageIcon } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 export type OptionsSchema = Record<string, string[]>;
@@ -15,6 +15,7 @@ export interface VariantRow {
   sku: string;
   price_override: number | null;
   is_active: boolean;
+  image_url: string | null; // optional override image (must be one of product.images)
   stock: Record<string, number>; // location_id -> qty
 }
 
@@ -26,6 +27,7 @@ interface Props {
   onOptionsChange: (next: OptionsSchema) => void;
   variants: VariantRow[];
   onVariantsChange: (next: VariantRow[]) => void;
+  productImages?: string[];
 }
 
 const cartesian = (lists: string[][]): string[][] => {
