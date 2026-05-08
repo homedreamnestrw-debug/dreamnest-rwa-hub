@@ -425,7 +425,7 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                       fill={COLORS.teal}
                     />
                   )}
-                  {s !== "bold_banner" && s !== "ribbon" && s !== "split_dark" && (
+                  {s !== "bold_banner" && s !== "ribbon" && s !== "split_dark" && s !== "invitation" && (
                     <Rect width={w} height={h} fill={accent} opacity={0.06} />
                   )}
                 </>
