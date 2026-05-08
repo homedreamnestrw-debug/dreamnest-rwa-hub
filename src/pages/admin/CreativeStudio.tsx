@@ -19,6 +19,7 @@ import { CategoryStripPanel } from "@/components/admin/studio/CategoryStripPanel
 import { ActionBarPanel } from "@/components/admin/studio/ActionBarPanel";
 import { FeatureBadgesPanel } from "@/components/admin/studio/FeatureBadgesPanel";
 import { PolishPanel } from "@/components/admin/studio/PolishPanel";
+import { StudioUploads } from "@/components/admin/studio/StudioUploads";
 import { VariationGrid } from "@/components/admin/studio/VariationGrid";
 import { PlatformFormatTabs } from "@/components/admin/studio/PlatformFormatTabs";
 import {
@@ -73,6 +74,7 @@ export default function CreativeStudio() {
   const [editMode, setEditMode] = useState(false);
   const [locked, setLocked] = useState(false);
   const [polishedUrl, setPolishedUrl] = useState<string | null>(null);
+  const [customUploads, setCustomUploads] = useState<string[]>([]);
   const [editing, setEditing] = useState<
     | { key: string; value: string; rect: { x: number; y: number; w: number; h: number } }
     | null
@@ -126,7 +128,11 @@ export default function CreativeStudio() {
   const scaleH = maxH / dim.h;
   const previewScale = Math.min(scaleW, scaleH);
 
-  const allImages = product?.images ?? (product?.imageUrl ? [product.imageUrl] : []);
+  const productImages = product?.images ?? (product?.imageUrl ? [product.imageUrl] : []);
+  const allImages = useMemo(
+    () => [...productImages, ...customUploads],
+    [productImages, customUploads],
+  );
   const satellites = useMemo(
     () => allImages.filter((u) => u !== mainImageUrl).slice(0, 6),
     [allImages, mainImageUrl],
@@ -197,6 +203,19 @@ export default function CreativeStudio() {
                           onGallerySatGapChange={(n) => setOverlays({ ...overlays, gallerySatGap: n })}
                         />
                       )}
+                      <StudioUploads
+                        uploaded={customUploads}
+                        selected={mainImageUrl}
+                        onUploaded={(url) => {
+                          setCustomUploads((prev) => [...prev, url]);
+                          setMainImageUrl(url);
+                        }}
+                        onSelect={setMainImageUrl}
+                        onRemove={(url) => {
+                          setCustomUploads((prev) => prev.filter((u) => u !== url));
+                          if (mainImageUrl === url) setMainImageUrl(productImages[0] ?? null);
+                        }}
+                      />
                     </AccordionContent>
                   </AccordionItem>
 
