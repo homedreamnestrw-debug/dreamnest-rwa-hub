@@ -48,12 +48,9 @@ export interface OverlayToggles {
   specialDealOldPrice: string;
   specialDealNewPrice: string;
   showFeaturePills: boolean; // top-right gold circle pills
-  featurePill1: string; // e.g. "KING SIZE"
-  featurePill2: string; // e.g. "PURE COTTON"
-  showFeatureBar: boolean; // bottom 3-up gold-icon strip
-  featureBar1: string; // "PREMIUM QUALITY"
-  featureBar2: string; // "SOFT & BREATHABLE"
-  featureBar3: string; // "COMFORT ALL NIGHT"
+  featurePills: string[]; // independent list, add one by one
+  showFeatureBar: boolean; // bottom gold-icon strip
+  featureBarItems: string[]; // independent list, add one by one
 }
 
 export const DEFAULT_OVERLAYS: OverlayToggles = {
@@ -87,12 +84,9 @@ export const DEFAULT_OVERLAYS: OverlayToggles = {
   specialDealOldPrice: "130,000",
   specialDealNewPrice: "100,000",
   showFeaturePills: false,
-  featurePill1: "KING SIZE",
-  featurePill2: "PURE COTTON",
+  featurePills: ["KING SIZE", "PURE COTTON"],
   showFeatureBar: false,
-  featureBar1: "PREMIUM QUALITY",
-  featureBar2: "SOFT & BREATHABLE",
-  featureBar3: "COMFORT ALL NIGHT",
+  featureBarItems: ["PREMIUM QUALITY", "SOFT & BREATHABLE", "COMFORT ALL NIGHT"],
 };
 
 export interface ProductData {
