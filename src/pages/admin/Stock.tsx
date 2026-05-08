@@ -45,7 +45,7 @@ export default function Stock() {
       templateHeaders={["name","slug","sku","price","cost_price","stock_quantity","low_stock_threshold","category_name","is_active","featured","tax_enabled","description"]}
       exportRows={async () => {
         const [{ data: prods }, { data: cats }] = await Promise.all([
-          supabase.from("products").select("*").order("name"),
+          supabase.rpc("get_admin_products_with_costs"),
           supabase.from("categories").select("id,name"),
         ]);
         const catMap = new Map((cats || []).map((c) => [c.id, c.name]));
