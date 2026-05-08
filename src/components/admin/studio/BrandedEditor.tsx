@@ -199,8 +199,11 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
     const draggable = !locked;
 
     function makeDragHandlers(key: string) {
+      const isSelected = selectedKey === key;
       return {
-        draggable,
+        draggable: !locked || isSelected,
+        onMouseDown: () => setSelectedKey(key),
+        onTouchStart: () => setSelectedKey(key),
         onDragMove: (e: Konva.KonvaEventObject<DragEvent>) => {
           const node = e.target;
           const { x, y, gx, gy } = snapPos(node.x(), node.y());
