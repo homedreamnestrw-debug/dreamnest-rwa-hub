@@ -678,6 +678,7 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                 />
               )}
             </Group>
+            )}
 
             {/* Logo + bg pill */}
             {config.overlays.showLogo && (
