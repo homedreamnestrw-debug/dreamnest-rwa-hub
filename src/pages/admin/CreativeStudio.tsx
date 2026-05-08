@@ -20,6 +20,7 @@ import { ActionBarPanel } from "@/components/admin/studio/ActionBarPanel";
 import { FeatureBadgesPanel } from "@/components/admin/studio/FeatureBadgesPanel";
 import { PolishPanel } from "@/components/admin/studio/PolishPanel";
 import { StudioUploads } from "@/components/admin/studio/StudioUploads";
+import { MainImageAdjustPanel } from "@/components/admin/studio/MainImageAdjustPanel";
 import { VariationGrid } from "@/components/admin/studio/VariationGrid";
 import { PlatformFormatTabs } from "@/components/admin/studio/PlatformFormatTabs";
 import {
@@ -216,6 +217,7 @@ export default function CreativeStudio() {
                           if (mainImageUrl === url) setMainImageUrl(productImages[0] ?? null);
                         }}
                       />
+                      <MainImageAdjustPanel value={overlays} onChange={setOverlays} />
                     </AccordionContent>
                   </AccordionItem>
 
