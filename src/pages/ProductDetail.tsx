@@ -13,6 +13,7 @@ import { useShopEnabled } from "@/hooks/useShopEnabled";
 import { ComingSoon } from "@/components/layout/ComingSoon";
 import { SEO } from "@/components/SEO";
 import { FeaturedProducts } from "@/components/product/FeaturedProducts";
+import { pickLocalizedDescription } from "@/lib/studioLanguage";
 
 /**
  * Best-effort mapping of a free-text color value (e.g. "Rabbit plush warm sun orange",
@@ -253,10 +254,11 @@ export default function ProductDetail() {
     ? (reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / reviews.length).toFixed(1)
     : null;
 
+  const localizedDescription = pickLocalizedDescription(product as any);
   const productImage = product.images?.[0];
   const categoryName = product.categories?.name ?? "home decor";
-  const seoDesc = product.description
-    ? product.description.replace(/<[^>]*>/g, "").slice(0, 160)
+  const seoDesc = localizedDescription
+    ? localizedDescription.replace(/<[^>]*>/g, "").slice(0, 160)
     : `Buy ${product.name} at DreamNest — premium bedding Kigali, ${categoryName} in Rwanda. Quality home decor delivered across Kigali.`;
   const seoKeywords = `${product.name}, ${categoryName} Kigali, bedding Kigali, premium bedding Rwanda, home decor Rwanda, DreamNest`;
   const jsonLd = {
@@ -357,8 +359,8 @@ export default function ProductDetail() {
 
             <p className="text-3xl font-serif">{formatPrice(effectivePrice)}</p>
 
-            {product.description && (
-              <p className="text-muted-foreground leading-relaxed">{product.description}</p>
+            {localizedDescription && (
+              <p className="text-muted-foreground leading-relaxed">{localizedDescription}</p>
             )}
 
             {hasVariants && (

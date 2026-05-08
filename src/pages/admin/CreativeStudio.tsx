@@ -46,6 +46,8 @@ import { useBrandAssets } from "@/hooks/useBrandAssets";
 import { useCreativeHistory } from "@/hooks/useCreativeHistory";
 import { Sparkles, Edit3, Lock, Unlock, RotateCcw, Undo2, Redo2 } from "lucide-react";
 import { useUndoRedo } from "@/hooks/useUndoRedo";
+import { LanguageSelector } from "@/components/admin/studio/LanguageSelector";
+import { useStudioLanguage } from "@/lib/studioLanguage";
 
 export default function CreativeStudio() {
   const { logo } = useBrandAssets();
@@ -81,6 +83,7 @@ export default function CreativeStudio() {
     | null
   >(null);
   const stageRef = useRef<Konva.Stage>(null);
+  const { language, setLanguage } = useStudioLanguage();
 
   // When product changes, default main image
   useEffect(() => {
@@ -354,18 +357,21 @@ export default function CreativeStudio() {
                         {dim.w} × {dim.h} px · {editMode ? "Editing" : "Preview"} · {locked ? "Locked" : "Drag enabled"}
                       </div>
                     </div>
-                    <ExportBar
-                      stageRef={stageRef}
-                      filenameBase={
-                        product
-                          ? `dreamnest-${(product.name || "card")
-                              .toLowerCase()
-                              .replace(/[^a-z0-9]+/g, "-")}-${format}`
-                          : `dreamnest-${format}`
-                      }
-                      caption={caption}
-                      onLogged={handleLog}
-                    />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <LanguageSelector value={language} onChange={setLanguage} size="xs" />
+                      <ExportBar
+                        stageRef={stageRef}
+                        filenameBase={
+                          product
+                            ? `dreamnest-${(product.name || "card")
+                                .toLowerCase()
+                                .replace(/[^a-z0-9]+/g, "-")}-${format}`
+                            : `dreamnest-${format}`
+                        }
+                        caption={caption}
+                        onLogged={handleLog}
+                      />
+                    </div>
                   </div>
                   <div className="flex justify-center rounded-md border bg-muted/30 p-4">
                     <div
@@ -393,6 +399,7 @@ export default function CreativeStudio() {
                           setEditing({ key, value, rect })
                         }
                         onSwapMainImage={(u) => setMainImageUrl(u)}
+                        language={language}
                       />
                       {editing && (
                         <InlineTextEditor

@@ -9,11 +9,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Search, Sparkles, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Sparkles, Loader2, Languages } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { ProductImageUpload } from "@/components/admin/ProductImageUpload";
 import { VariantManager, persistVariants, type OptionsSchema, type VariantRow } from "@/components/admin/VariantManager";
 import type { Tables, TablesInsert } from "@/integrations/supabase/types";
+import { LanguageSelector } from "@/components/admin/studio/LanguageSelector";
+import {
+  LANGUAGE_OPTIONS,
+  StudioLanguage,
+  useStudioLanguage,
+} from "@/lib/studioLanguage";
 
 type Product = Tables<"products">;
 type Category = Tables<"categories">;
@@ -31,6 +38,8 @@ export default function Products() {
   const [optionsSchema, setOptionsSchema] = useState<OptionsSchema>({});
   const [variantRows, setVariantRows] = useState<VariantRow[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiBatchLoading, setAiBatchLoading] = useState(false);
+  const { language: descLang, setLanguage: setDescLang } = useStudioLanguage();
 
   const generateDescription = async () => {
     if (!form.name) {
@@ -41,12 +50,21 @@ export default function Products() {
     try {
       const cat = categories.find((c) => c.id === form.category_id)?.name;
       const { data, error } = await supabase.functions.invoke("gemini-generate", {
-        body: { mode: "description", product: { name: form.name, price: form.price, category: cat } },
+        body: {
+          mode: "description",
+          product: { name: form.name, price: form.price, category: cat },
+          language: descLang,
+        },
       });
       if (error) throw error;
       if (!data?.text) throw new Error("Empty response");
-      setForm((f) => ({ ...f, description: data.text }));
-      toast({ title: "Description generated" });
+      setForm((f) => ({
+        ...f,
+        ...(descLang === "en" ? { description: data.text } : {}),
+        ...(descLang === "fr" ? { description_fr: data.text } : {}),
+        ...(descLang === "rw" ? { description_rw: data.text } : {}),
+      }));
+      toast({ title: `Description generated (${descLang.toUpperCase()})` });
     } catch (e: any) {
       toast({ title: "AI failed", description: e.message, variant: "destructive" });
     } finally {
@@ -54,10 +72,44 @@ export default function Products() {
     }
   };
 
+  const generateAllDescriptions = async () => {
+    if (!form.name) {
+      toast({ title: "Enter a product name first", variant: "destructive" });
+      return;
+    }
+    setAiBatchLoading(true);
+    try {
+      const cat = categories.find((c) => c.id === form.category_id)?.name;
+      const { data, error } = await supabase.functions.invoke("gemini-generate", {
+        body: {
+          mode: "description",
+          product: { name: form.name, price: form.price, category: cat },
+          languages: ["en", "fr", "rw"],
+        },
+      });
+      if (error) throw error;
+      const texts = data?.texts as Partial<Record<StudioLanguage, string>> | undefined;
+      if (!texts) throw new Error("Empty response");
+      setForm((f) => ({
+        ...f,
+        description: texts.en ?? f.description,
+        description_fr: texts.fr ?? f.description_fr,
+        description_rw: texts.rw ?? f.description_rw,
+      }));
+      toast({ title: "Descriptions generated in 3 languages" });
+    } catch (e: any) {
+      toast({ title: "AI failed", description: e.message, variant: "destructive" });
+    } finally {
+      setAiBatchLoading(false);
+    }
+  };
+
   const [form, setForm] = useState({
     name: "",
     slug: "",
     description: "",
+    description_fr: "",
+    description_rw: "",
     price: 0,
     cost_price: 0,
     sku: "",
@@ -84,7 +136,7 @@ export default function Products() {
   useEffect(() => { fetchData(); }, []);
 
   const resetForm = () => {
-    setForm({ name: "", slug: "", description: "", price: 0, cost_price: 0, sku: "", low_stock_threshold: 5, category_id: "", tax_enabled: true, is_active: true, featured: false, images: [] });
+    setForm({ name: "", slug: "", description: "", description_fr: "", description_rw: "", price: 0, cost_price: 0, sku: "", low_stock_threshold: 5, category_id: "", tax_enabled: true, is_active: true, featured: false, images: [] });
     setLocationStock({});
     setOptionsSchema({});
     setVariantRows([]);
@@ -97,6 +149,8 @@ export default function Products() {
       name: p.name,
       slug: p.slug,
       description: p.description || "",
+      description_fr: (p as any).description_fr || "",
+      description_rw: (p as any).description_rw || "",
       price: p.price,
       cost_price: p.cost_price,
       sku: p.sku || "",
@@ -162,7 +216,9 @@ export default function Products() {
       category_id: form.category_id || null,
       images: images.length > 0 ? images : null,
       variant_attributes: optionsSchema as any,
-    };
+      description_fr: form.description_fr || null,
+      description_rw: form.description_rw || null,
+    } as any;
 
     let productId: string;
     if (editing) {
@@ -238,14 +294,38 @@ export default function Products() {
                 <Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} placeholder="auto-generated" />
               </div>
               <div>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <Label>Description</Label>
-                  <Button type="button" size="sm" variant="outline" onClick={generateDescription} disabled={aiLoading}>
+                  <LanguageSelector value={descLang} onChange={setDescLang} size="xs" />
+                </div>
+                <div className="flex flex-wrap gap-2 my-2">
+                  <Button type="button" size="sm" variant="outline" onClick={generateDescription} disabled={aiLoading || aiBatchLoading}>
                     {aiLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-                    Generate with AI
+                    Generate ({descLang.toUpperCase()})
+                  </Button>
+                  <Button type="button" size="sm" variant="secondary" onClick={generateAllDescriptions} disabled={aiLoading || aiBatchLoading}>
+                    {aiBatchLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Languages className="h-3.5 w-3.5" />}
+                    Generate All Languages
                   </Button>
                 </div>
-                <Textarea rows={5} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+                <Tabs value={descLang} onValueChange={(v) => setDescLang(v as StudioLanguage)}>
+                  <TabsList className="grid grid-cols-3">
+                    {LANGUAGE_OPTIONS.map((opt) => (
+                      <TabsTrigger key={opt.value} value={opt.value} className="text-xs">
+                        {opt.flag} {opt.value.toUpperCase()}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                  <TabsContent value="en" className="mt-2">
+                    <Textarea rows={5} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="English description" />
+                  </TabsContent>
+                  <TabsContent value="fr" className="mt-2">
+                    <Textarea rows={5} value={form.description_fr} onChange={(e) => setForm({ ...form, description_fr: e.target.value })} placeholder="Description en français" />
+                  </TabsContent>
+                  <TabsContent value="rw" className="mt-2">
+                    <Textarea rows={5} value={form.description_rw} onChange={(e) => setForm({ ...form, description_rw: e.target.value })} placeholder="Incamake mu Kinyarwanda" />
+                  </TabsContent>
+                </Tabs>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div><Label>Price (RWF)</Label><Input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: +e.target.value })} /></div>
