@@ -78,7 +78,7 @@ export interface OverlayToggles {
 export interface CustomTextItem {
   id: string;
   text: string;
-  fontFamily: "serif" | "sans" | "display" | "mono";
+  fontFamily: FontKey;
   fontSize: number; // px at 1080-base, scales with canvas width
   color: string; // hex
   bold: boolean;
