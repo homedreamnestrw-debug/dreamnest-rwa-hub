@@ -842,13 +842,13 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                     fontFamily={FONTS.sans}
                     fontStyle="900"
                     fontSize={titleSize}
-                    fill={SOFT_GOLD}
+                    fill={sdAccent}
                     letterSpacing={2}
                   />
                   {/* divider sparkles */}
                   <Line
                     points={[0, titleSize * 2.35, blockW * 0.35, titleSize * 2.35]}
-                    stroke={SOFT_GOLD}
+                    stroke={sdAccent}
                     strokeWidth={2}
                   />
                   <Text
@@ -886,7 +886,7 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                     fontFamily={FONTS.sans}
                     fontStyle="900"
                     fontSize={priceSize * 1.15}
-                    fill={SOFT_GOLD}
+                    fill={sdAccent}
                     onDblClick={handleDblClick("specialDealNew", T("specialDealNew", config.overlays.specialDealNewPrice))}
                     onDblTap={handleDblClick("specialDealNew", T("specialDealNew", config.overlays.specialDealNewPrice))}
                   />
