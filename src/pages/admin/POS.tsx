@@ -1074,8 +1074,8 @@ export default function POS() {
                             {discountAmount > 0 && (
                               <div className="flex justify-between text-red-600"><span>Discount{discountType === "percent" ? ` (${discountValue}%)` : ""}</span><span>-{formatPrice(discountAmount)}</span></div>
                             )}
-                            {includeVat && (
-                              <div className="flex justify-between"><span className="text-muted-foreground">VAT ({Math.round(vatRate * 100)}%)</span><span>{formatPrice(taxAmount)}</span></div>
+                            {taxAmount > 0 && (
+                              <div className="flex justify-between text-xs text-muted-foreground"><span>VAT incl. ({Math.round(vatRate * 100)}%)</span><span>{formatPrice(taxAmount)}</span></div>
                             )}
                             {voucherDiscount > 0 && (
                               <div className="flex justify-between text-green-600"><span>Voucher</span><span>-{formatPrice(voucherDiscount)}</span></div>
