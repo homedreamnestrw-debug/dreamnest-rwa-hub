@@ -141,8 +141,8 @@ function CoverImage({
 }
 
 function logoSizePx(key: "sm" | "md" | "lg", w: number) {
-  // Scale base sizes (60/100/140 at 1080) proportionally
-  const base = key === "sm" ? 60 : key === "lg" ? 140 : 100;
+  // Scale base sizes proportionally to canvas width (1080-base)
+  const base = key === "sm" ? 130 : key === "lg" ? 280 : 200;
   return Math.round(base * (w / 1080));
 }
 
