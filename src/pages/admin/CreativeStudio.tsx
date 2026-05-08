@@ -298,6 +298,13 @@ export default function CreativeStudio() {
                     </AccordionContent>
                   </AccordionItem>
 
+                  <AccordionItem value="customtext">
+                    <AccordionTrigger className="text-sm">10. Custom free text</AccordionTrigger>
+                    <AccordionContent>
+                      <CustomTextPanel value={overlays} onChange={setOverlays} />
+                    </AccordionContent>
+                  </AccordionItem>
+
                   <AccordionItem value="canvas">
                     <AccordionTrigger className="text-sm">10. Canvas controls</AccordionTrigger>
                     <AccordionContent className="space-y-2">
