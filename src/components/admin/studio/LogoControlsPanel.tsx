@@ -43,6 +43,22 @@ export function LogoControlsPanel({ value, onChange }: Props) {
       </div>
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
+          <Label className="text-xs">Logo scale (fine-tune)</Label>
+          <span className="text-xs text-muted-foreground">{value.logoScale ?? 100}%</span>
+        </div>
+        <Slider
+          value={[value.logoScale ?? 100]}
+          min={50}
+          max={300}
+          step={5}
+          onValueChange={([v]) => set("logoScale", v)}
+        />
+        <p className="text-[10px] text-muted-foreground">
+          Drag the logo on the canvas to reposition. Use this slider to resize precisely.
+        </p>
+      </div>
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
           <Label className="text-xs">Logo opacity</Label>
           <span className="text-xs text-muted-foreground">{value.logoOpacity}%</span>
         </div>
