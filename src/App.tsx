@@ -38,6 +38,7 @@ import Settings from "./pages/admin/Settings";
 import POS from "./pages/admin/POS";
 import Staff from "./pages/admin/Staff";
 import Finance from "./pages/admin/Finance";
+import CreditManagement from "./pages/admin/CreditManagement";
 import Messages from "./pages/admin/Messages";
 import GiftVouchers from "./pages/GiftVouchers";
 import GiftVoucherConfirmation from "./pages/GiftVoucherConfirmation";
@@ -111,6 +112,7 @@ const App = () => (
               <Route path="settings" element={<ProtectedRoute requiredRole="admin"><Settings /></ProtectedRoute>} />
               <Route path="staff" element={<ProtectedRoute requiredRole="admin"><Staff /></ProtectedRoute>} />
               <Route path="finance" element={<ProtectedRoute requiredRole="admin"><Finance /></ProtectedRoute>} />
+              <Route path="credit" element={<ProtectedRoute requiredRole="admin"><CreditManagement /></ProtectedRoute>} />
             </Route>
 
             {/* Catch-all */}
