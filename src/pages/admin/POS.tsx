@@ -526,7 +526,7 @@ export default function POS() {
           description: i.name,
           quantity: i.quantity,
           unit_price: i.selling_price,
-          tax: includeVat ? Math.round(i.selling_price * i.quantity * vatRate) : 0,
+          tax: Math.round((i.selling_price * i.quantity) - (i.selling_price * i.quantity) / (1 + vatRate)),
           total: i.selling_price * i.quantity,
         }));
         await supabase.from("invoice_items").insert(invoiceItems);
