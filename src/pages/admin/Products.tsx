@@ -149,6 +149,8 @@ export default function Products() {
       name: p.name,
       slug: p.slug,
       description: p.description || "",
+      description_fr: (p as any).description_fr || "",
+      description_rw: (p as any).description_rw || "",
       price: p.price,
       cost_price: p.cost_price,
       sku: p.sku || "",
