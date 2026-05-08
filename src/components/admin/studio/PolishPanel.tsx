@@ -210,6 +210,43 @@ export function PolishPanel({ sourceUrl, onPolished, onReset }: Props) {
             disabled={!publicId}
           />
         </div>
+
+        <div className="space-y-1 rounded-md border border-dashed p-2">
+          <div className="flex items-center gap-1">
+            <Wand2 className="h-3.5 w-3.5 text-primary" />
+            <Label className="text-[11px] font-medium">AI Background Replace</Label>
+          </div>
+          <p className="text-[10px] text-muted-foreground">
+            Describe a new scene · Cloudinary Generative AI swaps the background. Leave empty to keep original.
+          </p>
+          <div className="flex gap-1">
+            <Input
+              value={opts.bgReplacePrompt}
+              onChange={(e) => setOpts({ ...opts, bgReplacePrompt: e.target.value })}
+              placeholder="e.g. cozy bedroom with morning light"
+              disabled={!publicId}
+              className="h-8 text-xs"
+            />
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={!publicId}
+              onClick={() => apply(opts)}
+            >
+              Apply
+            </Button>
+          </div>
+          {opts.bgReplacePrompt && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 px-2 text-[11px]"
+              onClick={() => update({ bgReplacePrompt: "" })}
+            >
+              Clear background prompt
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
