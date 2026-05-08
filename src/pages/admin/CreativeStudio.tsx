@@ -357,18 +357,21 @@ export default function CreativeStudio() {
                         {dim.w} × {dim.h} px · {editMode ? "Editing" : "Preview"} · {locked ? "Locked" : "Drag enabled"}
                       </div>
                     </div>
-                    <ExportBar
-                      stageRef={stageRef}
-                      filenameBase={
-                        product
-                          ? `dreamnest-${(product.name || "card")
-                              .toLowerCase()
-                              .replace(/[^a-z0-9]+/g, "-")}-${format}`
-                          : `dreamnest-${format}`
-                      }
-                      caption={caption}
-                      onLogged={handleLog}
-                    />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <LanguageSelector value={language} onChange={setLanguage} size="xs" />
+                      <ExportBar
+                        stageRef={stageRef}
+                        filenameBase={
+                          product
+                            ? `dreamnest-${(product.name || "card")
+                                .toLowerCase()
+                                .replace(/[^a-z0-9]+/g, "-")}-${format}`
+                            : `dreamnest-${format}`
+                        }
+                        caption={caption}
+                        onLogged={handleLog}
+                      />
+                    </div>
                   </div>
                   <div className="flex justify-center rounded-md border bg-muted/30 p-4">
                     <div
