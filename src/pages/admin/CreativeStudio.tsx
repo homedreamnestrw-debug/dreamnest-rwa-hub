@@ -19,6 +19,7 @@ import { CategoryStripPanel } from "@/components/admin/studio/CategoryStripPanel
 import { ActionBarPanel } from "@/components/admin/studio/ActionBarPanel";
 import { FeatureBadgesPanel } from "@/components/admin/studio/FeatureBadgesPanel";
 import { PolishPanel } from "@/components/admin/studio/PolishPanel";
+import { StudioUploads } from "@/components/admin/studio/StudioUploads";
 import { VariationGrid } from "@/components/admin/studio/VariationGrid";
 import { PlatformFormatTabs } from "@/components/admin/studio/PlatformFormatTabs";
 import {
@@ -73,6 +74,7 @@ export default function CreativeStudio() {
   const [editMode, setEditMode] = useState(false);
   const [locked, setLocked] = useState(false);
   const [polishedUrl, setPolishedUrl] = useState<string | null>(null);
+  const [customUploads, setCustomUploads] = useState<string[]>([]);
   const [editing, setEditing] = useState<
     | { key: string; value: string; rect: { x: number; y: number; w: number; h: number } }
     | null
