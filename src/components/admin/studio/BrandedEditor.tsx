@@ -7,6 +7,7 @@ import {
   Text,
   Group,
   Line,
+  Circle,
 } from "react-konva";
 import useImage from "use-image";
 import Konva from "konva";
@@ -311,12 +312,48 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
           scaleY={scale}
         >
           <Layer>
-            {/* Background */}
-            <Rect width={w} height={h} fill={COLORS.cream} />
-
-            {/* Background tone tied to color shade for ambience */}
-            <Rect width={w} height={h} fill={accent} opacity={0.06} />
-
+            {/* Style-driven background */}
+            {(() => {
+              const s = config.style;
+              const bgFill =
+                s === "bold_banner" ? COLORS.midnight
+                : s === "catalogue" || s === "split_dark" ? COLORS.charcoal
+                : s === "ribbon" ? accent
+                : s === "magazine" || s === "minimal_poster" ? COLORS.warmWhite
+                : COLORS.cream;
+              return (
+                <>
+                  <Rect width={w} height={h} fill={bgFill} />
+                  {/* Style-specific accent shapes */}
+                  {s === "bold_banner" && (
+                    <Circle x={w * 0.95} y={h * 0.1} radius={w * 0.55} fill={SOFT_GOLD} opacity={0.95} />
+                  )}
+                  {s === "ribbon" && (
+                    <Rect x={0} y={h * 0.18} width={w} height={h * 0.64} fill={COLORS.cream} />
+                  )}
+                  {s === "split_dark" && (
+                    <Rect x={0} y={0} width={w / 2} height={h} fill={COLORS.cream} />
+                  )}
+                  {s === "editorial_soft" && (
+                    <Rect
+                      x={0}
+                      y={Math.round(h * 0.55)}
+                      width={w}
+                      height={Math.round(h * 0.45)}
+                      fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+                      fillLinearGradientEndPoint={{ x: 0, y: Math.round(h * 0.45) }}
+                      fillLinearGradientColorStops={[0, "rgba(0,0,0,0)", 1, "rgba(0,0,0,0.35)"]}
+                    />
+                  )}
+                  {s === "minimal_poster" && (
+                    <Line points={[w * 0.1, h * 0.5, w * 0.22, h * 0.5]} stroke={accent} strokeWidth={3} />
+                  )}
+                  {s !== "bold_banner" && s !== "ribbon" && s !== "split_dark" && (
+                    <Rect width={w} height={h} fill={accent} opacity={0.06} />
+                  )}
+                </>
+              );
+            })()}
             {/* Product image / gallery */}
             <Group
               x={P("productImage").x}
