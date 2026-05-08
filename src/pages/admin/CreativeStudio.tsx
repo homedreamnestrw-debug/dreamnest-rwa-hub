@@ -18,6 +18,7 @@ import { LogoControlsPanel } from "@/components/admin/studio/LogoControlsPanel";
 import { CategoryStripPanel } from "@/components/admin/studio/CategoryStripPanel";
 import { ActionBarPanel } from "@/components/admin/studio/ActionBarPanel";
 import { FeatureBadgesPanel } from "@/components/admin/studio/FeatureBadgesPanel";
+import { PolishPanel } from "@/components/admin/studio/PolishPanel";
 import { VariationGrid } from "@/components/admin/studio/VariationGrid";
 import { PlatformFormatTabs } from "@/components/admin/studio/PlatformFormatTabs";
 import {
@@ -348,7 +349,7 @@ export default function CreativeStudio() {
                         product={product}
                         logo={logo}
                         scale={previewScale}
-                        mainImageUrl={mainImageUrl}
+                        mainImageUrl={displayedMainUrl}
                         satelliteUrls={satellites}
                         positions={positions}
                         onPositionsChange={setPositions}
