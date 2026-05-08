@@ -120,6 +120,7 @@ export const DEFAULT_OVERLAYS: OverlayToggles = {
   logoSize: "md",
   logoOpacity: 100,
   logoBg: "none",
+  logoScale: 100,
   galleryView: false,
   galleryPosition: "right",
   gallerySatCount: 4,
