@@ -86,6 +86,8 @@ export const DEFAULT_OVERLAYS: OverlayToggles = {
   galleryView: false,
   galleryPosition: "right",
   gallerySatCount: 4,
+  gallerySatSize: 100,
+  gallerySatShape: "square",
   showSpecialDeal: false,
   specialDealOldPrice: "130,000",
   specialDealNewPrice: "100,000",
