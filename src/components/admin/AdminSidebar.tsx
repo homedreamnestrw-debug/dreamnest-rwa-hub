@@ -74,6 +74,7 @@ const insightsItems: NavItem[] = [
   { title: "Dashboard", url: "/admin/dashboard", icon: LayoutDashboard, visibility: "admin" },
   { title: "Analytics", url: "/admin/analytics", icon: BarChart3, visibility: "admin" },
   { title: "Payment Approvals", url: "/admin/finance", icon: DollarSign, visibility: "admin" },
+  { title: "Credit Management", url: "/admin/credit", icon: CreditCard, visibility: "admin" },
 ];
 
 function VisibilityTag({ visibility }: { visibility: Visibility }) {
