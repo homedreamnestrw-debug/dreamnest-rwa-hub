@@ -43,6 +43,8 @@ export interface OverlayToggles {
   logoBg: "none" | "white" | "dark";
   // Gallery
   galleryView: boolean;
+  galleryPosition: "right" | "left" | "below";
+  gallerySatCount: number; // 1..6
   // Feature badges (reference-style)
   showSpecialDeal: boolean;
   specialDealOldPrice: string;
@@ -80,6 +82,8 @@ export const DEFAULT_OVERLAYS: OverlayToggles = {
   logoOpacity: 100,
   logoBg: "none",
   galleryView: false,
+  galleryPosition: "right",
+  gallerySatCount: 4,
   showSpecialDeal: false,
   specialDealOldPrice: "130,000",
   specialDealNewPrice: "100,000",

@@ -126,7 +126,7 @@ export default function CreativeStudio() {
 
   const allImages = product?.images ?? (product?.imageUrl ? [product.imageUrl] : []);
   const satellites = useMemo(
-    () => allImages.filter((u) => u !== mainImageUrl).slice(0, 4),
+    () => allImages.filter((u) => u !== mainImageUrl).slice(0, 6),
     [allImages, mainImageUrl],
   );
 
@@ -177,6 +177,10 @@ export default function CreativeStudio() {
                           onSelect={setMainImageUrl}
                           galleryView={overlays.galleryView}
                           onToggleGallery={(v) => setOverlays({ ...overlays, galleryView: v })}
+                          galleryPosition={overlays.galleryPosition}
+                          onGalleryPositionChange={(v) => setOverlays({ ...overlays, galleryPosition: v })}
+                          gallerySatCount={overlays.gallerySatCount}
+                          onGallerySatCountChange={(n) => setOverlays({ ...overlays, gallerySatCount: n })}
                         />
                       )}
                     </AccordionContent>
