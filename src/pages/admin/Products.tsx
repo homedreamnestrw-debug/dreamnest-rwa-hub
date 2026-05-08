@@ -38,6 +38,8 @@ export default function Products() {
   const [optionsSchema, setOptionsSchema] = useState<OptionsSchema>({});
   const [variantRows, setVariantRows] = useState<VariantRow[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiBatchLoading, setAiBatchLoading] = useState(false);
+  const { language: descLang, setLanguage: setDescLang } = useStudioLanguage();
 
   const generateDescription = async () => {
     if (!form.name) {
@@ -48,16 +50,57 @@ export default function Products() {
     try {
       const cat = categories.find((c) => c.id === form.category_id)?.name;
       const { data, error } = await supabase.functions.invoke("gemini-generate", {
-        body: { mode: "description", product: { name: form.name, price: form.price, category: cat } },
+        body: {
+          mode: "description",
+          product: { name: form.name, price: form.price, category: cat },
+          language: descLang,
+        },
       });
       if (error) throw error;
       if (!data?.text) throw new Error("Empty response");
-      setForm((f) => ({ ...f, description: data.text }));
-      toast({ title: "Description generated" });
+      setForm((f) => ({
+        ...f,
+        ...(descLang === "en" ? { description: data.text } : {}),
+        ...(descLang === "fr" ? { description_fr: data.text } : {}),
+        ...(descLang === "rw" ? { description_rw: data.text } : {}),
+      }));
+      toast({ title: `Description generated (${descLang.toUpperCase()})` });
     } catch (e: any) {
       toast({ title: "AI failed", description: e.message, variant: "destructive" });
     } finally {
       setAiLoading(false);
+    }
+  };
+
+  const generateAllDescriptions = async () => {
+    if (!form.name) {
+      toast({ title: "Enter a product name first", variant: "destructive" });
+      return;
+    }
+    setAiBatchLoading(true);
+    try {
+      const cat = categories.find((c) => c.id === form.category_id)?.name;
+      const { data, error } = await supabase.functions.invoke("gemini-generate", {
+        body: {
+          mode: "description",
+          product: { name: form.name, price: form.price, category: cat },
+          languages: ["en", "fr", "rw"],
+        },
+      });
+      if (error) throw error;
+      const texts = data?.texts as Partial<Record<StudioLanguage, string>> | undefined;
+      if (!texts) throw new Error("Empty response");
+      setForm((f) => ({
+        ...f,
+        description: texts.en ?? f.description,
+        description_fr: texts.fr ?? f.description_fr,
+        description_rw: texts.rw ?? f.description_rw,
+      }));
+      toast({ title: "Descriptions generated in 3 languages" });
+    } catch (e: any) {
+      toast({ title: "AI failed", description: e.message, variant: "destructive" });
+    } finally {
+      setAiBatchLoading(false);
     }
   };
 
