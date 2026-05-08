@@ -901,24 +901,47 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
               const pills = config.overlays.featurePills;
               const sx = positions.featurePills?.x ?? Math.round(w * 0.55);
               const sy = positions.featurePills?.y ?? Math.round(w * 0.05);
-              const circle = Math.round(w * 0.08);
-              const gap = Math.round(w * 0.025);
-              const labelSize = Math.round(w * 0.022);
+              const scale = config.overlays.featurePillScale ?? 1;
+              const accent = config.overlays.featurePillAccent || SOFT_GOLD;
+              const circle = Math.round(w * 0.08 * scale);
+              const gap = Math.round(w * 0.025 * scale);
+              const labelSize = Math.round(w * 0.022 * scale);
               const glyphs = ["♛", "❀", "✦", "✿", "★"];
               const onDarkBg = ["bold_banner", "catalogue", "split_dark"].includes(config.style);
-              const labelFill = onDarkBg ? COLORS.warmWhite : COLORS.charcoal;
+              const autoLabel = onDarkBg ? COLORS.warmWhite : COLORS.charcoal;
+              const labelFill = config.overlays.featurePillTextColor || autoLabel;
+              // Approximate auto-wrap line count given Konva renders bold caps in `circle*2` width.
+              const avgCharW = labelSize * 0.62;
+              const availW = circle * 2;
+              const estimateLines = (txt: string) => {
+                const words = txt.split(/\s+/).filter(Boolean);
+                let lines = 1;
+                let used = 0;
+                for (const word of words) {
+                  const ww = word.length * avgCharW;
+                  if (used === 0) used = ww;
+                  else if (used + avgCharW + ww <= availW) used += avgCharW + ww;
+                  else { lines += 1; used = ww; }
+                }
+                return Math.max(1, lines);
+              };
               return (
                 <Group x={sx} y={sy} {...makeDragHandlers("featurePills")}>
                   {pills.map((label, i) => {
                     const cx = i * (circle * 2 + gap);
                     const key = `featurePill_${i}`;
+                    const text = T(key, label);
+                    const lines = estimateLines(text);
+                    const textBlockH = lines * labelSize * 1.15;
+                    const underlineY =
+                      circle * 2 + Math.round(w * 0.012) + textBlockH + Math.round(w * 0.008);
                     return (
                       <Group key={key} x={cx}>
                         <Rect
                           width={circle * 2}
                           height={circle * 2}
                           cornerRadius={circle}
-                          stroke={SOFT_GOLD}
+                          stroke={accent}
                           strokeWidth={Math.max(2, Math.round(w * 0.005))}
                         />
                         <Text
@@ -928,29 +951,25 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                           align="center"
                           verticalAlign="middle"
                           fontSize={circle * 0.95}
-                          fill={SOFT_GOLD}
+                          fill={accent}
                         />
                         <Text
                           y={circle * 2 + Math.round(w * 0.012)}
                           width={circle * 2}
                           align="center"
-                          text={T(key, label)}
+                          text={text}
                           fontFamily={FONTS.sans}
                           fontStyle="900"
                           fontSize={labelSize}
                           fill={labelFill}
                           letterSpacing={2}
-                          onDblClick={handleDblClick(key, T(key, label))}
-                          onDblTap={handleDblClick(key, T(key, label))}
+                          lineHeight={1.15}
+                          onDblClick={handleDblClick(key, text)}
+                          onDblTap={handleDblClick(key, text)}
                         />
                         <Line
-                          points={[
-                            circle * 0.5,
-                            circle * 2 + labelSize * 1.6 + Math.round(w * 0.012),
-                            circle * 1.5,
-                            circle * 2 + labelSize * 1.6 + Math.round(w * 0.012),
-                          ]}
-                          stroke={SOFT_GOLD}
+                          points={[circle * 0.5, underlineY, circle * 1.5, underlineY]}
+                          stroke={accent}
                           strokeWidth={2}
                         />
                       </Group>
