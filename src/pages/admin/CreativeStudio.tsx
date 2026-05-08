@@ -234,6 +234,17 @@ export default function CreativeStudio() {
                     </AccordionContent>
                   </AccordionItem>
 
+                  <AccordionItem value="polish">
+                    <AccordionTrigger className="text-sm">✨ AI Polish (Cloudinary)</AccordionTrigger>
+                    <AccordionContent>
+                      <PolishPanel
+                        sourceUrl={mainImageUrl}
+                        onPolished={setPolishedUrl}
+                        onReset={() => setPolishedUrl(null)}
+                      />
+                    </AccordionContent>
+                  </AccordionItem>
+
                   <AccordionItem value="logo">
                     <AccordionTrigger className="text-sm">6. Logo</AccordionTrigger>
                     <AccordionContent>
