@@ -16,6 +16,7 @@ interface Props {
   onImported?: () => void;
   importNotes?: string;
   canImport?: boolean;
+  xlsxTemplate?: () => Promise<{ blob: Blob; filename: string }>;
 }
 
 export function ImportExportBar(props: Props) {
@@ -47,6 +48,7 @@ export function ImportExportBar(props: Props) {
         onImport={props.onImport}
         onDone={props.onImported}
         notes={props.importNotes}
+        xlsxTemplate={props.xlsxTemplate}
       />
     </div>
   );
