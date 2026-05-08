@@ -302,6 +302,9 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
       config.overlays.showActionWeb ||
       (config.overlays.showActionAddress && config.overlays.showAddress);
 
+    const onDarkStyle = ["bold_banner", "catalogue", "split_dark"].includes(config.style);
+    const textOnBg = onDarkStyle ? COLORS.warmWhite : COLORS.charcoal;
+
     return (
       <>
         <Stage
