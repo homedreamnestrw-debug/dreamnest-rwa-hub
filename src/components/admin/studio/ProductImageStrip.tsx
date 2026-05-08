@@ -13,6 +13,10 @@ interface Props {
   onGalleryPositionChange: (v: "right" | "left" | "below") => void;
   gallerySatCount: number;
   onGallerySatCountChange: (n: number) => void;
+  gallerySatSize: number;
+  onGallerySatSizeChange: (n: number) => void;
+  gallerySatShape: "square" | "circle" | "diamond";
+  onGallerySatShapeChange: (s: "square" | "circle" | "diamond") => void;
 }
 
 export function ProductImageStrip({
