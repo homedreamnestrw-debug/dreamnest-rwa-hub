@@ -415,6 +415,67 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
               {galleryView && (() => {
                 const indices = Array.from({ length: gallerySatCount }, (_, i) => i);
                 const dividerThickness = Math.round(w * 0.005);
+
+                // Shape-aware tile renderer: draws shape-clipped image + matching stroke
+                // centered in a (cellW x cellH) cell with size (tileW x tileH).
+                const renderTile = (i: number, cellW: number, cellH: number, tileW: number, tileH: number) => {
+                  const cornerR = Math.round(w * 0.012);
+                  if (gallerySatShape === "circle") {
+                    const side = Math.min(tileW, tileH);
+                    const ox = (cellW - side) / 2;
+                    const oy = (cellH - side) / 2;
+                    return (
+                      <Group x={ox} y={oy}>
+                        <CoverImage img={sats[i] ?? undefined} w={side} h={side} cornerRadius={side / 2} />
+                        <Rect
+                          width={side}
+                          height={side}
+                          stroke={COLORS.terracotta}
+                          strokeWidth={2}
+                          cornerRadius={side / 2}
+                        />
+                      </Group>
+                    );
+                  }
+                  if (gallerySatShape === "diamond") {
+                    // Inscribe a rotated square within the tile bounds: side = min(tileW, tileH) / sqrt(2)
+                    const bound = Math.min(tileW, tileH);
+                    const side = bound / Math.SQRT2;
+                    return (
+                      <Group
+                        x={cellW / 2}
+                        y={cellH / 2}
+                        rotation={45}
+                        offsetX={side / 2}
+                        offsetY={side / 2}
+                      >
+                        <CoverImage img={sats[i] ?? undefined} w={side} h={side} cornerRadius={0} />
+                        <Rect
+                          width={side}
+                          height={side}
+                          stroke={COLORS.terracotta}
+                          strokeWidth={2}
+                        />
+                      </Group>
+                    );
+                  }
+                  // square (default)
+                  const ox = (cellW - tileW) / 2;
+                  const oy = (cellH - tileH) / 2;
+                  return (
+                    <Group x={ox} y={oy}>
+                      <CoverImage img={sats[i] ?? undefined} w={tileW} h={tileH} cornerRadius={cornerR} />
+                      <Rect
+                        width={tileW}
+                        height={tileH}
+                        stroke={COLORS.terracotta}
+                        strokeWidth={2}
+                        cornerRadius={cornerR}
+                      />
+                    </Group>
+                  );
+                };
+
                 if (sideMode) {
                   const isLeft = galleryPosition === "left";
                   const satOriginX = isLeft ? 0 : mainImgW + gap;
@@ -431,8 +492,8 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                       {indices.map((i) => {
                         const col = i % satSideCols;
                         const row = Math.floor(i / satSideCols);
-                        const sx = satOriginX + col * (satSideW + gap);
-                        const sy = row * (satSideH + gap);
+                        const sx = satOriginX + col * (cellSideW + gap);
+                        const sy = row * (cellSideH + gap);
                         return (
                           <Group
                             key={i}
@@ -445,19 +506,7 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                               if (satelliteUrls[i] && onSwapMainImage) onSwapMainImage(satelliteUrls[i]);
                             }}
                           >
-                            <CoverImage
-                              img={sats[i] ?? undefined}
-                              w={satSideW}
-                              h={satSideH}
-                              cornerRadius={Math.round(w * 0.012)}
-                            />
-                            <Rect
-                              width={satSideW}
-                              height={satSideH}
-                              stroke={COLORS.terracotta}
-                              strokeWidth={2}
-                              cornerRadius={Math.round(w * 0.012)}
-                            />
+                            {renderTile(i, cellSideW, cellSideH, tileSideW, tileSideH)}
                           </Group>
                         );
                       })}
@@ -475,7 +524,7 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                       fill={COLORS.terracotta}
                     />
                     {indices.map((i) => {
-                      const sx = i * (satBelowW + gap);
+                      const sx = i * (cellBelowW + gap);
                       const sy = mainImgH + gap;
                       return (
                         <Group
@@ -489,19 +538,7 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                             if (satelliteUrls[i] && onSwapMainImage) onSwapMainImage(satelliteUrls[i]);
                           }}
                         >
-                          <CoverImage
-                            img={sats[i] ?? undefined}
-                            w={satBelowW}
-                            h={satBelowH}
-                            cornerRadius={Math.round(w * 0.012)}
-                          />
-                          <Rect
-                            width={satBelowW}
-                            height={satBelowH}
-                            stroke={COLORS.terracotta}
-                            strokeWidth={2}
-                            cornerRadius={Math.round(w * 0.012)}
-                          />
+                          {renderTile(i, cellBelowW, cellBelowH, tileBelowW, tileBelowH)}
                         </Group>
                       );
                     })}
