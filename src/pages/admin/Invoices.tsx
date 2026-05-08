@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, Search, Eye, Pencil, History, Download, Share2, FileText, Store, Globe } from "lucide-react";
 import { downloadInvoicePdf, shareInvoiceOnWhatsApp } from "@/lib/receiptUtils";
+import { InvoicePreview } from "@/components/admin/InvoicePreview";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import type { Tables, TablesInsert } from "@/integrations/supabase/types";
@@ -600,24 +601,29 @@ export default function Invoices() {
 
       {/* Detail Dialog */}
       <Dialog open={!!viewing} onOpenChange={(o) => { if (!o) setViewing(null); }}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Document Details</DialogTitle></DialogHeader>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Document Preview — {viewing?.document_number}</DialogTitle></DialogHeader>
           {viewing && (
-            <div className="space-y-3 text-sm">
-              <div className="grid grid-cols-2 gap-2">
-                <div><span className="text-muted-foreground">Number:</span> <span className="font-mono font-medium">{viewing.document_number}</span></div>
-                <div><span className="text-muted-foreground">Type:</span> <span className="capitalize">{viewing.document_type}</span></div>
-                <div><span className="text-muted-foreground">Status:</span> <Badge variant={statusColors[viewing.status] || "secondary"} className="capitalize">{viewing.status}</Badge></div>
-                <div><span className="text-muted-foreground">Tax Rate:</span> {viewing.tax_rate}%</div>
-                <div><span className="text-muted-foreground">Subtotal:</span> {formatRWF(viewing.subtotal)}</div>
-                <div><span className="text-muted-foreground">Tax:</span> {formatRWF(viewing.tax_amount)}</div>
-                <div><span className="text-muted-foreground">Discount:</span> {formatRWF(viewing.discount)}</div>
-                <div><span className="text-muted-foreground font-semibold">Total:</span> <span className="font-semibold">{formatRWF(viewing.total)}</span></div>
-              </div>
-              {viewing.due_date && <p><span className="text-muted-foreground">Due:</span> {format(new Date(viewing.due_date), "MMM d, yyyy")}</p>}
-              {viewing.paid_at && <p><span className="text-muted-foreground">Paid:</span> {format(new Date(viewing.paid_at), "MMM d, yyyy")}</p>}
-              {viewing.notes && <p><span className="text-muted-foreground">Notes:</span> {viewing.notes}</p>}
-              <div className="flex gap-2 pt-2 flex-wrap">
+            <div className="space-y-4">
+              <InvoicePreview
+                invoiceId={viewing._virtual ? null : viewing.id}
+                fallback={{
+                  document_number: viewing.document_number,
+                  document_type: viewing.document_type as string,
+                  status: viewing.status as string,
+                  subtotal: viewing.subtotal,
+                  tax_rate: Number(viewing.tax_rate),
+                  tax_amount: viewing.tax_amount,
+                  discount: viewing.discount,
+                  total: viewing.total,
+                  notes: viewing.notes,
+                  created_at: viewing.created_at,
+                  paid_at: viewing.paid_at,
+                  due_date: viewing.due_date,
+                  order_id: viewing._order_id || viewing.order_id,
+                }}
+              />
+              <div className="flex gap-2 flex-wrap justify-end pt-2 border-t">
                 <Button size="sm" variant="outline" onClick={() => { handleEdit(viewing); setViewing(null); }}><Pencil className="h-3.5 w-3.5 mr-1" /> Edit</Button>
                 <Button size="sm" variant="outline" onClick={() => handleDownload(viewing)}><Download className="h-3.5 w-3.5 mr-1" /> PDF</Button>
                 <Button size="sm" variant="outline" onClick={() => handleShare(viewing)}><Share2 className="h-3.5 w-3.5 mr-1" /> WhatsApp</Button>
