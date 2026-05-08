@@ -135,7 +135,10 @@ export default function Stock() {
       onImport={async (rows): Promise<ImportResult> => {
         const errors: string[] = [];
         let ok = 0, failed = 0;
-        const { data: cats } = await supabase.from("categories").select("id,name");
+        const [{ data: cats }, { data: defaultLocation }] = await Promise.all([
+          supabase.from("categories").select("id,name"),
+          supabase.from("stock_locations").select("id").eq("is_active", true).order("created_at").limit(1).maybeSingle(),
+        ]);
         const catByName = new Map((cats || []).map((c) => [c.name.toLowerCase(), c.id]));
 
         // Group rows by slug (or generated slug from name)
@@ -197,14 +200,30 @@ export default function Stock() {
                   variant_name: vr.variant_name,
                   sku: vr.variant_sku ? vr.variant_sku : null,
                   price_override: vr.variant_price ? Number(vr.variant_price) : null,
-                  stock_quantity: Number(vr.variant_stock || 0),
                   attributes,
                   is_active: true,
                 };
-                const { error: vErr } = existing
-                  ? await supabase.from("product_variants").update(vPayload).eq("id", existing.id)
-                  : await supabase.from("product_variants").insert(vPayload);
+                let variantId = existing?.id as string | undefined;
+                const { data: savedVariant, error: vErr } = existing
+                  ? await supabase.from("product_variants").update(vPayload).eq("id", existing.id).select("id").single()
+                  : await supabase.from("product_variants").insert(vPayload).select("id").single();
                 if (vErr) throw vErr;
+                variantId = variantId || savedVariant?.id;
+
+                const hasVariantStock = String(vr.variant_stock ?? "").trim() !== "";
+                if (hasVariantStock) {
+                  const quantity = Number(vr.variant_stock);
+                  if (Number.isNaN(quantity) || quantity < 0) throw new Error("variant_stock must be ≥ 0");
+                  if (!defaultLocation?.id) throw new Error("variant_stock needs at least one active stock location");
+                  const { error: stockErr } = await supabase.rpc("adjust_variant_stock", {
+                    p_variant_id: variantId!,
+                    p_location_id: defaultLocation.id,
+                    p_new_quantity: quantity,
+                    p_movement_type: "adjustment",
+                    p_reason: "Product import",
+                  });
+                  if (stockErr) throw stockErr;
+                }
                 ok++;
               } catch (ve: any) {
                 failed++;
