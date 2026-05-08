@@ -370,8 +370,9 @@ export default function POS() {
   }
 
   const afterDiscount = subtotal - discountAmount;
-  const taxAmount = includeVat ? Math.round(afterDiscount * vatRate) : 0;
-  const preVoucherTotal = afterDiscount + taxAmount;
+  // VAT included in price: extract VAT portion from the gross amount
+  const taxAmount = Math.round(afterDiscount - afterDiscount / (1 + vatRate));
+  const preVoucherTotal = afterDiscount;
   const voucherDiscount = voucherData ? Math.min(voucherData.balance, preVoucherTotal) : 0;
   const total = preVoucherTotal - voucherDiscount;
   const isFullyPaidByVoucher = voucherDiscount > 0 && total <= 0;
