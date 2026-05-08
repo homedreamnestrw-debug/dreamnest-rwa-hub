@@ -306,7 +306,7 @@ export default function CreativeStudio() {
                   </AccordionItem>
 
                   <AccordionItem value="canvas">
-                    <AccordionTrigger className="text-sm">10. Canvas controls</AccordionTrigger>
+                    <AccordionTrigger className="text-sm">11. Canvas controls</AccordionTrigger>
                     <AccordionContent className="space-y-2">
                       <div className="flex flex-wrap gap-2">
                         <Toggle pressed={editMode} onPressedChange={setEditMode} size="sm" variant="outline">
