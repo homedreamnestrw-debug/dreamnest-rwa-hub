@@ -17,6 +17,8 @@ interface Props {
   onGallerySatSizeChange: (n: number) => void;
   gallerySatShape: "square" | "circle" | "diamond";
   onGallerySatShapeChange: (s: "square" | "circle" | "diamond") => void;
+  gallerySatGap: number;
+  onGallerySatGapChange: (n: number) => void;
 }
 
 export function ProductImageStrip({
