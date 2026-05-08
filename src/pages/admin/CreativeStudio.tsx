@@ -130,6 +130,12 @@ export default function CreativeStudio() {
     () => allImages.filter((u) => u !== mainImageUrl).slice(0, 6),
     [allImages, mainImageUrl],
   );
+  const displayedMainUrl = polishedUrl ?? mainImageUrl;
+
+  // Reset polish when main source changes
+  useEffect(() => {
+    setPolishedUrl(null);
+  }, [mainImageUrl]);
 
   const handleLog = () => {
     if (!product) return;
