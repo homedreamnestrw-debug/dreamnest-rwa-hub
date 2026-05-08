@@ -35,6 +35,8 @@ export function ProductImageStrip({
   onGallerySatSizeChange,
   gallerySatShape,
   onGallerySatShapeChange,
+  gallerySatGap,
+  onGallerySatGapChange,
 }: Props) {
   if (!images.length) {
     return <div className="text-xs text-muted-foreground">No images for this product.</div>;
