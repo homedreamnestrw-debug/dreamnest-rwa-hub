@@ -109,17 +109,17 @@ export function ImportDialog({
         <div className="space-y-4">
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={handleTemplate}>
-              <Download className="h-4 w-4 mr-2" /> Download template
+              <Download className="h-4 w-4 mr-2" /> Download {xlsxTemplate ? "Excel template" : "template"}
             </Button>
             <label className="inline-flex">
               <input
                 type="file"
-                accept=".csv,text/csv"
+                accept={xlsxTemplate ? ".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : ".csv,text/csv"}
                 className="hidden"
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.currentTarget.value = ""; }}
               />
               <span className="inline-flex items-center justify-center rounded-md text-sm font-medium border h-10 px-4 cursor-pointer hover:bg-accent">
-                <Upload className="h-4 w-4 mr-2" /> Choose CSV
+                <Upload className="h-4 w-4 mr-2" /> Choose {xlsxTemplate ? "file" : "CSV"}
               </span>
             </label>
           </div>
