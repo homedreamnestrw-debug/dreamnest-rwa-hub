@@ -62,7 +62,7 @@ export default function CreditManagement() {
     const { data: orders } = await supabase
       .from("orders")
       .select("id, order_number, total, payment_status, payment_method, channel, guest_name, guest_phone, guest_email, customer_id, created_at, status")
-      .eq("payment_method", "credit")
+      .in("payment_status", ["unpaid", "partial", "paid"])
       .neq("status", "cancelled")
       .order("created_at", { ascending: false });
 
