@@ -283,15 +283,35 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
 
     // Image area dimensions
     const galleryView = config.overlays.galleryView;
+    const galleryPosition = config.overlays.galleryPosition ?? "right";
+    const gallerySatCount = Math.max(1, Math.min(6, config.overlays.gallerySatCount ?? 4));
     const isVertical = h > w;
     const imgAreaW = w - pad * 2;
     const imgAreaH = isVertical ? Math.round(h * 0.42) : Math.round(h * 0.5);
+    const gap = Math.round(w * 0.015);
 
-    const mainImgW = galleryView ? Math.round(imgAreaW * 0.65) : imgAreaW;
-    const mainImgH = imgAreaH;
-    const satCellW = imgAreaW - mainImgW - Math.round(w * 0.015);
-    const satHalfH = (imgAreaH - Math.round(w * 0.015)) / 2;
-    const satHalfW = (satCellW - Math.round(w * 0.015)) / 2;
+    // Layout: side (left/right) puts satellites in a column-grid beside main; below puts them in a row beneath main
+    const sideMode = galleryView && (galleryPosition === "right" || galleryPosition === "left");
+    const belowMode = galleryView && galleryPosition === "below";
+
+    const mainImgW = sideMode ? Math.round(imgAreaW * 0.65) : imgAreaW;
+    const mainImgH = belowMode ? Math.round(imgAreaH * 0.7) : imgAreaH;
+
+    // Satellite grid (side): 2 columns
+    const satSideAreaW = imgAreaW - mainImgW - gap;
+    const satSideCols = 2;
+    const satSideRows = Math.max(1, Math.ceil(gallerySatCount / satSideCols));
+    const satSideW = (satSideAreaW - gap * (satSideCols - 1)) / satSideCols;
+    const satSideH = (mainImgH - gap * (satSideRows - 1)) / satSideRows;
+
+    // Satellite row (below): single row of N
+    const satBelowH = imgAreaH - mainImgH - gap;
+    const satBelowW = (imgAreaW - gap * (gallerySatCount - 1)) / gallerySatCount;
+
+    // Backwards-compat (used by older code paths) — kept harmless
+    const satCellW = satSideAreaW;
+    const satHalfH = satSideH;
+    const satHalfW = satSideW;
 
     // Action bar background
     const actionBarFill =
