@@ -84,8 +84,7 @@ export default function CreativeStudio() {
     } else {
       setMainImageUrl(product?.imageUrl ?? null);
     }
-    setPositions({});
-    setTexts({});
+    canvasHistory.reset({ positions: {}, texts: {} });
   }, [product?.id]);
 
   const config: RenderConfig = useMemo(
