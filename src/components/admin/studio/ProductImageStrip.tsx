@@ -122,6 +122,20 @@ export function ProductImageStrip({
               ))}
             </div>
           </div>
+          <div>
+            <div className="flex items-center justify-between">
+              <Label className="text-[11px] text-muted-foreground">Spacing (gap)</Label>
+              <span className="text-[11px] font-medium">{gallerySatGap}px</span>
+            </div>
+            <Slider
+              min={0}
+              max={60}
+              step={2}
+              value={[gallerySatGap]}
+              onValueChange={(v) => onGallerySatGapChange(v[0] ?? 16)}
+              className="mt-1"
+            />
+          </div>
         </div>
       )}
 
