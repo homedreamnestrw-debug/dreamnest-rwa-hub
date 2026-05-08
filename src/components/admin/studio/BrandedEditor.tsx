@@ -384,6 +384,7 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                 : s === "catalogue" || s === "split_dark" ? COLORS.charcoal
                 : s === "ribbon" ? accent
                 : s === "magazine" || s === "minimal_poster" ? COLORS.warmWhite
+                : s === "invitation" ? COLORS.cream
                 : COLORS.cream;
               return (
                 <>
