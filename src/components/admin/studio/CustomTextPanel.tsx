@@ -193,6 +193,91 @@ export function CustomTextPanel({ value, onChange }: Props) {
               <Underline className="h-3.5 w-3.5" />
             </Toggle>
           </div>
+
+          <div className="flex items-center justify-between rounded-sm bg-muted/40 px-2 py-1">
+            <Label className="text-[10px]">Auto-wrap text</Label>
+            <Toggle
+              size="sm"
+              pressed={it.autoWrap}
+              onPressedChange={(v) => update(it.id, { autoWrap: v })}
+            >
+              {it.autoWrap ? "On" : "Off"}
+            </Toggle>
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-[10px]">Box width: {it.boxWidth}%</Label>
+            <Slider
+              value={[it.boxWidth]}
+              min={10}
+              max={100}
+              step={1}
+              onValueChange={([v]) => update(it.id, { boxWidth: v })}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[10px]">Box height: {it.boxHeight}%</Label>
+            <Slider
+              value={[it.boxHeight]}
+              min={5}
+              max={100}
+              step={1}
+              onValueChange={([v]) => update(it.id, { boxHeight: v })}
+            />
+          </div>
+
+          <div className="space-y-1 rounded-sm border p-2">
+            <div className="flex items-center gap-2">
+              <Label className="flex-1 text-[10px]">Background</Label>
+              <Input
+                type="color"
+                className="h-7 w-10 p-0.5"
+                value={it.bgColor || "#ffffff"}
+                onChange={(e) => update(it.id, { bgColor: e.target.value })}
+              />
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-[10px]"
+                onClick={() => update(it.id, { bgColor: "" })}
+                type="button"
+              >
+                Clear
+              </Button>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {PRESET_COLORS.map((c) => (
+                <button
+                  key={`bg-${c}`}
+                  type="button"
+                  onClick={() => update(it.id, { bgColor: c })}
+                  className="h-5 w-5 rounded-sm border border-border"
+                  style={{ background: c }}
+                  aria-label={`bg ${c}`}
+                />
+              ))}
+            </div>
+            {it.bgColor && (
+              <>
+                <Label className="text-[10px]">Bg opacity: {it.bgOpacity}%</Label>
+                <Slider
+                  value={[it.bgOpacity]}
+                  min={0}
+                  max={100}
+                  step={1}
+                  onValueChange={([v]) => update(it.id, { bgOpacity: v })}
+                />
+                <Label className="text-[10px]">Padding: {it.bgPadding}px</Label>
+                <Slider
+                  value={[it.bgPadding]}
+                  min={0}
+                  max={80}
+                  step={1}
+                  onValueChange={([v]) => update(it.id, { bgPadding: v })}
+                />
+              </>
+            )}
+          </div>
         </div>
       ))}
     </div>
