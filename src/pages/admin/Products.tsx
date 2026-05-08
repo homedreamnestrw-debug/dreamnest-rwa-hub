@@ -216,7 +216,9 @@ export default function Products() {
       category_id: form.category_id || null,
       images: images.length > 0 ? images : null,
       variant_attributes: optionsSchema as any,
-    };
+      description_fr: form.description_fr || null,
+      description_rw: form.description_rw || null,
+    } as any;
 
     let productId: string;
     if (editing) {
