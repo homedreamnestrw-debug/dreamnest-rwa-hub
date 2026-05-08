@@ -417,10 +417,10 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                     <Line
                       closed
                       points={[
-                        w * 0.05, h * 0.14,
-                        w * 0.62, h * 0.14,
-                        w * 0.52, h * 0.78,
-                        w * 0.05, h * 0.78,
+                        w * 0.09, h * 0.16,
+                        w * 0.60, h * 0.16,
+                        w * 0.50, h * 0.80,
+                        w * 0.09, h * 0.80,
                       ]}
                       fill={COLORS.teal}
                     />
