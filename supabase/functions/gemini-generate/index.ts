@@ -1,4 +1,4 @@
-// AI text generation via Lovable AI Gateway (Gemini models)
+// AI text generation via Lovable AI Gateway (Gemini models) — multilingual
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -7,6 +7,92 @@ const corsHeaders = {
 
 const MODEL = "google/gemini-2.5-flash";
 
+type Lang = "en" | "fr" | "rw";
+
+const SYSTEM_PROMPTS: Record<Lang, (brand: string) => string> = {
+  en: (brand) =>
+    `You are a copywriter for ${brand}, a premium bedding and home decor brand in Rwanda. Write in English. Use a warm, cozy, aspirational tone. Position products as transforming spaces into sanctuaries. Never use the word handcrafted.`,
+  fr: (brand) =>
+    `Tu es un copywriter pour ${brand}, une marque premium de literie et décoration intérieure au Rwanda. Écris en français. Utilise un ton chaleureux, cosy et aspirationnel. Présente les produits comme transformant les espaces en sanctuaires. N'utilise jamais le mot artisanal.`,
+  rw: (brand) =>
+    `Uri umwanditsi wa ${brand}, ikigo gikora imicandio y'ibitanda n'iyongerera mu rugo mu Rwanda. Andika mu Kinyarwanda. Koresha ijwi ryihangane, riryoheye kandi rishimishije. Erekana ko ibicuruzwa bigurisha bishobora guhindura aho utuye mu ngo nziza. Ntukoresha ijambo handcraft.`,
+};
+
+const HASHTAG_HINTS: Record<Lang, string> = {
+  en: "Use English hashtags. Mix in: #DreamNest #LuxuryBedding #HomeDecor #KigaliDecor #RwandaHome",
+  fr: "Utilise des hashtags français. Inclure : #DreamNest #LiterieRwanda #DecorMaisonKigali #MaisonRwanda #LiterieDeQualite #KigaliDecor",
+  rw: "Koresha hashtags z'Ikinyarwanda. Hashyiremo: #DreamNest #Amashukameza #Uburiribwiza #KigaliDecor #RwandaHome #Icyumbacyiza",
+};
+
+const CAPTION_INSTRUCTIONS: Record<Lang, string> = {
+  en: `Write ONE caption (max 4 short lines + 5–8 hashtags). Include the price. Return ONLY the caption text — no preamble, no quotes.`,
+  fr: `Rédige UNE légende (max 4 lignes courtes + 5–8 hashtags). Inclure le prix. Retourne UNIQUEMENT le texte de la légende — sans préambule, sans guillemets.`,
+  rw: `Andika INSANGANYAMATSIKO IMWE (binyuranye n'imirongo 4 migufi + hashtags 5–8). Shyiramo igiciro. Subiza GUSA umwandiko w'insanganyamatsiko — nta mvugiro, nta tugemu.`,
+};
+
+const DESCRIPTION_INSTRUCTIONS: Record<Lang, string> = {
+  en: `Write a polished product description (90–130 words). Mention materials/comfort/use-cases when relevant. End with a short call-to-action sentence. Return ONLY the description — no headings, no markdown, plain prose.`,
+  fr: `Rédige une description de produit soignée (90–130 mots). Mentionne les matériaux, le confort et les usages quand c'est pertinent. Termine par une courte phrase d'appel à l'action. Retourne UNIQUEMENT la description — sans titres, sans markdown, en prose simple.`,
+  rw: `Andika incamake y'igicuruzwa nziza (amagambo 90–130). Vuga ibikoresho, ubworoherane n'aho bikoreshwa iyo bikwiriye. Sozanya n'interuro ngufi ihamagarira gukora. Subiza GUSA incamake — nta mitwe, nta markdown, mu nyandiko isanzwe.`,
+};
+
+function buildPrompt(opts: {
+  mode: "caption" | "description";
+  lang: Lang;
+  brandName: string;
+  product: any;
+  captionType?: string;
+  salePct?: number;
+}) {
+  const { mode, lang, brandName, product, captionType, salePct } = opts;
+  const system = SYSTEM_PROMPTS[lang](brandName);
+
+  if (mode === "caption") {
+    const type = captionType || "general";
+    const pct = salePct ?? 10;
+    const user = `${CAPTION_INSTRUCTIONS[lang]}
+${HASHTAG_HINTS[lang]}
+
+Product: ${product.name}
+Price: ${product.price} RWF
+Caption type: ${type}${type === "sale" ? ` (discount ${pct}%)` : ""}`;
+    return { system, user };
+  }
+
+  // description
+  const user = `${DESCRIPTION_INSTRUCTIONS[lang]}
+
+Name: ${product.name}
+${product.category ? `Category: ${product.category}` : ""}
+${product.price ? `Price: ${product.price} RWF` : ""}`;
+  return { system, user };
+}
+
+async function callAI(apiKey: string, system: string, user: string) {
+  const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+    }),
+  });
+  if (!r.ok) {
+    const t = await r.text();
+    const err: any = new Error(`AI ${r.status}: ${t}`);
+    err.status = r.status;
+    throw err;
+  }
+  const data = await r.json();
+  return ((data?.choices?.[0]?.message?.content ?? "") as string).trim();
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -14,7 +100,24 @@ Deno.serve(async (req) => {
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const { mode, product, captionType, salePct, brand } = await req.json();
+    const body = await req.json();
+    const {
+      mode,
+      product,
+      captionType,
+      salePct,
+      brand,
+      language,
+      languages,
+    } = body as {
+      mode: "caption" | "description";
+      product: any;
+      captionType?: string;
+      salePct?: number;
+      brand?: string;
+      language?: Lang;
+      languages?: Lang[];
+    };
 
     if (!mode || !product?.name) {
       return new Response(JSON.stringify({ error: "mode and product.name are required" }), {
@@ -22,85 +125,94 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const brandName = brand || "DreamNest";
-    let userPrompt = "";
-    let systemPrompt = "";
-
-    if (mode === "caption") {
-      const type = captionType || "general";
-      const pct = salePct ?? 10;
-      systemPrompt = `You write social media captions for ${brandName} — a premium bedding & home decor boutique in Kigali, Rwanda. Currency is RWF. Tone: warm, elegant, sensorial. Max 2 emojis.`;
-      userPrompt = `Write ONE caption (max 4 short lines + 5-8 hashtags) for this product. Include price.
-
-Product: ${product.name}
-Price: ${product.price} RWF
-Caption type: ${type}${type === "sale" ? ` (discount ${pct}%)` : ""}
-
-Return ONLY the caption text — no preamble, no quotes.`;
-    } else if (mode === "description") {
-      systemPrompt = `You write product descriptions for ${brandName} — a premium bedding & home decor store in Kigali, Rwanda. Style: warm, sensorial, benefit-led.`;
-      userPrompt = `Write a polished product description (90-130 words) for:
-Name: ${product.name}
-${product.category ? `Category: ${product.category}` : ""}
-${product.price ? `Price: ${product.price} RWF` : ""}
-
-Mention materials/comfort/use-cases when relevant. End with a short call-to-action sentence.
-Return ONLY the description — no headings, no markdown, plain prose.`;
-    } else {
+    if (mode !== "caption" && mode !== "description") {
       return new Response(JSON.stringify({ error: "Invalid mode" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-      }),
+    const brandName = brand || "DreamNest";
+    const validLangs: Lang[] = ["en", "fr", "rw"];
+
+    // Batch mode: generate all requested languages in parallel
+    if (Array.isArray(languages) && languages.length > 0) {
+      const langs = languages.filter((l): l is Lang => validLangs.includes(l));
+      try {
+        const results = await Promise.all(
+          langs.map(async (lang) => {
+            const { system, user } = buildPrompt({
+              mode,
+              lang,
+              brandName,
+              product,
+              captionType,
+              salePct,
+            });
+            const text = await callAI(apiKey, system, user);
+            return [lang, text] as const;
+          }),
+        );
+        const texts: Record<string, string> = {};
+        for (const [l, t] of results) texts[l] = t;
+        return new Response(JSON.stringify({ texts }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (e: any) {
+        const status = e?.status === 429 || e?.status === 402 ? e.status : 502;
+        const msg =
+          e?.status === 429
+            ? "Rate limit reached, please try again shortly."
+            : e?.status === 402
+              ? "AI credits exhausted. Add funds in Lovable workspace settings."
+              : e?.message || "AI error";
+        return new Response(JSON.stringify({ error: msg }), {
+          status,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // Single-language mode
+    const lang: Lang = validLangs.includes(language as Lang) ? (language as Lang) : "en";
+    const { system, user } = buildPrompt({
+      mode,
+      lang,
+      brandName,
+      product,
+      captionType,
+      salePct,
     });
 
-    if (!r.ok) {
-      const t = await r.text();
-      console.error("AI gateway error:", r.status, t);
-      if (r.status === 429) {
+    try {
+      const text = await callAI(apiKey, system, user);
+      return new Response(JSON.stringify({ text, language: lang }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    } catch (e: any) {
+      console.error("AI gateway error:", e?.status, e?.message);
+      if (e?.status === 429) {
         return new Response(
           JSON.stringify({ error: "Rate limit reached, please try again shortly." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
-      if (r.status === 402) {
+      if (e?.status === 402) {
         return new Response(
           JSON.stringify({ error: "AI credits exhausted. Add funds in Lovable workspace settings." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
-      return new Response(JSON.stringify({ error: `AI ${r.status}: ${t}` }), {
+      return new Response(JSON.stringify({ error: e?.message || "AI error" }), {
         status: 502,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const data = await r.json();
-    const text = (data?.choices?.[0]?.message?.content ?? "").trim();
-
-    return new Response(JSON.stringify({ text }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
   } catch (e) {
     console.error("gemini-generate error:", e);
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 });
