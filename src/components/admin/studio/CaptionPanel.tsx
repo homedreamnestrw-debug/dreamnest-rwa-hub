@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -9,7 +9,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Copy, Check, Sparkles, Loader2 } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Copy, Check, Sparkles, Loader2, Languages } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -17,6 +18,12 @@ import {
   generateCaption,
 } from "./templates/captionTemplates";
 import { ProductData } from "./templates/productCardRenderers";
+import { LanguageSelector } from "./LanguageSelector";
+import {
+  LANGUAGE_OPTIONS,
+  StudioLanguage,
+  useStudioLanguage,
+} from "@/lib/studioLanguage";
 
 interface Props {
   product: ProductData | null;
@@ -34,8 +41,10 @@ const TYPES: { key: CaptionType; label: string }[] = [
 export function CaptionPanel({ product, salePct, onCaptionChange }: Props) {
   const [type, setType] = useState<CaptionType>("general");
   const [copied, setCopied] = useState(false);
-  const [aiText, setAiText] = useState<string | null>(null);
+  const [aiTexts, setAiTexts] = useState<Partial<Record<StudioLanguage, string>>>({});
   const [loading, setLoading] = useState(false);
+  const [batchLoading, setBatchLoading] = useState(false);
+  const { language, setLanguage } = useStudioLanguage();
 
   const templateCaption = useMemo(() => {
     if (!product) return "";
@@ -50,9 +59,10 @@ export function CaptionPanel({ product, salePct, onCaptionChange }: Props) {
     });
   }, [product, type, salePct]);
 
-  const caption = aiText ?? templateCaption;
+  const activeText = aiTexts[language] ?? (Object.keys(aiTexts).length === 0 ? templateCaption : "");
+  const caption = activeText;
 
-  useMemo(() => {
+  useEffect(() => {
     onCaptionChange?.(caption);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [caption]);
@@ -62,16 +72,40 @@ export function CaptionPanel({ product, salePct, onCaptionChange }: Props) {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("gemini-generate", {
-        body: { mode: "caption", product, captionType: type, salePct },
+        body: { mode: "caption", product, captionType: type, salePct, language },
       });
       if (error) throw error;
       if (!data?.text) throw new Error("Empty response");
-      setAiText(data.text);
+      setAiTexts((prev) => ({ ...prev, [language]: data.text }));
       toast({ title: "AI caption generated" });
     } catch (e: any) {
       toast({ title: "AI failed", description: e.message, variant: "destructive" });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const generateAll = async () => {
+    if (!product) return;
+    setBatchLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("gemini-generate", {
+        body: {
+          mode: "caption",
+          product,
+          captionType: type,
+          salePct,
+          languages: ["en", "fr", "rw"],
+        },
+      });
+      if (error) throw error;
+      if (!data?.texts) throw new Error("Empty response");
+      setAiTexts(data.texts);
+      toast({ title: "Captions generated in 3 languages" });
+    } catch (e: any) {
+      toast({ title: "AI failed", description: e.message, variant: "destructive" });
+    } finally {
+      setBatchLoading(false);
     }
   };
 
@@ -83,12 +117,14 @@ export function CaptionPanel({ product, salePct, onCaptionChange }: Props) {
     setTimeout(() => setCopied(false), 1500);
   };
 
+  const hasMultiple = Object.keys(aiTexts).length >= 2;
+
   return (
     <div className="space-y-2">
-      <div className="flex items-end justify-between gap-2">
-        <div className="flex-1 space-y-1.5">
+      <div className="flex flex-wrap items-end justify-between gap-2">
+        <div className="flex-1 min-w-[140px] space-y-1.5">
           <Label className="text-xs">Caption type</Label>
-          <Select value={type} onValueChange={(v) => { setType(v as CaptionType); setAiText(null); }}>
+          <Select value={type} onValueChange={(v) => { setType(v as CaptionType); setAiTexts({}); }}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               {TYPES.map((t) => (
@@ -97,22 +133,53 @@ export function CaptionPanel({ product, salePct, onCaptionChange }: Props) {
             </SelectContent>
           </Select>
         </div>
-        <Button size="sm" variant="default" onClick={generateAI} disabled={!product || loading}>
+        <LanguageSelector value={language} onChange={setLanguage} size="xs" />
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" variant="default" onClick={generateAI} disabled={!product || loading || batchLoading}>
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-          AI
+          AI ({language.toUpperCase()})
+        </Button>
+        <Button size="sm" variant="secondary" onClick={generateAll} disabled={!product || loading || batchLoading}>
+          {batchLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Languages className="h-4 w-4" />}
+          Generate All Languages
         </Button>
         <Button size="sm" variant="outline" onClick={copy} disabled={!caption}>
           {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
           Copy
         </Button>
       </div>
-      <Textarea
-        value={caption}
-        onChange={(e) => setAiText(e.target.value)}
-        rows={6}
-        placeholder="Select a product, then click AI to generate with Gemini…"
-        className="font-mono text-xs"
-      />
+
+      {hasMultiple ? (
+        <Tabs value={language} onValueChange={(v) => setLanguage(v as StudioLanguage)}>
+          <TabsList className="grid grid-cols-3">
+            {LANGUAGE_OPTIONS.map((opt) => (
+              <TabsTrigger key={opt.value} value={opt.value} className="text-xs">
+                {opt.flag} {opt.value.toUpperCase()}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+          {LANGUAGE_OPTIONS.map((opt) => (
+            <TabsContent key={opt.value} value={opt.value} className="mt-2">
+              <Textarea
+                value={aiTexts[opt.value] ?? ""}
+                onChange={(e) => setAiTexts((prev) => ({ ...prev, [opt.value]: e.target.value }))}
+                rows={6}
+                placeholder={`No ${opt.label} caption yet — click Generate All Languages.`}
+                className="font-mono text-xs"
+              />
+            </TabsContent>
+          ))}
+        </Tabs>
+      ) : (
+        <Textarea
+          value={caption}
+          onChange={(e) => setAiTexts((prev) => ({ ...prev, [language]: e.target.value }))}
+          rows={6}
+          placeholder="Select a product, then click AI to generate with Gemini…"
+          className="font-mono text-xs"
+        />
+      )}
     </div>
   );
 }
