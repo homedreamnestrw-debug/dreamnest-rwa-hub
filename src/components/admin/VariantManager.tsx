@@ -45,6 +45,7 @@ export function VariantManager({
   onOptionsChange,
   variants,
   onVariantsChange,
+  productImages = [],
 }: Props) {
   const [newOptName, setNewOptName] = useState("");
   const [newOptValue, setNewOptValue] = useState<Record<string, string>>({});
