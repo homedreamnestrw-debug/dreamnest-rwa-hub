@@ -12,6 +12,7 @@ interface Props {
   logo: HTMLImageElement | null;
   selected: RenderConfig["style"];
   onSelect: (s: RenderConfig["style"]) => void;
+  orientation?: "grid" | "row";
 }
 
 export function VariationGrid({
@@ -20,9 +21,10 @@ export function VariationGrid({
   logo,
   selected,
   onSelect,
+  orientation = "grid",
 }: Props) {
   const dim = FORMATS[baseConfig.format];
-  const thumbW = 160;
+  const thumbW = orientation === "row" ? 92 : 160;
   const scale = thumbW / dim.w;
 
   return (
