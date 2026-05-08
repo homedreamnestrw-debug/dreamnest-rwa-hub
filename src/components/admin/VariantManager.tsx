@@ -111,6 +111,7 @@ export function VariantManager({
         sku: "",
         price_override: null,
         is_active: true,
+        image_url: null,
         stock: initStock,
       };
     });
