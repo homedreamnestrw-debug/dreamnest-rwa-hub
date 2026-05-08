@@ -342,6 +342,19 @@ export default function CreativeStudio() {
             {/* RIGHT canvas */}
             <div className="space-y-4">
               <Card>
+                <CardContent className="space-y-2 p-3">
+                  <div className="text-xs font-medium text-muted-foreground">Frame layout</div>
+                  <VariationGrid
+                    baseConfig={config}
+                    product={product}
+                    logo={logo}
+                    selected={style}
+                    onSelect={setStyle}
+                    orientation="row"
+                  />
+                </CardContent>
+              </Card>
+              <Card>
                 <CardContent className="space-y-3 p-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
