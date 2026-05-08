@@ -46,6 +46,8 @@ import { useBrandAssets } from "@/hooks/useBrandAssets";
 import { useCreativeHistory } from "@/hooks/useCreativeHistory";
 import { Sparkles, Edit3, Lock, Unlock, RotateCcw, Undo2, Redo2 } from "lucide-react";
 import { useUndoRedo } from "@/hooks/useUndoRedo";
+import { LanguageSelector } from "@/components/admin/studio/LanguageSelector";
+import { useStudioLanguage } from "@/lib/studioLanguage";
 
 export default function CreativeStudio() {
   const { logo } = useBrandAssets();
