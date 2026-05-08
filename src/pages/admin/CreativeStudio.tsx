@@ -20,6 +20,7 @@ import { ActionBarPanel } from "@/components/admin/studio/ActionBarPanel";
 import { FeatureBadgesPanel } from "@/components/admin/studio/FeatureBadgesPanel";
 import { PolishPanel } from "@/components/admin/studio/PolishPanel";
 import { StudioUploads } from "@/components/admin/studio/StudioUploads";
+import { CustomTextPanel } from "@/components/admin/studio/CustomTextPanel";
 import { MainImageAdjustPanel } from "@/components/admin/studio/MainImageAdjustPanel";
 import { VariationGrid } from "@/components/admin/studio/VariationGrid";
 import { PlatformFormatTabs } from "@/components/admin/studio/PlatformFormatTabs";
@@ -297,8 +298,15 @@ export default function CreativeStudio() {
                     </AccordionContent>
                   </AccordionItem>
 
+                  <AccordionItem value="customtext">
+                    <AccordionTrigger className="text-sm">10. Custom free text</AccordionTrigger>
+                    <AccordionContent>
+                      <CustomTextPanel value={overlays} onChange={setOverlays} />
+                    </AccordionContent>
+                  </AccordionItem>
+
                   <AccordionItem value="canvas">
-                    <AccordionTrigger className="text-sm">10. Canvas controls</AccordionTrigger>
+                    <AccordionTrigger className="text-sm">11. Canvas controls</AccordionTrigger>
                     <AccordionContent className="space-y-2">
                       <div className="flex flex-wrap gap-2">
                         <Toggle pressed={editMode} onPressedChange={setEditMode} size="sm" variant="outline">
