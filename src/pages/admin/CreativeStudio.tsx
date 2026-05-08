@@ -41,7 +41,8 @@ import {
 } from "@/components/admin/studio/templates/productCardRenderers";
 import { useBrandAssets } from "@/hooks/useBrandAssets";
 import { useCreativeHistory } from "@/hooks/useCreativeHistory";
-import { Sparkles, Edit3, Lock, Unlock, RotateCcw } from "lucide-react";
+import { Sparkles, Edit3, Lock, Unlock, RotateCcw, Undo2, Redo2 } from "lucide-react";
+import { useUndoRedo } from "@/hooks/useUndoRedo";
 
 export default function CreativeStudio() {
   const { logo } = useBrandAssets();
@@ -60,8 +61,14 @@ export default function CreativeStudio() {
   });
   const [overlays, setOverlays] = useState(DEFAULT_OVERLAYS);
   const [caption, setCaption] = useState("");
-  const [positions, setPositions] = useState<ElementPositions>({});
-  const [texts, setTexts] = useState<ElementTexts>({});
+  const canvasHistory = useUndoRedo<{ positions: ElementPositions; texts: ElementTexts }>(
+    { positions: {}, texts: {} },
+  );
+  const { positions, texts } = canvasHistory.value;
+  const setPositions = (p: ElementPositions) =>
+    canvasHistory.set((prev) => ({ ...prev, positions: p }));
+  const setTexts = (t: ElementTexts) =>
+    canvasHistory.set((prev) => ({ ...prev, texts: t }));
   const [editMode, setEditMode] = useState(false);
   const [locked, setLocked] = useState(false);
   const [editing, setEditing] = useState<
