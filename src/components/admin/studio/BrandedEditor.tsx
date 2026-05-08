@@ -1140,7 +1140,11 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
               return (
                 <Group x={sx} y={sy} {...makeDragHandlers("featurePills")}>
                   {pills.map((label, i) => {
-                    const cx = i * (circle * 2 + gap);
+                    const vertical = config.overlays.featurePillLayout === "vertical";
+                    // Reserve vertical space for wrapped label + underline below each pill
+                    const slotH = circle * 2 + Math.round(w * 0.012) + labelSize * 1.2 * 2 + Math.round(w * 0.022);
+                    const cx = vertical ? 0 : i * (circle * 2 + gap);
+                    const cy = vertical ? i * (slotH + gap) : 0;
                     const key = `featurePill_${i}`;
                     const text = T(key, label);
                     const displayLines = wrapPillLabel(text);
@@ -1149,7 +1153,7 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                     const textBlockH = displayLines.length * labelSize * 1.2;
                     const underlineY = textY + textBlockH + Math.round(w * 0.014);
                     return (
-                      <Group key={key} x={cx}>
+                      <Group key={key} x={cx} y={cy}>
                         <Rect
                           width={circle * 2}
                           height={circle * 2}
