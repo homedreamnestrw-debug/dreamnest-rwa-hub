@@ -45,6 +45,8 @@ export interface OverlayToggles {
   galleryView: boolean;
   galleryPosition: "right" | "left" | "below";
   gallerySatCount: number; // 1..6
+  gallerySatSize: number; // 50..150 (% of auto-fit)
+  gallerySatShape: "square" | "circle" | "diamond";
   // Feature badges (reference-style)
   showSpecialDeal: boolean;
   specialDealOldPrice: string;
