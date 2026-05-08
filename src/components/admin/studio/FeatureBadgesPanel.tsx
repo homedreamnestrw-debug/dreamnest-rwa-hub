@@ -223,6 +223,29 @@ export function FeatureBadgesPanel({ value, onChange }: Props) {
               presets={PILL_PRESETS}
               max={4}
             />
+            <div className="flex items-center gap-2">
+              <Label className="flex-1 text-[11px]">Layout</Label>
+              <div className="inline-flex rounded border overflow-hidden">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={value.featurePillLayout === "horizontal" ? "default" : "ghost"}
+                  className="h-7 rounded-none px-2 text-[10px]"
+                  onClick={() => set("featurePillLayout", "horizontal")}
+                >
+                  Horizontal
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={value.featurePillLayout === "vertical" ? "default" : "ghost"}
+                  className="h-7 rounded-none px-2 text-[10px]"
+                  onClick={() => set("featurePillLayout", "vertical")}
+                >
+                  Vertical
+                </Button>
+              </div>
+            </div>
             <ScaleRow
               label="Size"
               value={value.featurePillScale}
