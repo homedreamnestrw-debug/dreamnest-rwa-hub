@@ -511,6 +511,7 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
               );
             })()}
             {/* Product image / gallery */}
+            {config.style !== "product_focus" && (
             <Group
               x={P("productImage").x}
               y={P("productImage").y}
