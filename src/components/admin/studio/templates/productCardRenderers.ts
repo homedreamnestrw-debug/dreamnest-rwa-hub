@@ -60,6 +60,17 @@ export interface OverlayToggles {
   mainImageZoom: number; // 0.5..3 (1 = cover-fit)
   mainImageOffsetX: number; // -50..50 % of frame width
   mainImageOffsetY: number; // -50..50 % of frame height
+  // Feature pills styling
+  featurePillScale: number; // 0.5..2
+  featurePillAccent: string; // hex (gold ring + glyph + underline)
+  featurePillTextColor: string; // hex; empty = auto (depends on bg)
+  // Feature bar styling
+  featureBarScale: number; // 0.5..2
+  featureBarAccent: string; // hex
+  featureBarTextColor: string; // hex
+  featureBarBgColor: string; // hex
+  // Special deal styling
+  specialDealAccent: string; // hex
 }
 
 export const DEFAULT_OVERLAYS: OverlayToggles = {
