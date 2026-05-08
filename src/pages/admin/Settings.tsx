@@ -458,6 +458,10 @@ export default function Settings() {
             </Button>
           </div>
         </TabsContent>
+
+        <TabsContent value="backup" className="space-y-4 mt-4">
+          <DataBackup />
+        </TabsContent>
       </Tabs>
     </div>
   );
