@@ -425,13 +425,93 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                       fill={COLORS.teal}
                     />
                   )}
-                  {s !== "bold_banner" && s !== "ribbon" && s !== "split_dark" && s !== "invitation" && (
+                  {s === "product_focus" && (
+                    <>
+                      {/* Full-bleed product image as background */}
+                      <Group
+                        clipFunc={(ctx) => {
+                          ctx.beginPath();
+                          ctx.rect(0, 0, w, h);
+                          ctx.closePath();
+                        }}
+                      >
+                        <CoverImage
+                          img={mainImg ?? undefined}
+                          w={w}
+                          h={h}
+                          cornerRadius={0}
+                          zoom={config.overlays.mainImageZoom ?? 1}
+                          offsetXPct={config.overlays.mainImageOffsetX ?? 0}
+                          offsetYPct={config.overlays.mainImageOffsetY ?? 0}
+                        />
+                      </Group>
+                      {/* Soft left vertical wash so floral motifs read */}
+                      <Rect
+                        x={0}
+                        y={0}
+                        width={Math.round(w * 0.22)}
+                        height={h}
+                        fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+                        fillLinearGradientEndPoint={{ x: Math.round(w * 0.22), y: 0 }}
+                        fillLinearGradientColorStops={[
+                          0, "rgba(245,240,232,0.55)",
+                          1, "rgba(245,240,232,0)",
+                        ]}
+                      />
+                      {/* Floral accents along the left edge */}
+                      {(() => {
+                        const cx = Math.round(w * 0.07);
+                        const positionsY = [0.12, 0.32, 0.55, 0.78, 0.92];
+                        const petalR = Math.round(w * 0.018);
+                        const centerR = Math.round(w * 0.012);
+                        return positionsY.map((py, i) => {
+                          const cy = Math.round(h * py);
+                          const offset = petalR * 1.4;
+                          const petalColor = i % 2 === 0 ? COLORS.dustyRose : SOFT_GOLD;
+                          return (
+                            <Group key={`flower-${i}`} x={cx} y={cy}>
+                              {/* Leaves */}
+                              <Line
+                                points={[
+                                  -offset * 1.6, offset * 0.6,
+                                  -offset * 0.4, offset * 0.1,
+                                  -offset * 0.2, offset * 1.1,
+                                ]}
+                                closed
+                                fill={COLORS.forest}
+                                opacity={0.85}
+                              />
+                              <Line
+                                points={[
+                                  offset * 1.6, -offset * 0.4,
+                                  offset * 0.4, -offset * 0.1,
+                                  offset * 0.2, -offset * 1.0,
+                                ]}
+                                closed
+                                fill={COLORS.forest}
+                                opacity={0.7}
+                              />
+                              {/* Petals */}
+                              <Circle x={-offset} y={0} radius={petalR} fill={petalColor} opacity={0.95} />
+                              <Circle x={offset} y={0} radius={petalR} fill={petalColor} opacity={0.95} />
+                              <Circle x={0} y={-offset} radius={petalR} fill={petalColor} opacity={0.95} />
+                              <Circle x={0} y={offset} radius={petalR} fill={petalColor} opacity={0.95} />
+                              {/* Center */}
+                              <Circle x={0} y={0} radius={centerR} fill={SOFT_GOLD} />
+                            </Group>
+                          );
+                        });
+                      })()}
+                    </>
+                  )}
+                  {s !== "bold_banner" && s !== "ribbon" && s !== "split_dark" && s !== "invitation" && s !== "product_focus" && (
                     <Rect width={w} height={h} fill={accent} opacity={0.06} />
                   )}
                 </>
               );
             })()}
             {/* Product image / gallery */}
+            {config.style !== "product_focus" && (
             <Group
               x={P("productImage").x}
               y={P("productImage").y}
@@ -598,6 +678,7 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                 />
               )}
             </Group>
+            )}
 
             {/* Logo + bg pill */}
             {config.overlays.showLogo && (

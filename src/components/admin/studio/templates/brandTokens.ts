@@ -60,7 +60,8 @@ export type StyleVariant =
   | "ribbon"
   | "minimal_poster"
   | "split_dark"
-  | "invitation";
+  | "invitation"
+  | "product_focus";
 
 export const STYLE_VARIANTS: { key: StyleVariant; label: string }[] = [
   { key: "editorial", label: "Editorial Frame" },
@@ -72,6 +73,7 @@ export const STYLE_VARIANTS: { key: StyleVariant; label: string }[] = [
   { key: "minimal_poster", label: "Minimal Poster" },
   { key: "split_dark", label: "Split Dark" },
   { key: "invitation", label: "Invitation Frame" },
+  { key: "product_focus", label: "Product Focus" },
 ];
 
 export const SOFT_GOLD = "#D4A24A";
