@@ -36,6 +36,12 @@ function newItem(): CustomTextItem {
     italic: false,
     underline: false,
     align: "left",
+    autoWrap: true,
+    boxWidth: 80,
+    boxHeight: 20,
+    bgColor: "",
+    bgOpacity: 100,
+    bgPadding: 16,
   };
 }
 
