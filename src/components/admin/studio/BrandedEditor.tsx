@@ -285,6 +285,8 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
     const galleryView = config.overlays.galleryView;
     const galleryPosition = config.overlays.galleryPosition ?? "right";
     const gallerySatCount = Math.max(1, Math.min(6, config.overlays.gallerySatCount ?? 4));
+    const gallerySatSize = Math.max(50, Math.min(150, config.overlays.gallerySatSize ?? 100)) / 100;
+    const gallerySatShape = config.overlays.gallerySatShape ?? "square";
     const isVertical = h > w;
     const imgAreaW = w - pad * 2;
     const imgAreaH = isVertical ? Math.round(h * 0.42) : Math.round(h * 0.5);
@@ -297,16 +299,25 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
     const mainImgW = sideMode ? Math.round(imgAreaW * 0.65) : imgAreaW;
     const mainImgH = belowMode ? Math.round(imgAreaH * 0.7) : imgAreaH;
 
-    // Satellite grid (side): 2 columns
+    // Satellite grid (side): 2 columns. For low counts (1-2) use a single column so cells fill nicely.
     const satSideAreaW = imgAreaW - mainImgW - gap;
-    const satSideCols = 2;
+    const satSideCols = gallerySatCount <= 2 ? 1 : 2;
     const satSideRows = Math.max(1, Math.ceil(gallerySatCount / satSideCols));
-    const satSideW = (satSideAreaW - gap * (satSideCols - 1)) / satSideCols;
-    const satSideH = (mainImgH - gap * (satSideRows - 1)) / satSideRows;
+    const satCellSideW = (satSideAreaW - gap * (satSideCols - 1)) / satSideCols;
+    const satCellSideH = (mainImgH - gap * (satSideRows - 1)) / satSideRows;
+    // Auto-fit: square aspect for circle/diamond looks best — use min dimension when shape isn't square
+    const satSideBaseW = satCellSideW;
+    const satSideBaseH = gallerySatShape === "square" ? satCellSideH : Math.min(satCellSideW, satCellSideH);
+    const satSideW = satSideBaseW * gallerySatSize;
+    const satSideH = satSideBaseH * gallerySatSize;
 
     // Satellite row (below): single row of N
-    const satBelowH = imgAreaH - mainImgH - gap;
-    const satBelowW = (imgAreaW - gap * (gallerySatCount - 1)) / gallerySatCount;
+    const satCellBelowH = imgAreaH - mainImgH - gap;
+    const satCellBelowW = (imgAreaW - gap * (gallerySatCount - 1)) / gallerySatCount;
+    const satBelowBaseW = satCellBelowW;
+    const satBelowBaseH = gallerySatShape === "square" ? satCellBelowH : Math.min(satCellBelowW, satCellBelowH);
+    const satBelowW = satBelowBaseW * gallerySatSize;
+    const satBelowH = satBelowBaseH * gallerySatSize;
 
     // Backwards-compat (used by older code paths) — kept harmless
     const satCellW = satSideAreaW;
