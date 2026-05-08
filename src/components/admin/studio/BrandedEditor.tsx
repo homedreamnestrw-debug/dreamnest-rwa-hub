@@ -793,9 +793,9 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                 {(() => {
                   const items: { icon: string; text: string; key: string }[] = [];
                   if (config.overlays.showActionPhone)
-                    items.push({ icon: "🛒", text: `${PHONE} — Order here`, key: "actionPhone" });
+                    items.push({ icon: "🛒", text: `${PHONE} — ${L.orderHere}`, key: "actionPhone" });
                   if (config.overlays.showActionWeb)
-                    items.push({ icon: "🌐", text: `${SITE} — Shop online`, key: "actionWeb" });
+                    items.push({ icon: "🌐", text: `${SITE} — ${L.shopOnline}`, key: "actionWeb" });
                   if (config.overlays.showActionAddress && config.overlays.showAddress)
                     items.push({ icon: "📍", text: T("address", config.overlays.addressText), key: "actionAddress" });
                   const colW = w / items.length;
