@@ -43,6 +43,7 @@ export function VariationGrid({
             onClick={() => onSelect(s.key)}
             className={cn(
               "group flex flex-col items-stretch overflow-hidden rounded-md border bg-card p-1 text-left transition-colors hover:border-primary",
+              orientation === "row" && "flex-shrink-0",
               isSel && "border-primary ring-2 ring-primary/40",
             )}
           >
