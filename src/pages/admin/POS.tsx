@@ -357,7 +357,7 @@ export default function POS() {
   };
 
   const removeFromCart = (key: string) => setCart((prev) => prev.filter((i) => cartKey(i.product_id, i.variant_id) !== key));
-  const clearCart = () => { setCart([]); setCustomerNote(""); setIsCredit(false); setAmountPaid(""); setDiscountType("none"); setDiscountValue(""); setVoucherCode(""); setVoucherData(null); setIncludeVat(false); clearCustomer(); searchRef.current?.focus(); };
+  const clearCart = () => { setCart([]); setCustomerNote(""); setIsCredit(false); setAmountPaid(""); setDiscountType("none"); setDiscountValue(""); setVoucherCode(""); setVoucherData(null); clearCustomer(); searchRef.current?.focus(); };
 
   const subtotal = cart.reduce((s, i) => s + i.selling_price * i.quantity, 0);
 
