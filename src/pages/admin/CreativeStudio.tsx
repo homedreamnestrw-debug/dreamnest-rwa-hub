@@ -399,6 +399,7 @@ export default function CreativeStudio() {
                           setEditing({ key, value, rect })
                         }
                         onSwapMainImage={(u) => setMainImageUrl(u)}
+                        language={language}
                       />
                       {editing && (
                         <InlineTextEditor
