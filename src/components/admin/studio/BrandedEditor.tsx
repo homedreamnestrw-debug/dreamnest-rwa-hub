@@ -299,6 +299,8 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
           return { x: Math.round(w * 0.12), y: Math.round(h * 0.2), w: Math.round(w * 0.45), h: Math.round(h * 0.55) };
         case "product_focus":
           return { x: 0, y: 0, w, h };
+        case "image_only":
+          return { x: 0, y: 0, w, h };
         case "mirror_reflection": {
           const cw = Math.round(w * 0.74);
           const ch = isVerticalLayout ? Math.round(h * 0.5) : Math.round(h * 0.62);
@@ -429,6 +431,7 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                 : s === "ribbon" ? accent
                 : s === "magazine" || s === "minimal_poster" ? COLORS.warmWhite
                 : s === "invitation" ? COLORS.cream
+                : s === "image_only" ? COLORS.warmWhite
                 : COLORS.cream;
               return (
                 <>
@@ -605,7 +608,26 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                       />
                     </Group>
                   )}
-                  {s !== "bold_banner" && s !== "ribbon" && s !== "split_dark" && s !== "invitation" && s !== "product_focus" && s !== "mirror_reflection" && (
+                  {s === "image_only" && (
+                    <Group
+                      clipFunc={(ctx) => {
+                        ctx.beginPath();
+                        ctx.rect(0, 0, w, h);
+                        ctx.closePath();
+                      }}
+                    >
+                      <CoverImage
+                        img={mainImg ?? undefined}
+                        w={w}
+                        h={h}
+                        cornerRadius={0}
+                        zoom={config.overlays.mainImageZoom ?? 1}
+                        offsetXPct={config.overlays.mainImageOffsetX ?? 0}
+                        offsetYPct={config.overlays.mainImageOffsetY ?? 0}
+                      />
+                    </Group>
+                  )}
+                  {s !== "bold_banner" && s !== "ribbon" && s !== "split_dark" && s !== "invitation" && s !== "product_focus" && s !== "mirror_reflection" && s !== "image_only" && (
                     <Rect width={w} height={h} fill={accent} opacity={0.06} />
                   )}
                 </>
