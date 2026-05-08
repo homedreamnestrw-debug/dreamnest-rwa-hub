@@ -232,6 +232,10 @@ export const LAYOUT_META: Record<StyleVariant, LayoutMeta> = {
     bg: "cream",
     description: "Cream bg · teal trapezoid behind image · invitation poster",
   },
+  product_focus: {
+    bg: "cream",
+    description: "Full-bleed product image · floral accents on left edge",
+  },
 };
 
 // Logo position helper kept for backward compat with controls
