@@ -123,6 +123,15 @@ export default function ProductDetail() {
       )
     : null;
 
+  // When a variant with its own image is selected, switch the gallery to that image
+  useEffect(() => {
+    const variantImg = (matchedVariant as any)?.image_url as string | null | undefined;
+    if (variantImg && product?.images) {
+      const idx = product.images.indexOf(variantImg);
+      if (idx >= 0) setSelectedImage(idx);
+    }
+  }, [matchedVariant, product?.images]);
+
   const effectivePrice = matchedVariant?.price_override ?? product?.price ?? 0;
   const effectiveStock = hasVariants
     ? (matchedVariant?.stock_quantity ?? 0)
