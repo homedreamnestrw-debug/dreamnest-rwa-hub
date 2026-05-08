@@ -179,6 +179,7 @@ export default function Settings() {
           <TabsTrigger value="email"><Mail className="h-4 w-4 mr-1" /> Email</TabsTrigger>
           <TabsTrigger value="receipt"><FileText className="h-4 w-4 mr-1" /> Receipt</TabsTrigger>
           <TabsTrigger value="website"><Globe className="h-4 w-4 mr-1" /> Website</TabsTrigger>
+          <TabsTrigger value="backup"><Database className="h-4 w-4 mr-1" /> Backup</TabsTrigger>
         </TabsList>
 
         <TabsContent value="business" className="space-y-4 mt-4">
