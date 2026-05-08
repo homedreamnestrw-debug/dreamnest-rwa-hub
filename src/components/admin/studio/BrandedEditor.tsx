@@ -266,6 +266,44 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
     const pad = Math.round(w * 0.05);
     const logoPx = Math.round(logoSizePx(config.overlays.logoSize, w) * ((config.overlays.logoScale ?? 100) / 100));
 
+    // Per-style image rect to mirror the thumbnail layouts in CardPreview.tsx
+    const isVerticalLayout = h > w;
+    const styleImgRect = useMemo(() => {
+      const s = config.style;
+      const p6 = Math.round(w * 0.06);
+      const p5 = Math.round(w * 0.05);
+      switch (s) {
+        case "editorial":
+          return { x: p6, y: Math.round(h * 0.13), w: w - p6 * 2, h: isVerticalLayout ? Math.round(h * 0.55) : Math.round(h * 0.62) };
+        case "editorial_soft":
+          return { x: 0, y: 0, w, h };
+        case "magazine":
+          return { x: p6, y: Math.round(h * 0.32), w: w - p6 * 2, h: Math.round(h * 0.5) };
+        case "bold_banner":
+          return { x: p5, y: Math.round(h * 0.22), w: Math.round(w * 0.5), h: Math.round(h * 0.55) };
+        case "catalogue":
+          return { x: 0, y: 0, w: Math.round(w * 0.58), h };
+        case "ribbon": {
+          const cardSize = Math.round(Math.min(w, h) * 0.55);
+          return { x: Math.round((w - cardSize) / 2), y: Math.round(h * 0.22), w: cardSize, h: cardSize };
+        }
+        case "minimal_poster": {
+          const imgSize = Math.round(Math.min(w, h) * 0.42);
+          return { x: Math.round((w - imgSize) / 2), y: Math.round(h * 0.35), w: imgSize, h: imgSize };
+        }
+        case "split_dark":
+          return isVerticalLayout
+            ? { x: 0, y: 0, w, h: Math.round(h * 0.55) }
+            : { x: 0, y: 0, w: Math.round(w * 0.55), h };
+        case "invitation":
+          return { x: Math.round(w * 0.12), y: Math.round(h * 0.2), w: Math.round(w * 0.45), h: Math.round(h * 0.55) };
+        case "product_focus":
+          return { x: 0, y: 0, w, h };
+        default:
+          return { x: pad, y: Math.round(h * 0.18), w: w - pad * 2, h: isVerticalLayout ? Math.round(h * 0.42) : Math.round(h * 0.5) };
+      }
+    }, [config.style, w, h, pad, isVerticalLayout]);
+
     const defaultPositions = useMemo<ElementPositions>(() => {
       const def: ElementPositions = {};
       // Logo position from style controls
@@ -286,7 +324,7 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
       // Main content area
       const tp = config.textPosition;
       const ty = tp === "top" ? Math.round(h * 0.12) : tp === "center" ? Math.round(h * 0.42) : Math.round(h * 0.62);
-      def.productImage = { x: pad, y: ty - Math.round(h * 0.42) > 0 ? Math.round(h * 0.05) : Math.round(h * 0.18) };
+      def.productImage = { x: styleImgRect.x, y: styleImgRect.y };
       def.productName = { x: pad, y: ty };
       def.price = { x: pad, y: ty + Math.round(w * 0.1) };
       def.tagline = { x: pad, y: h - Math.round(w * 0.22) };
@@ -294,7 +332,8 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
       def.actionBar = { x: 0, y: h - Math.round(w * 0.09) };
       def.badges = { x: pad, y: ty - Math.round(w * 0.07) };
       return def;
-    }, [w, h, pad, logoPx, config.logoPosition, config.textPosition, config.overlays.logoBg]);
+    }, [w, h, pad, logoPx, config.logoPosition, config.textPosition, config.overlays.logoBg, styleImgRect]);
+
 
     const P = (key: string) => positions[key] ?? defaultPositions[key] ?? { x: 0, y: 0 };
 
