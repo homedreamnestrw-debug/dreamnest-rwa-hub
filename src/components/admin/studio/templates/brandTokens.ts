@@ -7,6 +7,7 @@ export const COLORS = {
   dustyRose: "#D4A5A0",
   forest: "#4A6B52",
   midnight: "#1F2A44",
+  teal: "#1F8A93",
 } as const;
 
 export type ColorKey = keyof typeof COLORS;
