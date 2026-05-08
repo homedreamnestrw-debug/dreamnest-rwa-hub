@@ -290,7 +290,9 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
     const isVertical = h > w;
     const imgAreaW = w - pad * 2;
     const imgAreaH = isVertical ? Math.round(h * 0.42) : Math.round(h * 0.5);
-    const gap = Math.round(w * 0.015);
+    // Gallery gap is user-configurable (px at 1080-base, scaled to canvas width)
+    const gallerySatGap = Math.max(0, Math.min(60, config.overlays.gallerySatGap ?? 16));
+    const gap = Math.max(2, Math.round((gallerySatGap / 1080) * w));
 
     // Layout: side (left/right) puts satellites in a column-grid beside main; below puts them in a row beneath main
     const sideMode = galleryView && (galleryPosition === "right" || galleryPosition === "left");

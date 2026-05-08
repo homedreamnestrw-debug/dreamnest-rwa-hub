@@ -47,6 +47,7 @@ export interface OverlayToggles {
   gallerySatCount: number; // 1..6
   gallerySatSize: number; // 50..150 (% of auto-fit)
   gallerySatShape: "square" | "circle" | "diamond";
+  gallerySatGap: number; // 0..40 (px at 1080-base, scales with canvas)
   // Feature badges (reference-style)
   showSpecialDeal: boolean;
   specialDealOldPrice: string;
@@ -88,6 +89,7 @@ export const DEFAULT_OVERLAYS: OverlayToggles = {
   gallerySatCount: 4,
   gallerySatSize: 100,
   gallerySatShape: "square",
+  gallerySatGap: 16,
   showSpecialDeal: false,
   specialDealOldPrice: "130,000",
   specialDealNewPrice: "100,000",

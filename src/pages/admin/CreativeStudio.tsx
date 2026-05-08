@@ -185,6 +185,8 @@ export default function CreativeStudio() {
                           onGallerySatSizeChange={(n) => setOverlays({ ...overlays, gallerySatSize: n })}
                           gallerySatShape={overlays.gallerySatShape}
                           onGallerySatShapeChange={(s) => setOverlays({ ...overlays, gallerySatShape: s })}
+                          gallerySatGap={overlays.gallerySatGap}
+                          onGallerySatGapChange={(n) => setOverlays({ ...overlays, gallerySatGap: n })}
                         />
                       )}
                     </AccordionContent>

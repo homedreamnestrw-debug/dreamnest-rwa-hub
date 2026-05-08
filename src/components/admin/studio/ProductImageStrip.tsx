@@ -17,6 +17,8 @@ interface Props {
   onGallerySatSizeChange: (n: number) => void;
   gallerySatShape: "square" | "circle" | "diamond";
   onGallerySatShapeChange: (s: "square" | "circle" | "diamond") => void;
+  gallerySatGap: number;
+  onGallerySatGapChange: (n: number) => void;
 }
 
 export function ProductImageStrip({
@@ -33,6 +35,8 @@ export function ProductImageStrip({
   onGallerySatSizeChange,
   gallerySatShape,
   onGallerySatShapeChange,
+  gallerySatGap,
+  onGallerySatGapChange,
 }: Props) {
   if (!images.length) {
     return <div className="text-xs text-muted-foreground">No images for this product.</div>;
@@ -117,6 +121,20 @@ export function ProductImageStrip({
                 </button>
               ))}
             </div>
+          </div>
+          <div>
+            <div className="flex items-center justify-between">
+              <Label className="text-[11px] text-muted-foreground">Spacing (gap)</Label>
+              <span className="text-[11px] font-medium">{gallerySatGap}px</span>
+            </div>
+            <Slider
+              min={0}
+              max={60}
+              step={2}
+              value={[gallerySatGap]}
+              onValueChange={(v) => onGallerySatGapChange(v[0] ?? 16)}
+              className="mt-1"
+            />
           </div>
         </div>
       )}
