@@ -962,6 +962,8 @@ export type Database = {
           cost_price: number
           created_at: string
           description: string | null
+          description_fr: string | null
+          description_rw: string | null
           featured: boolean
           id: string
           images: string[] | null
@@ -981,6 +983,8 @@ export type Database = {
           cost_price?: number
           created_at?: string
           description?: string | null
+          description_fr?: string | null
+          description_rw?: string | null
           featured?: boolean
           id?: string
           images?: string[] | null
@@ -1000,6 +1004,8 @@ export type Database = {
           cost_price?: number
           created_at?: string
           description?: string | null
+          description_fr?: string | null
+          description_rw?: string | null
           featured?: boolean
           id?: string
           images?: string[] | null
@@ -1608,6 +1614,8 @@ export type Database = {
           cost_price: number
           created_at: string
           description: string | null
+          description_fr: string | null
+          description_rw: string | null
           featured: boolean
           id: string
           images: string[] | null
