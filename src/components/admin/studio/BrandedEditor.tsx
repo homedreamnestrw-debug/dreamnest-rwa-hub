@@ -69,11 +69,17 @@ function CoverImage({
   w,
   h,
   cornerRadius = 0,
+  zoom = 1,
+  offsetXPct = 0,
+  offsetYPct = 0,
 }: {
   img: HTMLImageElement | undefined;
   w: number;
   h: number;
   cornerRadius?: number;
+  zoom?: number;
+  offsetXPct?: number;
+  offsetYPct?: number;
 }) {
   if (!img) {
     return (
@@ -93,6 +99,13 @@ function CoverImage({
     );
   }
   const r = coverRect(img, w, h);
+  const z = Math.max(0.1, zoom);
+  const scaledW = r.width * z;
+  const scaledH = r.height * z;
+  const baseX = w / 2 - scaledW / 2;
+  const baseY = h / 2 - scaledH / 2;
+  const dx = (offsetXPct / 100) * w;
+  const dy = (offsetYPct / 100) * h;
   return (
     <Group
       clipFunc={(ctx) => {
@@ -114,7 +127,13 @@ function CoverImage({
         }
       }}
     >
-      <KImage image={img} x={r.x} y={r.y} width={r.width} height={r.height} />
+      <KImage
+        image={img}
+        x={baseX + dx}
+        y={baseY + dy}
+        width={scaledW}
+        height={scaledH}
+      />
     </Group>
   );
 }
@@ -411,6 +430,9 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                   w={mainImgW}
                   h={mainImgH}
                   cornerRadius={Math.round(w * 0.02)}
+                  zoom={config.overlays.mainImageZoom ?? 1}
+                  offsetXPct={config.overlays.mainImageOffsetX ?? 0}
+                  offsetYPct={config.overlays.mainImageOffsetY ?? 0}
                 />
               </Group>
 

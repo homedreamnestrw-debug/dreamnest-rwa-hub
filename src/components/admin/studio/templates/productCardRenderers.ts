@@ -56,6 +56,10 @@ export interface OverlayToggles {
   featurePills: string[]; // independent list, add one by one
   showFeatureBar: boolean; // bottom gold-icon strip
   featureBarItems: string[]; // independent list, add one by one
+  // Main image transform
+  mainImageZoom: number; // 0.5..3 (1 = cover-fit)
+  mainImageOffsetX: number; // -50..50 % of frame width
+  mainImageOffsetY: number; // -50..50 % of frame height
 }
 
 export const DEFAULT_OVERLAYS: OverlayToggles = {
@@ -97,6 +101,9 @@ export const DEFAULT_OVERLAYS: OverlayToggles = {
   featurePills: ["KING SIZE", "PURE COTTON"],
   showFeatureBar: false,
   featureBarItems: ["PREMIUM QUALITY", "SOFT & BREATHABLE", "COMFORT ALL NIGHT"],
+  mainImageZoom: 1,
+  mainImageOffsetX: 0,
+  mainImageOffsetY: 0,
 };
 
 export interface ProductData {
