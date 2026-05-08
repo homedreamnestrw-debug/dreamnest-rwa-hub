@@ -13,6 +13,7 @@ import { useShopEnabled } from "@/hooks/useShopEnabled";
 import { ComingSoon } from "@/components/layout/ComingSoon";
 import { SEO } from "@/components/SEO";
 import { FeaturedProducts } from "@/components/product/FeaturedProducts";
+import { pickLocalizedDescription } from "@/lib/studioLanguage";
 
 /**
  * Best-effort mapping of a free-text color value (e.g. "Rabbit plush warm sun orange",
