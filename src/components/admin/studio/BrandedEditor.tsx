@@ -1050,6 +1050,52 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
               );
             })()}
 
+
+            {/* User-added custom free text overlays */}
+            {(config.overlays.customTexts ?? []).map((ct, idx) => {
+              const key = `customText_${ct.id}`;
+              const fontFamily = FONTS[ct.fontFamily] ?? FONTS.serif;
+              const scaledSize = Math.round(ct.fontSize * (w / 1080));
+              const fontStyle = [ct.bold ? "bold" : "", ct.italic ? "italic" : ""]
+                .filter(Boolean)
+                .join(" ") || "normal";
+              const decoration = ct.underline ? "underline" : "";
+              const textValue = T(key, ct.text);
+              const defX = Math.round(w * 0.1);
+              const defY = Math.round(h * 0.1) + idx * Math.round(scaledSize * 1.4);
+              const pos = positions[key] ?? { x: defX, y: defY };
+              const blockW = Math.round(w * 0.8);
+              return (
+                <Group
+                  key={key}
+                  x={pos.x}
+                  y={pos.y}
+                  {...makeDragHandlers(key)}
+                >
+                  <Text
+                    text={textValue}
+                    width={blockW}
+                    align={ct.align}
+                    fontFamily={fontFamily}
+                    fontSize={scaledSize}
+                    fontStyle={fontStyle}
+                    textDecoration={decoration}
+                    fill={ct.color}
+                    onDblClick={handleDblClick(key, textValue)}
+                    onDblTap={handleDblClick(key, textValue)}
+                  />
+                  {editMode && (
+                    <Rect
+                      width={blockW}
+                      height={Math.max(scaledSize * 1.3, 30)}
+                      {...editStroke}
+                      fill="transparent"
+                    />
+                  )}
+                </Group>
+              );
+            })}
+
             {/* Snap guides overlay */}
             {guides.x !== undefined && (
               <Line points={[guides.x, 0, guides.x, h]} stroke="#3b82f6" strokeWidth={1} dash={[8, 6]} />
