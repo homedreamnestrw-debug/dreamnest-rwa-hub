@@ -137,6 +137,7 @@ export const DEFAULT_OVERLAYS: OverlayToggles = {
   featureBarTextColor: "#F5EFE3",
   featureBarBgColor: "#1F1A14",
   specialDealAccent: "#D4A24A",
+  customTexts: [],
 };
 
 export interface ProductData {
