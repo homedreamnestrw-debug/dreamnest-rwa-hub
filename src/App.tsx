@@ -112,6 +112,7 @@ const App = () => (
               <Route path="settings" element={<ProtectedRoute requiredRole="admin"><Settings /></ProtectedRoute>} />
               <Route path="staff" element={<ProtectedRoute requiredRole="admin"><Staff /></ProtectedRoute>} />
               <Route path="finance" element={<ProtectedRoute requiredRole="admin"><Finance /></ProtectedRoute>} />
+              <Route path="credit" element={<ProtectedRoute requiredRole="admin"><CreditManagement /></ProtectedRoute>} />
             </Route>
 
             {/* Catch-all */}
