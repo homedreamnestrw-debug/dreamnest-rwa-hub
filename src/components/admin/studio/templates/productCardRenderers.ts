@@ -85,6 +85,12 @@ export interface CustomTextItem {
   italic: boolean;
   underline: boolean;
   align: "left" | "center" | "right";
+  autoWrap: boolean; // wrap text within boxWidth
+  boxWidth: number; // % of canvas width (10..100)
+  boxHeight: number; // % of canvas height (5..100)
+  bgColor: string; // hex or "" for transparent
+  bgOpacity: number; // 0..100
+  bgPadding: number; // px at 1080-base
 }
 
 export const DEFAULT_OVERLAYS: OverlayToggles = {
