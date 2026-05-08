@@ -579,16 +579,16 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                         ctx.closePath();
                       }}
                     >
-                      {/* Mirrored, faded backdrop of the main image */}
+                      {/* Mirrored, faded backdrop — fixed framing, ignores zoom/offset */}
                       <Group scaleX={-1} x={w} opacity={0.28}>
                         <CoverImage
                           img={mainImg ?? undefined}
                           w={w}
                           h={h}
                           cornerRadius={0}
-                          zoom={(config.overlays.mainImageZoom ?? 1) * 1.15}
-                          offsetXPct={config.overlays.mainImageOffsetX ?? 0}
-                          offsetYPct={config.overlays.mainImageOffsetY ?? 0}
+                          zoom={1.15}
+                          offsetXPct={0}
+                          offsetYPct={0}
                         />
                       </Group>
                       {/* Soft cream wash to push backdrop further back */}
