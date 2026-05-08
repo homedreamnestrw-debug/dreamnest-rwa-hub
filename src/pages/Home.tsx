@@ -30,7 +30,7 @@ export default function Home() {
   const { data: categories } = useQuery({
     queryKey: ["categories"],
     queryFn: async () => {
-      const { data } = await supabase.from("categories").select("*").limit(6);
+      const { data } = await (supabase.from("categories") as any).select("*").eq("is_active", true).limit(6);
       return data ?? [];
     },
   });
