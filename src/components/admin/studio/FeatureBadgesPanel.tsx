@@ -2,12 +2,73 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
 import { Plus, X } from "lucide-react";
 import { OverlayToggles } from "./templates/productCardRenderers";
 
 interface Props {
   value: OverlayToggles;
   onChange: (v: OverlayToggles) => void;
+}
+
+function ColorRow({
+  label,
+  value,
+  onChange,
+  allowAuto = false,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  allowAuto?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <Label className="flex-1 text-[11px]">{label}</Label>
+      <Input
+        type="color"
+        className="h-7 w-10 p-0.5"
+        value={value || "#000000"}
+        onChange={(e) => onChange(e.target.value)}
+      />
+      {allowAuto && (
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-7 px-2 text-[10px]"
+          type="button"
+          onClick={() => onChange("")}
+        >
+          Auto
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function ScaleRow({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <div className="space-y-1">
+      <Label className="text-[11px]">
+        {label} ({Math.round(value * 100)}%)
+      </Label>
+      <Slider
+        min={50}
+        max={200}
+        step={5}
+        value={[Math.round(value * 100)]}
+        onValueChange={(v) => onChange(v[0] / 100)}
+      />
+    </div>
+  );
 }
 
 const PILL_PRESETS = [
