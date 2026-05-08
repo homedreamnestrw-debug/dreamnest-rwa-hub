@@ -1153,7 +1153,7 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                     const textBlockH = displayLines.length * labelSize * 1.2;
                     const underlineY = textY + textBlockH + Math.round(w * 0.014);
                     return (
-                      <Group key={key} x={cx}>
+                      <Group key={key} x={cx} y={cy}>
                         <Rect
                           width={circle * 2}
                           height={circle * 2}
