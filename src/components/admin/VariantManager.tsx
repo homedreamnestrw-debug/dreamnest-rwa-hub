@@ -239,6 +239,38 @@ export function VariantManager({
                     ))}
                   </div>
                 )}
+                {productImages.length > 0 && (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <ImageIcon className="h-3 w-3" />
+                      Variant image (optional — shown on product page when this variant is selected)
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => updateVariant(idx, { image_url: null })}
+                        className={`h-12 w-12 rounded border-2 flex items-center justify-center text-[10px] ${v.image_url == null ? "border-primary bg-primary/10" : "border-muted text-muted-foreground hover:border-foreground/50"}`}
+                        title="Use default product images"
+                      >
+                        Default
+                      </button>
+                      {productImages.map((img) => {
+                        const selected = v.image_url === img;
+                        return (
+                          <button
+                            key={img}
+                            type="button"
+                            onClick={() => updateVariant(idx, { image_url: img })}
+                            className={`h-12 w-12 rounded overflow-hidden border-2 ${selected ? "border-primary ring-2 ring-primary/30" : "border-transparent hover:border-foreground/40"}`}
+                            title={selected ? "Selected" : "Use this image"}
+                          >
+                            <img src={img} alt="" className="w-full h-full object-cover" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
