@@ -71,6 +71,20 @@ export interface OverlayToggles {
   featureBarBgColor: string; // hex
   // Special deal styling
   specialDealAccent: string; // hex
+  // Custom free text overlays (user-added)
+  customTexts: CustomTextItem[];
+}
+
+export interface CustomTextItem {
+  id: string;
+  text: string;
+  fontFamily: "serif" | "sans" | "display" | "mono";
+  fontSize: number; // px at 1080-base, scales with canvas width
+  color: string; // hex
+  bold: boolean;
+  italic: boolean;
+  underline: boolean;
+  align: "left" | "center" | "right";
 }
 
 export const DEFAULT_OVERLAYS: OverlayToggles = {
