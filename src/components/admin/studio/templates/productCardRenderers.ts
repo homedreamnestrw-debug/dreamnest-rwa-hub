@@ -65,6 +65,7 @@ export interface OverlayToggles {
   featurePillScale: number; // 0.5..2
   featurePillAccent: string; // hex (gold ring + glyph + underline)
   featurePillTextColor: string; // hex; empty = auto (depends on bg)
+  featurePillLayout: "horizontal" | "vertical"; // arrange pills in a row or column
   // Feature bar styling
   featureBarScale: number; // 0.5..2
   featureBarAccent: string; // hex
