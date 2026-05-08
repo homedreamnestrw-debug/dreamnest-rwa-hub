@@ -911,20 +911,32 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
               const onDarkBg = ["bold_banner", "catalogue", "split_dark"].includes(config.style);
               const autoLabel = onDarkBg ? COLORS.warmWhite : COLORS.charcoal;
               const labelFill = config.overlays.featurePillTextColor || autoLabel;
-              // Approximate auto-wrap line count given Konva renders bold caps in `circle*2` width.
-              const avgCharW = labelSize * 0.62;
+              const letterGap = 2;
               const availW = circle * 2;
-              const estimateLines = (txt: string) => {
+              const measureWord = (word: string) =>
+                word.length * (labelSize * 0.72) + Math.max(0, word.length - 1) * letterGap;
+              const spaceW = labelSize * 0.4 + letterGap;
+              const wrapPillLabel = (txt: string) => {
                 const words = txt.split(/\s+/).filter(Boolean);
-                let lines = 1;
-                let used = 0;
+                const lines: string[] = [];
+                let current = "";
+                let currentW = 0;
                 for (const word of words) {
-                  const ww = word.length * avgCharW;
-                  if (used === 0) used = ww;
-                  else if (used + avgCharW + ww <= availW) used += avgCharW + ww;
-                  else { lines += 1; used = ww; }
+                  const ww = measureWord(word);
+                  if (!current) {
+                    current = word;
+                    currentW = ww;
+                  } else if (currentW + spaceW + ww <= availW * 0.94) {
+                    current += ` ${word}`;
+                    currentW += spaceW + ww;
+                  } else {
+                    lines.push(current);
+                    current = word;
+                    currentW = ww;
+                  }
                 }
-                return Math.max(1, lines);
+                if (current) lines.push(current);
+                return lines.length > 0 ? lines : [txt];
               };
               return (
                 <Group x={sx} y={sy} {...makeDragHandlers("featurePills")}>
@@ -932,10 +944,11 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                     const cx = i * (circle * 2 + gap);
                     const key = `featurePill_${i}`;
                     const text = T(key, label);
-                    const lines = estimateLines(text);
-                    const textBlockH = lines * labelSize * 1.15;
-                    const underlineY =
-                      circle * 2 + Math.round(w * 0.012) + textBlockH + Math.round(w * 0.008);
+                    const displayLines = wrapPillLabel(text);
+                    const displayText = displayLines.join("\n");
+                    const textY = circle * 2 + Math.round(w * 0.012);
+                    const textBlockH = displayLines.length * labelSize * 1.2;
+                    const underlineY = textY + textBlockH + Math.round(w * 0.014);
                     return (
                       <Group key={key} x={cx}>
                         <Rect
@@ -955,16 +968,16 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                           fill={accent}
                         />
                         <Text
-                          y={circle * 2 + Math.round(w * 0.012)}
+                          y={textY}
                           width={circle * 2}
                           align="center"
-                          text={text}
+                          text={displayText}
                           fontFamily={FONTS.sans}
                           fontStyle="900"
                           fontSize={labelSize}
                           fill={labelFill}
                           letterSpacing={2}
-                          lineHeight={1.15}
+                          lineHeight={1.2}
                           onDblClick={handleDblClick(key, text)}
                           onDblTap={handleDblClick(key, text)}
                         />
