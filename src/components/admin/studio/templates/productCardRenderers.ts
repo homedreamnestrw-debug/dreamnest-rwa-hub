@@ -83,6 +83,16 @@ export const DEFAULT_OVERLAYS: OverlayToggles = {
   logoOpacity: 100,
   logoBg: "none",
   galleryView: false,
+  showSpecialDeal: false,
+  specialDealOldPrice: "130,000",
+  specialDealNewPrice: "100,000",
+  showFeaturePills: false,
+  featurePill1: "KING SIZE",
+  featurePill2: "PURE COTTON",
+  showFeatureBar: false,
+  featureBar1: "PREMIUM QUALITY",
+  featureBar2: "SOFT & BREATHABLE",
+  featureBar3: "COMFORT ALL NIGHT",
 };
 
 export interface ProductData {
