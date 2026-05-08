@@ -126,7 +126,7 @@ export default function CreativeStudio() {
 
   const allImages = product?.images ?? (product?.imageUrl ? [product.imageUrl] : []);
   const satellites = useMemo(
-    () => allImages.filter((u) => u !== mainImageUrl).slice(0, 4),
+    () => allImages.filter((u) => u !== mainImageUrl).slice(0, 6),
     [allImages, mainImageUrl],
   );
 
