@@ -409,21 +409,19 @@ export default function Invoices() {
     if (filterType !== "all" && inv.document_type !== filterType) return false;
     if (filterStatus !== "all" && inv.status !== filterStatus) return false;
     if (filterSource !== "all") {
-      const source = inv._virtual
-        ? (inv._order_channel === "online" ? "online" : "pos")
-        : (inv.order_id ? "linked" : "manual");
-      if (filterSource === "online" && source !== "online") return false;
-      if (filterSource === "pos" && source !== "pos") return false;
-      if (filterSource === "manual" && source === "online") return false;
-      if (filterSource === "manual" && source === "pos") return false;
+      const channel = inv._order_channel;
+      if (filterSource === "online" && channel !== "online") return false;
+      if (filterSource === "pos" && channel !== "in_store") return false;
+      if (filterSource === "manual" && (channel === "online" || channel === "in_store" || inv.order_id)) return false;
     }
     if (search && !inv.document_number.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
 
   const counts = {
-    online: invoices.filter(i => i._virtual && i._order_channel === "online").length,
-    pos: invoices.filter(i => i._virtual && i._order_channel === "in_store").length,
+    online: invoices.filter(i => i._order_channel === "online").length,
+    pos: invoices.filter(i => i._order_channel === "in_store").length,
+    manual: invoices.filter(i => !i._order_channel && !i.order_id).length,
   };
 
   return (
