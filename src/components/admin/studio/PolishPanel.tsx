@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Sparkles, Loader2, RotateCcw } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Sparkles, Loader2, RotateCcw, Wand2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -17,6 +18,7 @@ export interface PolishOptions {
   upscale: boolean; // 2x AI
   saturation: number; // -100..100
   brightness: number; // -100..100
+  bgReplacePrompt: string; // Generative AI background prompt (empty = off)
 }
 
 const DEFAULT_POLISH: PolishOptions = {
@@ -27,6 +29,7 @@ const DEFAULT_POLISH: PolishOptions = {
   upscale: false,
   saturation: 0,
   brightness: 0,
+  bgReplacePrompt: "",
 };
 
 interface Props {
@@ -37,7 +40,17 @@ interface Props {
 
 function buildTransformations(opts: PolishOptions): string {
   const parts: string[] = [];
-  if (opts.removeBg) parts.push("e_background_removal");
+  const prompt = opts.bgReplacePrompt.trim();
+  if (prompt) {
+    // Generative AI background replacement (Cloudinary add-on)
+    const safe = prompt
+      .replace(/[^a-zA-Z0-9\s,.-]/g, "")
+      .trim()
+      .replace(/\s+/g, "%20");
+    parts.push(`e_gen_background_replace:prompt_${safe}`);
+  } else if (opts.removeBg) {
+    parts.push("e_background_removal");
+  }
   if (opts.autoEnhance) parts.push("e_improve");
   if (opts.autoColor) parts.push("e_auto_color");
   if (opts.sharpen > 0) parts.push(`e_sharpen:${Math.round(opts.sharpen)}`);
