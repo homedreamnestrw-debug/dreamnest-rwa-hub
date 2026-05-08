@@ -163,9 +163,11 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
       locked,
       onEditElement,
       onSwapMainImage,
+      language = "en",
     },
     ref,
   ) => {
+    const L = CANVAS_STRINGS[language];
     const dim = FORMATS[config.format];
     const w = dim.w;
     const h = dim.h;
