@@ -73,7 +73,19 @@ export default function Analytics() {
 
   return (
     <div className="space-y-6">
-      <h1 className="font-serif text-2xl font-semibold">Analytics</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="font-serif text-2xl font-semibold">Analytics</h1>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={() => downloadCSV(`analytics-all-${new Date().toISOString().slice(0,10)}.csv`, [
+            ...data.channelData.map((r) => ({ section: "Channel", name: r.name, value: r.value })),
+            ...data.statusData.map((r) => ({ section: "Status", name: r.name, value: r.value })),
+            ...data.paymentData.map((r) => ({ section: "Payment Revenue (RWF)", name: r.name, value: r.value })),
+            ...data.topProducts.map((r) => ({ section: "Top Product", name: r.name, value: r.revenue, qty: r.qty })),
+          ])}>
+            <Download className="h-4 w-4 mr-2" /> Export CSV
+          </Button>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
