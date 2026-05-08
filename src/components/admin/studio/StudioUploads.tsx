@@ -91,7 +91,25 @@ export function StudioUploads({
               </button>
               <button
                 type="button"
-                onClick={() => onRemove(u)}
+                onClick={async () => {
+                  const marker = "/business-assets/";
+                  const idx = u.indexOf(marker);
+                  if (idx >= 0) {
+                    const path = u.slice(idx + marker.length);
+                    const { error } = await supabase.storage
+                      .from("business-assets")
+                      .remove([path]);
+                    if (error) {
+                      toast({
+                        title: "Delete failed",
+                        description: error.message,
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+                  }
+                  onRemove(u);
+                }}
                 className="absolute -right-1 -top-1 rounded-full bg-background p-0.5 shadow border"
                 aria-label="Remove"
               >
