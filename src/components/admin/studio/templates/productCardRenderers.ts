@@ -41,6 +41,7 @@ export interface OverlayToggles {
   logoSize: "sm" | "md" | "lg";
   logoOpacity: number; // 50-100
   logoBg: "none" | "white" | "dark";
+  logoScale: number; // 50-300, fine-grained scale on top of logoSize
   // Gallery
   galleryView: boolean;
   galleryPosition: "right" | "left" | "below";
