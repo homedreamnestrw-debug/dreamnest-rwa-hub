@@ -13,6 +13,10 @@ interface Props {
   onGalleryPositionChange: (v: "right" | "left" | "below") => void;
   gallerySatCount: number;
   onGallerySatCountChange: (n: number) => void;
+  gallerySatSize: number;
+  onGallerySatSizeChange: (n: number) => void;
+  gallerySatShape: "square" | "circle" | "diamond";
+  onGallerySatShapeChange: (s: "square" | "circle" | "diamond") => void;
 }
 
 export function ProductImageStrip({
@@ -25,6 +29,10 @@ export function ProductImageStrip({
   onGalleryPositionChange,
   gallerySatCount,
   onGallerySatCountChange,
+  gallerySatSize,
+  onGallerySatSizeChange,
+  gallerySatShape,
+  onGallerySatShapeChange,
 }: Props) {
   if (!images.length) {
     return <div className="text-xs text-muted-foreground">No images for this product.</div>;
@@ -75,6 +83,40 @@ export function ProductImageStrip({
               onValueChange={(v) => onGallerySatCountChange(v[0] ?? 4)}
               className="mt-1"
             />
+          </div>
+          <div>
+            <div className="flex items-center justify-between">
+              <Label className="text-[11px] text-muted-foreground">Satellite size</Label>
+              <span className="text-[11px] font-medium">{gallerySatSize}%</span>
+            </div>
+            <Slider
+              min={50}
+              max={150}
+              step={5}
+              value={[gallerySatSize]}
+              onValueChange={(v) => onGallerySatSizeChange(v[0] ?? 100)}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label className="text-[11px] text-muted-foreground">Satellite shape</Label>
+            <div className="mt-1 grid grid-cols-3 gap-1">
+              {(["square", "circle", "diamond"] as const).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => onGallerySatShapeChange(s)}
+                  className={cn(
+                    "rounded border px-2 py-1 text-[11px] capitalize transition-colors",
+                    gallerySatShape === s
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "hover:border-muted-foreground/40",
+                  )}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
