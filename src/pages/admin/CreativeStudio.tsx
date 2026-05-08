@@ -203,6 +203,19 @@ export default function CreativeStudio() {
                           onGallerySatGapChange={(n) => setOverlays({ ...overlays, gallerySatGap: n })}
                         />
                       )}
+                      <StudioUploads
+                        uploaded={customUploads}
+                        selected={mainImageUrl}
+                        onUploaded={(url) => {
+                          setCustomUploads((prev) => [...prev, url]);
+                          setMainImageUrl(url);
+                        }}
+                        onSelect={setMainImageUrl}
+                        onRemove={(url) => {
+                          setCustomUploads((prev) => prev.filter((u) => u !== url));
+                          if (mainImageUrl === url) setMainImageUrl(productImages[0] ?? null);
+                        }}
+                      />
                     </AccordionContent>
                   </AccordionItem>
 
