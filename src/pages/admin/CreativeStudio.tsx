@@ -128,7 +128,11 @@ export default function CreativeStudio() {
   const scaleH = maxH / dim.h;
   const previewScale = Math.min(scaleW, scaleH);
 
-  const allImages = product?.images ?? (product?.imageUrl ? [product.imageUrl] : []);
+  const productImages = product?.images ?? (product?.imageUrl ? [product.imageUrl] : []);
+  const allImages = useMemo(
+    () => [...productImages, ...customUploads],
+    [productImages, customUploads],
+  );
   const satellites = useMemo(
     () => allImages.filter((u) => u !== mainImageUrl).slice(0, 6),
     [allImages, mainImageUrl],
