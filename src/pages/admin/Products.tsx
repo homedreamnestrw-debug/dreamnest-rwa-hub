@@ -175,7 +175,7 @@ export default function Products() {
     setOptionsSchema(schema);
     const { data: vData } = await supabase
       .from("product_variants")
-      .select("id, variant_name, attributes, sku, price_override, is_active")
+      .select("id, variant_name, attributes, sku, price_override, is_active, image_url")
       .eq("product_id", p.id)
       .eq("is_active", true);
     const variantIds = (vData ?? []).map((v) => v.id);
@@ -198,6 +198,7 @@ export default function Products() {
         sku: v.sku ?? "",
         price_override: v.price_override,
         is_active: v.is_active,
+        image_url: v.image_url ?? null,
         stock: stockByVariant[v.id] ?? {},
       }))
     );
@@ -371,6 +372,7 @@ export default function Products() {
                 onOptionsChange={setOptionsSchema}
                 variants={variantRows}
                 onVariantsChange={setVariantRows}
+                productImages={form.images}
               />
 
               <div>

@@ -89,7 +89,7 @@ export default function ProductDetail() {
     queryFn: async () => {
       const { data } = await supabase
         .from("product_variants")
-        .select("id, variant_name, sku, price_override, attributes, stock_quantity, is_active, variant_stock(quantity)")
+        .select("id, variant_name, sku, price_override, attributes, stock_quantity, is_active, image_url, variant_stock(quantity)")
         .eq("product_id", product!.id)
         .eq("is_active", true);
       // Defensive: if stock_quantity is 0 but variant_stock rows have qty, use the sum.
@@ -122,6 +122,15 @@ export default function ProductDetail() {
         optionNames.every((n) => (v.attributes ?? {})[n] === selectedOptions[n])
       )
     : null;
+
+  // When a variant with its own image is selected, switch the gallery to that image
+  useEffect(() => {
+    const variantImg = (matchedVariant as any)?.image_url as string | null | undefined;
+    if (variantImg && product?.images) {
+      const idx = product.images.indexOf(variantImg);
+      if (idx >= 0) setSelectedImage(idx);
+    }
+  }, [matchedVariant, product?.images]);
 
   const effectivePrice = matchedVariant?.price_override ?? product?.price ?? 0;
   const effectiveStock = hasVariants

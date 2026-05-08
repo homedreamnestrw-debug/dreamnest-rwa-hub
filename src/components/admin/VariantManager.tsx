@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Plus, X, Sparkles } from "lucide-react";
+import { Plus, X, Sparkles, ImageIcon } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 export type OptionsSchema = Record<string, string[]>;
@@ -15,6 +15,7 @@ export interface VariantRow {
   sku: string;
   price_override: number | null;
   is_active: boolean;
+  image_url: string | null; // optional override image (must be one of product.images)
   stock: Record<string, number>; // location_id -> qty
 }
 
@@ -26,6 +27,7 @@ interface Props {
   onOptionsChange: (next: OptionsSchema) => void;
   variants: VariantRow[];
   onVariantsChange: (next: VariantRow[]) => void;
+  productImages?: string[];
 }
 
 const cartesian = (lists: string[][]): string[][] => {
@@ -43,6 +45,7 @@ export function VariantManager({
   onOptionsChange,
   variants,
   onVariantsChange,
+  productImages = [],
 }: Props) {
   const [newOptName, setNewOptName] = useState("");
   const [newOptValue, setNewOptValue] = useState<Record<string, string>>({});
@@ -109,6 +112,7 @@ export function VariantManager({
         sku: "",
         price_override: null,
         is_active: true,
+        image_url: null,
         stock: initStock,
       };
     });
@@ -235,6 +239,38 @@ export function VariantManager({
                     ))}
                   </div>
                 )}
+                {productImages.length > 0 && (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <ImageIcon className="h-3 w-3" />
+                      Variant image (optional — shown on product page when this variant is selected)
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => updateVariant(idx, { image_url: null })}
+                        className={`h-12 w-12 rounded border-2 flex items-center justify-center text-[10px] ${v.image_url == null ? "border-primary bg-primary/10" : "border-muted text-muted-foreground hover:border-foreground/50"}`}
+                        title="Use default product images"
+                      >
+                        Default
+                      </button>
+                      {productImages.map((img) => {
+                        const selected = v.image_url === img;
+                        return (
+                          <button
+                            key={img}
+                            type="button"
+                            onClick={() => updateVariant(idx, { image_url: img })}
+                            className={`h-12 w-12 rounded overflow-hidden border-2 ${selected ? "border-primary ring-2 ring-primary/30" : "border-transparent hover:border-foreground/40"}`}
+                            title={selected ? "Selected" : "Use this image"}
+                          >
+                            <img src={img} alt="" className="w-full h-full object-cover" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -289,8 +325,9 @@ export async function persistVariants(
           attributes: v.attributes,
           sku: v.sku || null,
           price_override: v.price_override,
+          image_url: v.image_url ?? null,
           is_active: true,
-        })
+        } as any)
         .eq("id", match.id);
       if (error) return { error: error.message };
       variantId = match.id;
@@ -303,8 +340,9 @@ export async function persistVariants(
           attributes: v.attributes,
           sku: v.sku || null,
           price_override: v.price_override,
+          image_url: v.image_url ?? null,
           is_active: true,
-        })
+        } as any)
         .select("id")
         .single();
       if (error || !data) return { error: error?.message ?? "insert failed" };
