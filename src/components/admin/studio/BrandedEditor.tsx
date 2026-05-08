@@ -349,9 +349,9 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
     const gallerySatCount = Math.max(1, Math.min(6, config.overlays.gallerySatCount ?? 4));
     const gallerySatSize = Math.max(50, Math.min(150, config.overlays.gallerySatSize ?? 100)) / 100;
     const gallerySatShape = config.overlays.gallerySatShape ?? "square";
-    const isVertical = h > w;
-    const imgAreaW = w - pad * 2;
-    const imgAreaH = isVertical ? Math.round(h * 0.42) : Math.round(h * 0.5);
+    const isVertical = isVerticalLayout;
+    const imgAreaW = styleImgRect.w;
+    const imgAreaH = styleImgRect.h;
     // Gallery gap is user-configurable (px at 1080-base, scaled to canvas width)
     const gallerySatGap = Math.max(0, Math.min(60, config.overlays.gallerySatGap ?? 16));
     const gap = Math.max(2, Math.round((gallerySatGap / 1080) * w));
