@@ -36,68 +36,175 @@ export default function Stock() {
 
   // ============ Per-tab import/export configs ============
 
-  // PRODUCTS
+  // PRODUCTS (with variants + Excel template w/ category dropdown)
+  const PRODUCT_HEADERS = [
+    "name","slug","sku","price","cost_price","stock_quantity","low_stock_threshold",
+    "category_name","is_active","featured","tax_enabled","description",
+    "variant_name","variant_sku","variant_price","variant_stock","variant_attributes",
+  ];
   const productsBar = (
     <ImportExportBar
       label="Products"
       exportFilename="products.csv"
-      templateFilename="products-template.csv"
-      templateHeaders={["name","slug","sku","price","cost_price","stock_quantity","low_stock_threshold","category_name","is_active","featured","tax_enabled","description"]}
+      templateFilename="products-template.xlsx"
+      templateHeaders={PRODUCT_HEADERS}
       exportRows={async () => {
-        const [{ data: prods }, { data: cats }] = await Promise.all([
+        const [{ data: prods }, { data: cats }, { data: vars }] = await Promise.all([
           supabase.rpc("get_admin_products_with_costs"),
           supabase.from("categories").select("id,name"),
+          supabase.from("product_variants").select("product_id,variant_name,sku,price_override,stock_quantity,attributes,is_active").eq("is_active", true),
         ]);
         const catMap = new Map((cats || []).map((c) => [c.id, c.name]));
-        return (prods || []).map((p) => ({
-          name: p.name, slug: p.slug, sku: p.sku || "",
-          price: p.price, cost_price: p.cost_price,
-          stock_quantity: p.stock_quantity, low_stock_threshold: p.low_stock_threshold,
-          category_name: p.category_id ? catMap.get(p.category_id) || "" : "",
-          is_active: p.is_active, featured: p.featured, tax_enabled: p.tax_enabled,
-          description: p.description || "",
-        }));
+        const varsByProduct = new Map<string, any[]>();
+        (vars || []).forEach((v) => {
+          const list = varsByProduct.get(v.product_id) || [];
+          list.push(v); varsByProduct.set(v.product_id, list);
+        });
+        const out: any[] = [];
+        (prods || []).forEach((p) => {
+          const base = {
+            name: p.name, slug: p.slug, sku: p.sku || "",
+            price: p.price, cost_price: p.cost_price,
+            stock_quantity: p.stock_quantity, low_stock_threshold: p.low_stock_threshold,
+            category_name: p.category_id ? catMap.get(p.category_id) || "" : "",
+            is_active: p.is_active, featured: p.featured, tax_enabled: p.tax_enabled,
+            description: p.description || "",
+            variant_name: "", variant_sku: "", variant_price: "", variant_stock: "", variant_attributes: "",
+          };
+          const variants = varsByProduct.get(p.id) || [];
+          if (variants.length === 0) { out.push(base); return; }
+          out.push(base);
+          variants.forEach((v) => {
+            out.push({
+              name: "", slug: p.slug, sku: "", price: "", cost_price: "",
+              stock_quantity: "", low_stock_threshold: "",
+              category_name: "", is_active: "", featured: "", tax_enabled: "", description: "",
+              variant_name: v.variant_name,
+              variant_sku: v.sku || "",
+              variant_price: v.price_override ?? "",
+              variant_stock: v.stock_quantity ?? 0,
+              variant_attributes: v.attributes ? JSON.stringify(v.attributes) : "",
+            });
+          });
+        });
+        return out;
       }}
       templateSample={await_sample_products()}
-      importNotes="Match by slug. Category resolved by name (created if missing). Slug auto-generated from name if blank."
+      xlsxTemplate={async () => {
+        const ExcelJS = (await import("exceljs")).default;
+        const { data: cats } = await supabase.from("categories").select("name").order("name");
+        const wb = new ExcelJS.Workbook();
+        const ws = wb.addWorksheet("Products");
+        ws.addRow(PRODUCT_HEADERS);
+        ws.getRow(1).font = { bold: true };
+        // Sample product row + a sample variant row sharing the slug
+        ws.addRow(["Sample Pillow","sample-pillow","PIL-001",15000,9000,20,5,(cats?.[0]?.name || "Bedding"),"true","false","true","Soft cotton pillow","","","","",""]);
+        ws.addRow(["","sample-pillow","","","","","","","","","","","Queen / Beige","PIL-001-QB","","10",'{"Size":"Queen","Color":"Beige"}']);
+
+        // Hidden sheet holding category list for the dropdown
+        const listWs = wb.addWorksheet("_lists");
+        listWs.state = "hidden";
+        const catNames = (cats || []).map((c) => c.name);
+        catNames.forEach((n, i) => { listWs.getCell(i + 1, 1).value = n; });
+        const catRange = catNames.length > 0 ? `=_lists!$A$1:$A$${catNames.length}` : undefined;
+
+        // Apply data validation to category_name column for first 1000 rows
+        const catCol = PRODUCT_HEADERS.indexOf("category_name") + 1;
+        const boolCols = ["is_active","featured","tax_enabled"].map((h) => PRODUCT_HEADERS.indexOf(h) + 1);
+        for (let r = 2; r <= 1001; r++) {
+          if (catRange) {
+            ws.getCell(r, catCol).dataValidation = {
+              type: "list", allowBlank: true, formulae: [catRange],
+              showErrorMessage: true, errorStyle: "warning",
+              errorTitle: "Unknown category", error: "Pick a category from the dropdown or it will be created on import.",
+            } as any;
+          }
+          boolCols.forEach((c) => {
+            ws.getCell(r, c).dataValidation = {
+              type: "list", allowBlank: true, formulae: ['"true,false"'],
+            } as any;
+          });
+        }
+        ws.columns.forEach((col) => { col.width = 18; });
+
+        const buf = await wb.xlsx.writeBuffer();
+        const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+        return { blob, filename: "products-template.xlsx" };
+      }}
+      importNotes="One row per product. Add extra rows with the same slug (and variant_name filled) to attach variants. Category is matched by name (created if missing). variant_attributes must be JSON, e.g. {\"Size\":\"Queen\"}."
       onImport={async (rows): Promise<ImportResult> => {
         const errors: string[] = [];
         let ok = 0, failed = 0;
         const { data: cats } = await supabase.from("categories").select("id,name");
         const catByName = new Map((cats || []).map((c) => [c.name.toLowerCase(), c.id]));
 
+        // Group rows by slug (or generated slug from name)
+        const groups = new Map<string, Record<string, string>[]>();
         for (const r of rows) {
+          const key = (r.slug || (r.name ? slugify(r.name) : "")).toLowerCase();
+          if (!key) { failed++; errors.push("(row missing name and slug)"); continue; }
+          const arr = groups.get(key) || []; arr.push(r); groups.set(key, arr);
+        }
+
+        for (const [slugKey, group] of groups) {
           try {
-            if (!r.name) throw new Error("name required");
+            // Product header = first row that has a name OR fallback to first row
+            const header = group.find((r) => r.name) || group[0];
+            const variantRows = group.filter((r) => r.variant_name);
+
             let category_id: string | null = null;
-            if (r.category_name) {
-              const key = r.category_name.toLowerCase();
-              category_id = catByName.get(key) || null;
+            if (header.category_name) {
+              const k = header.category_name.toLowerCase();
+              category_id = catByName.get(k) || null;
               if (!category_id) {
-                const slug = slugify(r.category_name);
                 const { data: newCat, error: cErr } = await supabase
-                  .from("categories").insert({ name: r.category_name, slug }).select("id").single();
+                  .from("categories").insert({ name: header.category_name, slug: slugify(header.category_name) }).select("id").single();
                 if (cErr) throw cErr;
                 category_id = newCat!.id;
-                catByName.set(key, category_id);
+                catByName.set(k, category_id);
               }
             }
-            const slug = r.slug || slugify(r.name);
-            const payload = {
-              name: r.name, slug, sku: r.sku || null,
-              price: Number(r.price || 0), cost_price: Number(r.cost_price || 0),
-              stock_quantity: Number(r.stock_quantity || 0),
-              low_stock_threshold: Number(r.low_stock_threshold || 5),
+            const slug = header.slug || slugify(header.name);
+            const payload: any = {
+              name: header.name, slug, sku: header.sku || null,
+              price: Number(header.price || 0), cost_price: Number(header.cost_price || 0),
+              stock_quantity: Number(header.stock_quantity || 0),
+              low_stock_threshold: Number(header.low_stock_threshold || 5),
               category_id,
-              is_active: parseBool(r.is_active, true),
-              featured: parseBool(r.featured, false),
-              tax_enabled: parseBool(r.tax_enabled, true),
-              description: r.description || null,
+              is_active: parseBool(header.is_active, true),
+              featured: parseBool(header.featured, false),
+              tax_enabled: parseBool(header.tax_enabled, true),
+              description: header.description || null,
             };
-            const { error } = await supabase.from("products").upsert(payload, { onConflict: "slug" });
+            const { data: prod, error } = await supabase.from("products").upsert(payload, { onConflict: "slug" }).select("id").single();
             if (error) throw error;
+
+            // Variants: upsert by (product_id, variant_name)
+            for (const vr of variantRows) {
+              let attributes: any = {};
+              if (vr.variant_attributes) {
+                try { attributes = JSON.parse(vr.variant_attributes); }
+                catch { throw new Error(`variant "${vr.variant_name}": invalid JSON in variant_attributes`); }
+              }
+              const { data: existing } = await supabase
+                .from("product_variants").select("id")
+                .eq("product_id", prod!.id).eq("variant_name", vr.variant_name).maybeSingle();
+              const vPayload: any = {
+                product_id: prod!.id,
+                variant_name: vr.variant_name,
+                sku: vr.variant_sku || null,
+                price_override: vr.variant_price ? Number(vr.variant_price) : null,
+                stock_quantity: Number(vr.variant_stock || 0),
+                attributes,
+                is_active: true,
+              };
+              const { error: vErr } = existing
+                ? await supabase.from("product_variants").update(vPayload).eq("id", existing.id)
+                : await supabase.from("product_variants").insert(vPayload);
+              if (vErr) throw vErr;
+            }
             ok++;
-          } catch (e: any) { failed++; errors.push(`${r.name || "(unnamed)"}: ${e.message}`); }
+          } catch (e: any) { failed++; errors.push(`${slugKey}: ${e.message}`); }
         }
         return { ok, failed, errors };
       }}
