@@ -161,7 +161,12 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
     const [sat1] = useImage(satelliteUrls[1] ?? "", "anonymous");
     const [sat2] = useImage(satelliteUrls[2] ?? "", "anonymous");
     const [sat3] = useImage(satelliteUrls[3] ?? "", "anonymous");
-    const sats = [sat0, sat1, sat2, sat3];
+    const [sat4] = useImage(satelliteUrls[4] ?? "", "anonymous");
+    const [sat5] = useImage(satelliteUrls[5] ?? "", "anonymous");
+    const sats = [sat0, sat1, sat2, sat3, sat4, sat5];
+
+    // Element selection — selected element is movable/editable even if globally locked
+    const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
     // Snap guides
     const [guides, setGuides] = useState<{ x?: number; y?: number }>({});
