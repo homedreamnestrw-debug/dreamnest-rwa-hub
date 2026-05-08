@@ -1061,10 +1061,15 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                 .join(" ") || "normal";
               const decoration = ct.underline ? "underline" : "";
               const textValue = T(key, ct.text);
+              const boxW = Math.round((w * (ct.boxWidth ?? 80)) / 100);
+              const boxH = Math.round((h * (ct.boxHeight ?? 20)) / 100);
+              const pad = Math.round((ct.bgPadding ?? 16) * (w / 1080));
               const defX = Math.round(w * 0.1);
               const defY = Math.round(h * 0.1) + idx * Math.round(scaledSize * 1.4);
               const pos = positions[key] ?? { x: defX, y: defY };
-              const blockW = Math.round(w * 0.8);
+              const autoWrap = ct.autoWrap !== false;
+              const hasBg = !!ct.bgColor;
+              const bgOpacity = (ct.bgOpacity ?? 100) / 100;
               return (
                 <Group
                   key={key}
@@ -1072,22 +1077,36 @@ export const BrandedEditor = forwardRef<Konva.Stage, BrandedEditorProps>(
                   y={pos.y}
                   {...makeDragHandlers(key)}
                 >
+                  {hasBg && (
+                    <Rect
+                      width={boxW}
+                      height={boxH}
+                      fill={ct.bgColor}
+                      opacity={bgOpacity}
+                      cornerRadius={Math.round(w * 0.008)}
+                    />
+                  )}
                   <Text
                     text={textValue}
-                    width={blockW}
+                    x={pad}
+                    y={pad}
+                    width={Math.max(10, boxW - pad * 2)}
+                    height={Math.max(10, boxH - pad * 2)}
                     align={ct.align}
                     fontFamily={fontFamily}
                     fontSize={scaledSize}
                     fontStyle={fontStyle}
                     textDecoration={decoration}
                     fill={ct.color}
+                    wrap={autoWrap ? "word" : "none"}
+                    ellipsis={!autoWrap}
                     onDblClick={handleDblClick(key, textValue)}
                     onDblTap={handleDblClick(key, textValue)}
                   />
                   {editMode && (
                     <Rect
-                      width={blockW}
-                      height={Math.max(scaledSize * 1.3, 30)}
+                      width={boxW}
+                      height={boxH}
                       {...editStroke}
                       fill="transparent"
                     />
