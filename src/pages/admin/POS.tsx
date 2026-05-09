@@ -118,19 +118,57 @@ export default function POS() {
     refetchInterval: 30000,
   });
 
-  const { data: settings } = useQuery({
-    queryKey: ["business-settings-public"],
-    queryFn: async () => {
-      const { data } = await supabase.rpc("get_public_business_settings");
-      return data?.[0] ?? null;
-    },
-  });
-
   const { data: locations } = useQuery({
     queryKey: ["stock-locations"],
     queryFn: async () => {
       const { data } = await supabase.from("stock_locations").select("*").eq("is_active", true).order("name");
       return data ?? [];
+    },
+  });
+
+  const fetchVariantsForLocation = useCallback(async (productId?: string) => {
+    let query = supabase
+      .from("product_variants")
+      .select("id, product_id, variant_name, attributes, price_override, stock_quantity, sku, is_active")
+      .eq("is_active", true);
+
+    if (productId) query = query.eq("product_id", productId);
+
+    const { data, error } = await query.order("variant_name");
+    if (error) throw error;
+
+    let variants = (data ?? []) as (VariantOption & { product_id: string })[];
+    if (selectedLocation && variants.length > 0) {
+      const { data: stockRows } = await supabase
+        .from("variant_stock")
+        .select("variant_id, quantity")
+        .eq("location_id", selectedLocation)
+        .in("variant_id", variants.map((v) => v.id));
+      const stockByVariant = new Map((stockRows ?? []).map((s: any) => [s.variant_id, Number(s.quantity ?? 0)]));
+      variants = variants.map((v) => stockByVariant.has(v.id) ? { ...v, stock_quantity: stockByVariant.get(v.id)! } : v);
+    }
+
+    return variants;
+  }, [selectedLocation]);
+
+  const { data: posVariants = [] } = useQuery({
+    queryKey: ["pos-product-variants", selectedLocation],
+    queryFn: () => fetchVariantsForLocation(),
+    refetchInterval: 30000,
+  });
+
+  const variantsByProduct = new Map<string, (VariantOption & { product_id: string })[]>();
+  posVariants.forEach((variant) => {
+    const list = variantsByProduct.get(variant.product_id) ?? [];
+    list.push(variant);
+    variantsByProduct.set(variant.product_id, list);
+  });
+
+  const { data: settings } = useQuery({
+    queryKey: ["business-settings-public"],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("get_public_business_settings");
+      return data?.[0] ?? null;
     },
   });
 
@@ -208,11 +246,18 @@ export default function POS() {
   const receiptFooter = (settings as any)?.receipt_footer || "";
   const sellerName = sellerProfile?.full_name || user?.email || "Staff";
 
-  const filtered = products?.filter(
-    (p: any) =>
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      (p.sku && p.sku.toLowerCase().includes(search.toLowerCase()))
-  ) ?? [];
+  const filtered = products?.filter((p: any) => {
+    const term = search.toLowerCase();
+    const variants = variantsByProduct.get(p.id) ?? [];
+    return (
+      p.name.toLowerCase().includes(term) ||
+      (p.sku && p.sku.toLowerCase().includes(term)) ||
+      variants.some((v) =>
+        v.variant_name.toLowerCase().includes(term) ||
+        (v.sku && v.sku.toLowerCase().includes(term))
+      )
+    );
+  }) ?? [];
 
   const cartKey = (productId: string, variantId: string | null) => `${productId}::${variantId ?? ""}`;
 
@@ -257,35 +302,58 @@ export default function POS() {
     searchRef.current?.focus();
   }, []);
 
-  // Detect whether a product has variants (variant_attributes is non-empty object)
-  const productHasVariants = (product: any): boolean => {
+  const productHasVariantSchema = (product: any): boolean => {
     const attrs = product?.variant_attributes;
     return attrs && typeof attrs === "object" && Object.keys(attrs).length > 0;
   };
 
+  const getProductAvailableStock = (product: any): number => {
+    const variants = variantsByProduct.get(product.id) ?? [];
+    return variants.length > 0
+      ? variants.reduce((sum, variant) => sum + Number(variant.stock_quantity ?? 0), 0)
+      : Number(product.stock_quantity ?? 0);
+  };
+
+  // Detect imported variants from product_variants, not only products.variant_attributes
+  const productHasVariants = (product: any): boolean => {
+    return productHasVariantSchema(product) || (variantsByProduct.get(product.id)?.length ?? 0) > 0;
+  };
+
   const openProduct = useCallback(async (product: any) => {
-    if (productHasVariants(product)) {
-      // Open variant picker — fetch variants for this product
+    let variants = variantsByProduct.get(product.id) ?? [];
+    if (variants.length === 0 && !productHasVariantSchema(product)) {
+      try {
+        variants = await fetchVariantsForLocation(product.id);
+      } catch {
+        variants = [];
+      }
+    }
+
+    if (variants.length > 0 || productHasVariantSchema(product)) {
       setVariantPickerProduct(product);
       setVariantPickerSelections({});
-      setVariantPickerLoading(true);
-      const { data } = await supabase
-        .from("product_variants")
-        .select("id, variant_name, attributes, price_override, stock_quantity, sku, is_active")
-        .eq("product_id", product.id)
-        .eq("is_active", true);
-      setVariantPickerOptions((data ?? []) as VariantOption[]);
-      setVariantPickerLoading(false);
+      setVariantPickerOptions(variants);
+      if (variants.length === 0) {
+        setVariantPickerLoading(true);
+        try {
+          setVariantPickerOptions(await fetchVariantsForLocation(product.id));
+        } catch {
+          toast.error("Could not load variants");
+          setVariantPickerProduct(null);
+        } finally {
+          setVariantPickerLoading(false);
+        }
+      }
       return;
     }
-    if (product.stock_quantity <= 0) {
+    if (getProductAvailableStock(product) <= 0) {
       toast.error("Out of stock");
       return;
     }
     setQtyPromptProduct(product);
     setQtyPromptVariant(null);
     setQtyPromptValue("1");
-  }, []);
+  }, [fetchVariantsForLocation, variantsByProduct]);
 
   const confirmQtyPrompt = () => {
     if (!qtyPromptProduct) return;
@@ -296,14 +364,31 @@ export default function POS() {
   };
 
   // Variant picker helpers
-  const variantOptionNames = variantPickerProduct
-    ? Object.keys((variantPickerProduct.variant_attributes ?? {}) as Record<string, string[]>)
-    : [];
+  const productVariantGroups = ((variantPickerProduct?.variant_attributes ?? {}) as Record<string, unknown>) ?? {};
+  const derivedVariantGroups = variantPickerOptions.reduce<Record<string, string[]>>((acc, variant) => {
+    Object.entries(variant.attributes ?? {}).forEach(([name, value]) => {
+      const text = String(value ?? "").trim();
+      if (!text) return;
+      acc[name] = acc[name] ?? [];
+      if (!acc[name].includes(text)) acc[name].push(text);
+    });
+    return acc;
+  }, {});
+  const variantOptionGroups: Record<string, string[]> = Object.keys(productVariantGroups).length > 0
+    ? Object.fromEntries(Object.entries(productVariantGroups).map(([name, values]) => [
+      name,
+      Array.isArray(values) ? values.map(String) : String(values ?? "").split(",").map((v) => v.trim()).filter(Boolean),
+    ]))
+    : derivedVariantGroups;
+  const variantOptionNames = Object.keys(variantOptionGroups);
   const matchedPickerVariant: VariantOption | null = (() => {
-    if (!variantPickerProduct || variantOptionNames.length === 0) return null;
+    if (!variantPickerProduct) return null;
+    if (variantOptionNames.length === 0) {
+      return variantPickerOptions.find((v) => v.id === variantPickerSelections.__variantId) ?? null;
+    }
     return (
       variantPickerOptions.find((v) =>
-        variantOptionNames.every((n) => (v.attributes ?? {})[n] === variantPickerSelections[n])
+        variantOptionNames.every((n) => variantPickerSelections[n] && (v.attributes ?? {})[n] === variantPickerSelections[n])
       ) ?? null
     );
   })();
