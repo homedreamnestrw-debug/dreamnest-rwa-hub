@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -157,12 +157,15 @@ export default function POS() {
     refetchInterval: 30000,
   });
 
-  const variantsByProduct = new Map<string, (VariantOption & { product_id: string })[]>();
-  posVariants.forEach((variant) => {
-    const list = variantsByProduct.get(variant.product_id) ?? [];
-    list.push(variant);
-    variantsByProduct.set(variant.product_id, list);
-  });
+  const variantsByProduct = useMemo(() => {
+    const map = new Map<string, (VariantOption & { product_id: string })[]>();
+    posVariants.forEach((variant) => {
+      const list = map.get(variant.product_id) ?? [];
+      list.push(variant);
+      map.set(variant.product_id, list);
+    });
+    return map;
+  }, [posVariants]);
 
   const { data: settings } = useQuery({
     queryKey: ["business-settings-public"],
