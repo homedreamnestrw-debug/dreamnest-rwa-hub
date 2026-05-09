@@ -305,22 +305,22 @@ export default function POS() {
     searchRef.current?.focus();
   }, []);
 
-  const productHasVariantSchema = (product: any): boolean => {
+  const productHasVariantSchema = useCallback((product: any): boolean => {
     const attrs = product?.variant_attributes;
     return attrs && typeof attrs === "object" && Object.keys(attrs).length > 0;
-  };
+  }, []);
 
-  const getProductAvailableStock = (product: any): number => {
+  const getProductAvailableStock = useCallback((product: any): number => {
     const variants = variantsByProduct.get(product.id) ?? [];
     return variants.length > 0
       ? variants.reduce((sum, variant) => sum + Number(variant.stock_quantity ?? 0), 0)
       : Number(product.stock_quantity ?? 0);
-  };
+  }, [variantsByProduct]);
 
   // Detect imported variants from product_variants, not only products.variant_attributes
-  const productHasVariants = (product: any): boolean => {
+  const productHasVariants = useCallback((product: any): boolean => {
     return productHasVariantSchema(product) || (variantsByProduct.get(product.id)?.length ?? 0) > 0;
-  };
+  }, [productHasVariantSchema, variantsByProduct]);
 
   const openProduct = useCallback(async (product: any) => {
     let variants = variantsByProduct.get(product.id) ?? [];
@@ -356,7 +356,7 @@ export default function POS() {
     setQtyPromptProduct(product);
     setQtyPromptVariant(null);
     setQtyPromptValue("1");
-  }, [fetchVariantsForLocation, variantsByProduct]);
+  }, [fetchVariantsForLocation, getProductAvailableStock, productHasVariantSchema, variantsByProduct]);
 
   const confirmQtyPrompt = () => {
     if (!qtyPromptProduct) return;
