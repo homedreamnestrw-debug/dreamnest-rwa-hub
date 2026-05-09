@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -118,19 +118,60 @@ export default function POS() {
     refetchInterval: 30000,
   });
 
-  const { data: settings } = useQuery({
-    queryKey: ["business-settings-public"],
-    queryFn: async () => {
-      const { data } = await supabase.rpc("get_public_business_settings");
-      return data?.[0] ?? null;
-    },
-  });
-
   const { data: locations } = useQuery({
     queryKey: ["stock-locations"],
     queryFn: async () => {
       const { data } = await supabase.from("stock_locations").select("*").eq("is_active", true).order("name");
       return data ?? [];
+    },
+  });
+
+  const fetchVariantsForLocation = useCallback(async (productId?: string) => {
+    let query = supabase
+      .from("product_variants")
+      .select("id, product_id, variant_name, attributes, price_override, stock_quantity, sku, is_active")
+      .eq("is_active", true);
+
+    if (productId) query = query.eq("product_id", productId);
+
+    const { data, error } = await query.order("variant_name");
+    if (error) throw error;
+
+    let variants = (data ?? []) as (VariantOption & { product_id: string })[];
+    if (selectedLocation && variants.length > 0) {
+      const { data: stockRows } = await supabase
+        .from("variant_stock")
+        .select("variant_id, quantity")
+        .eq("location_id", selectedLocation)
+        .in("variant_id", variants.map((v) => v.id));
+      const stockByVariant = new Map((stockRows ?? []).map((s: any) => [s.variant_id, Number(s.quantity ?? 0)]));
+      variants = variants.map((v) => stockByVariant.has(v.id) ? { ...v, stock_quantity: stockByVariant.get(v.id)! } : v);
+    }
+
+    return variants;
+  }, [selectedLocation]);
+
+  const { data: posVariants = [] } = useQuery({
+    queryKey: ["pos-product-variants", selectedLocation],
+    queryFn: () => fetchVariantsForLocation(),
+    refetchInterval: 30000,
+  });
+
+  const variantsByProduct = useMemo(() => {
+    const map = new Map<string, (VariantOption & { product_id: string })[]>();
+    posVariants.forEach((variant) => {
+      const list = map.get(variant.product_id) ?? [];
+      list.push(variant);
+      map.set(variant.product_id, list);
+    });
+    return map;
+  }, [posVariants]);
+
+  const { data: settings } = useQuery({
+    queryKey: ["business-settings-public"],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("get_public_business_settings");
+      return data?.[0] ?? null;
     },
   });
 
@@ -208,11 +249,18 @@ export default function POS() {
   const receiptFooter = (settings as any)?.receipt_footer || "";
   const sellerName = sellerProfile?.full_name || user?.email || "Staff";
 
-  const filtered = products?.filter(
-    (p: any) =>
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      (p.sku && p.sku.toLowerCase().includes(search.toLowerCase()))
-  ) ?? [];
+  const filtered = products?.filter((p: any) => {
+    const term = search.toLowerCase();
+    const variants = variantsByProduct.get(p.id) ?? [];
+    return (
+      p.name.toLowerCase().includes(term) ||
+      (p.sku && p.sku.toLowerCase().includes(term)) ||
+      variants.some((v) =>
+        v.variant_name.toLowerCase().includes(term) ||
+        (v.sku && v.sku.toLowerCase().includes(term))
+      )
+    );
+  }) ?? [];
 
   const cartKey = (productId: string, variantId: string | null) => `${productId}::${variantId ?? ""}`;
 
@@ -257,35 +305,58 @@ export default function POS() {
     searchRef.current?.focus();
   }, []);
 
-  // Detect whether a product has variants (variant_attributes is non-empty object)
-  const productHasVariants = (product: any): boolean => {
+  const productHasVariantSchema = useCallback((product: any): boolean => {
     const attrs = product?.variant_attributes;
     return attrs && typeof attrs === "object" && Object.keys(attrs).length > 0;
-  };
+  }, []);
+
+  const getProductAvailableStock = useCallback((product: any): number => {
+    const variants = variantsByProduct.get(product.id) ?? [];
+    return variants.length > 0
+      ? variants.reduce((sum, variant) => sum + Number(variant.stock_quantity ?? 0), 0)
+      : Number(product.stock_quantity ?? 0);
+  }, [variantsByProduct]);
+
+  // Detect imported variants from product_variants, not only products.variant_attributes
+  const productHasVariants = useCallback((product: any): boolean => {
+    return productHasVariantSchema(product) || (variantsByProduct.get(product.id)?.length ?? 0) > 0;
+  }, [productHasVariantSchema, variantsByProduct]);
 
   const openProduct = useCallback(async (product: any) => {
-    if (productHasVariants(product)) {
-      // Open variant picker — fetch variants for this product
+    let variants = variantsByProduct.get(product.id) ?? [];
+    if (variants.length === 0 && !productHasVariantSchema(product)) {
+      try {
+        variants = await fetchVariantsForLocation(product.id);
+      } catch {
+        variants = [];
+      }
+    }
+
+    if (variants.length > 0 || productHasVariantSchema(product)) {
       setVariantPickerProduct(product);
       setVariantPickerSelections({});
-      setVariantPickerLoading(true);
-      const { data } = await supabase
-        .from("product_variants")
-        .select("id, variant_name, attributes, price_override, stock_quantity, sku, is_active")
-        .eq("product_id", product.id)
-        .eq("is_active", true);
-      setVariantPickerOptions((data ?? []) as VariantOption[]);
-      setVariantPickerLoading(false);
+      setVariantPickerOptions(variants);
+      if (variants.length === 0) {
+        setVariantPickerLoading(true);
+        try {
+          setVariantPickerOptions(await fetchVariantsForLocation(product.id));
+        } catch {
+          toast.error("Could not load variants");
+          setVariantPickerProduct(null);
+        } finally {
+          setVariantPickerLoading(false);
+        }
+      }
       return;
     }
-    if (product.stock_quantity <= 0) {
+    if (getProductAvailableStock(product) <= 0) {
       toast.error("Out of stock");
       return;
     }
     setQtyPromptProduct(product);
     setQtyPromptVariant(null);
     setQtyPromptValue("1");
-  }, []);
+  }, [fetchVariantsForLocation, getProductAvailableStock, productHasVariantSchema, variantsByProduct]);
 
   const confirmQtyPrompt = () => {
     if (!qtyPromptProduct) return;
@@ -296,14 +367,31 @@ export default function POS() {
   };
 
   // Variant picker helpers
-  const variantOptionNames = variantPickerProduct
-    ? Object.keys((variantPickerProduct.variant_attributes ?? {}) as Record<string, string[]>)
-    : [];
+  const productVariantGroups = (variantPickerProduct?.variant_attributes ?? {}) as Record<string, unknown>;
+  const derivedVariantGroups = variantPickerOptions.reduce<Record<string, string[]>>((acc, variant) => {
+    Object.entries(variant.attributes ?? {}).forEach(([name, value]) => {
+      const text = String(value ?? "").trim();
+      if (!text) return;
+      acc[name] = acc[name] ?? [];
+      if (!acc[name].includes(text)) acc[name].push(text);
+    });
+    return acc;
+  }, {});
+  const variantOptionGroups: Record<string, string[]> = Object.keys(productVariantGroups).length > 0
+    ? Object.fromEntries(Object.entries(productVariantGroups).map(([name, values]) => [
+      name,
+      Array.isArray(values) ? values.map(String) : String(values ?? "").split(",").map((v) => v.trim()).filter(Boolean),
+    ]))
+    : derivedVariantGroups;
+  const variantOptionNames = Object.keys(variantOptionGroups);
   const matchedPickerVariant: VariantOption | null = (() => {
-    if (!variantPickerProduct || variantOptionNames.length === 0) return null;
+    if (!variantPickerProduct) return null;
+    if (variantOptionNames.length === 0) {
+      return variantPickerOptions.find((v) => v.id === variantPickerSelections.__variantId) ?? null;
+    }
     return (
       variantPickerOptions.find((v) =>
-        variantOptionNames.every((n) => (v.attributes ?? {})[n] === variantPickerSelections[n])
+        variantOptionNames.every((n) => variantPickerSelections[n] && (v.attributes ?? {})[n] === variantPickerSelections[n])
       ) ?? null
     );
   })();
@@ -780,11 +868,12 @@ export default function POS() {
                 <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
                   {filtered.map((product: any) => {
                     const hasVar = productHasVariants(product);
+                    const availableStock = getProductAvailableStock(product);
                     return (
                       <button
                         key={product.id}
                         onClick={() => openProduct(product)}
-                        disabled={product.stock_quantity <= 0}
+                        disabled={availableStock <= 0}
                         className="text-left p-3 border rounded-lg hover:border-primary hover:bg-primary/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <div className="aspect-square rounded-md overflow-hidden bg-muted mb-2 relative">
@@ -800,8 +889,8 @@ export default function POS() {
                         <p className="font-medium text-sm truncate">{product.name}</p>
                         <div className="flex items-center justify-between mt-1">
                           <span className="font-serif text-sm">{formatPrice(product.price)}</span>
-                          <Badge variant={product.stock_quantity <= 0 ? "destructive" : product.stock_quantity <= 5 ? "secondary" : "outline"} className="text-xs">
-                            {product.stock_quantity}
+                          <Badge variant={availableStock <= 0 ? "destructive" : availableStock <= 5 ? "secondary" : "outline"} className="text-xs">
+                            {availableStock}
                           </Badge>
                         </div>
                         {product.sku && <p className="text-xs text-muted-foreground mt-1">{product.sku}</p>}
@@ -1111,8 +1200,31 @@ export default function POS() {
             <div className="py-8 text-center text-sm text-muted-foreground"><Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" /> Loading variants…</div>
           ) : (
             <div className="space-y-4">
+              {variantOptionNames.length === 0 && variantPickerOptions.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-sm font-medium">Variant</p>
+                  <div className="space-y-2">
+                    {variantPickerOptions.map((variant) => {
+                      const inStock = (variant.stock_quantity ?? 0) > 0;
+                      const isSelected = variantPickerSelections.__variantId === variant.id;
+                      return (
+                        <button
+                          key={variant.id}
+                          type="button"
+                          disabled={!inStock && !isSelected}
+                          onClick={() => setVariantPickerSelections({ __variantId: variant.id })}
+                          className={`flex w-full items-center justify-between rounded-md border px-3 py-2 text-left text-sm transition-colors ${isSelected ? "border-primary bg-primary/10" : "hover:bg-muted/60"} ${!inStock ? "opacity-60" : ""}`}
+                        >
+                          <span className="font-medium">{variant.variant_name}</span>
+                          <span className="text-xs text-muted-foreground">Stock {variant.stock_quantity ?? 0}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               {variantOptionNames.map((opt) => {
-                const values = ((variantPickerProduct?.variant_attributes ?? {})[opt] ?? []) as string[];
+                const values = variantOptionGroups[opt] ?? [];
                 return (
                   <div key={opt} className="space-y-1.5">
                     <p className="text-sm font-medium">
