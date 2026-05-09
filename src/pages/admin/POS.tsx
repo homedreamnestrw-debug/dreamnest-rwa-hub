@@ -364,7 +364,7 @@ export default function POS() {
   };
 
   // Variant picker helpers
-  const productVariantGroups = ((variantPickerProduct?.variant_attributes ?? {}) as Record<string, unknown>) ?? {};
+  const productVariantGroups = (variantPickerProduct?.variant_attributes ?? {}) as Record<string, unknown>;
   const derivedVariantGroups = variantPickerOptions.reduce<Record<string, string[]>>((acc, variant) => {
     Object.entries(variant.attributes ?? {}).forEach(([name, value]) => {
       const text = String(value ?? "").trim();
