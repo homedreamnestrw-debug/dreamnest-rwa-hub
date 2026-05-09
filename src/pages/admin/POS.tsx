@@ -868,11 +868,12 @@ export default function POS() {
                 <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
                   {filtered.map((product: any) => {
                     const hasVar = productHasVariants(product);
+                    const availableStock = getProductAvailableStock(product);
                     return (
                       <button
                         key={product.id}
                         onClick={() => openProduct(product)}
-                        disabled={product.stock_quantity <= 0}
+                        disabled={availableStock <= 0}
                         className="text-left p-3 border rounded-lg hover:border-primary hover:bg-primary/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <div className="aspect-square rounded-md overflow-hidden bg-muted mb-2 relative">
@@ -888,8 +889,8 @@ export default function POS() {
                         <p className="font-medium text-sm truncate">{product.name}</p>
                         <div className="flex items-center justify-between mt-1">
                           <span className="font-serif text-sm">{formatPrice(product.price)}</span>
-                          <Badge variant={product.stock_quantity <= 0 ? "destructive" : product.stock_quantity <= 5 ? "secondary" : "outline"} className="text-xs">
-                            {product.stock_quantity}
+                          <Badge variant={availableStock <= 0 ? "destructive" : availableStock <= 5 ? "secondary" : "outline"} className="text-xs">
+                            {availableStock}
                           </Badge>
                         </div>
                         {product.sku && <p className="text-xs text-muted-foreground mt-1">{product.sku}</p>}
