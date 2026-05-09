@@ -1199,8 +1199,31 @@ export default function POS() {
             <div className="py-8 text-center text-sm text-muted-foreground"><Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" /> Loading variants…</div>
           ) : (
             <div className="space-y-4">
+              {variantOptionNames.length === 0 && variantPickerOptions.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-sm font-medium">Variant</p>
+                  <div className="space-y-2">
+                    {variantPickerOptions.map((variant) => {
+                      const inStock = (variant.stock_quantity ?? 0) > 0;
+                      const isSelected = variantPickerSelections.__variantId === variant.id;
+                      return (
+                        <button
+                          key={variant.id}
+                          type="button"
+                          disabled={!inStock && !isSelected}
+                          onClick={() => setVariantPickerSelections({ __variantId: variant.id })}
+                          className={`flex w-full items-center justify-between rounded-md border px-3 py-2 text-left text-sm transition-colors ${isSelected ? "border-primary bg-primary/10" : "hover:bg-muted/60"} ${!inStock ? "opacity-60" : ""}`}
+                        >
+                          <span className="font-medium">{variant.variant_name}</span>
+                          <span className="text-xs text-muted-foreground">Stock {variant.stock_quantity ?? 0}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               {variantOptionNames.map((opt) => {
-                const values = ((variantPickerProduct?.variant_attributes ?? {})[opt] ?? []) as string[];
+                const values = variantOptionGroups[opt] ?? [];
                 return (
                   <div key={opt} className="space-y-1.5">
                     <p className="text-sm font-medium">
