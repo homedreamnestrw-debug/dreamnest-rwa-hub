@@ -342,7 +342,13 @@ export default function Products() {
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label>Name</Label>
+                <div className="flex items-center justify-between gap-2">
+                  <Label>Name</Label>
+                  <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={generateNameFromDescription} disabled={aiLoading || aiBatchLoading}>
+                    {aiLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Type className="h-3.5 w-3.5" />}
+                    Suggest from description
+                  </Button>
+                </div>
                 <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
               </div>
               <div>
@@ -358,6 +364,14 @@ export default function Products() {
                   <Button type="button" size="sm" variant="outline" onClick={generateDescription} disabled={aiLoading || aiBatchLoading}>
                     {aiLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
                     Generate ({descLang.toUpperCase()})
+                  </Button>
+                  <Button type="button" size="sm" variant="outline" onClick={() => transformDescription("polish")} disabled={aiLoading || aiBatchLoading}>
+                    {aiLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
+                    Polish
+                  </Button>
+                  <Button type="button" size="sm" variant="outline" onClick={() => transformDescription("shorten")} disabled={aiLoading || aiBatchLoading}>
+                    {aiLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Scissors className="h-3.5 w-3.5" />}
+                    Shorten
                   </Button>
                   <Button type="button" size="sm" variant="secondary" onClick={generateAllDescriptions} disabled={aiLoading || aiBatchLoading}>
                     {aiBatchLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Languages className="h-3.5 w-3.5" />}
