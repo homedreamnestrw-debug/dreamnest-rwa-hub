@@ -187,6 +187,35 @@ export const ANNOUNCEMENT_TEMPLATES: AnnouncementTemplate[] = [
     fields: [],
   },
   {
+    key: "mothers_day",
+    category: "seasonal",
+    title: "Mother's Day",
+    emoji: "💐",
+    defaultHeadline: "Happy Mother's Day",
+    defaultSubline: "For the woman who makes every house a home — wrap her in comfort.",
+    accent: "dustyRose",
+    fields: [
+      { key: "message", label: "Personal message", type: "textarea", optional: true, placeholder: "To every amazing mother in Rwanda…" },
+    ],
+    buildSubline: (v) =>
+      v.message?.trim() ||
+      "For the woman who makes every house a home — wrap her in comfort.",
+  },
+  {
+    key: "fathers_day",
+    category: "seasonal",
+    title: "Father's Day",
+    emoji: "🎩",
+    defaultHeadline: "Happy Father's Day",
+    defaultSubline: "Because every great dad deserves the softest rest.",
+    accent: "midnight",
+    fields: [
+      { key: "message", label: "Personal message", type: "textarea", optional: true },
+    ],
+    buildSubline: (v) =>
+      v.message?.trim() || "Because every great dad deserves the softest rest.",
+  },
+  {
     key: "valentines",
     category: "seasonal",
     title: "Valentine's Day",
