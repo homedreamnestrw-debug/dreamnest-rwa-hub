@@ -36,15 +36,34 @@ const DESCRIPTION_INSTRUCTIONS: Record<Lang, string> = {
   rw: `Andika incamake y'igicuruzwa nziza (amagambo 90–130). Vuga ibikoresho, ubworoherane n'aho bikoreshwa iyo bikwiriye. Sozanya n'interuro ngufi ihamagarira gukora. Subiza GUSA incamake — nta mitwe, nta markdown, mu nyandiko isanzwe.`,
 };
 
+const POLISH_INSTRUCTIONS: Record<Lang, string> = {
+  en: `Polish and improve the following product description while preserving its meaning. Fix grammar, improve flow, make it warm and aspirational. Keep length similar (90–130 words). Return ONLY the polished description — no headings, no markdown.`,
+  fr: `Améliore et peaufine la description de produit suivante en préservant son sens. Corrige la grammaire, améliore le style, rends-la chaleureuse et inspirante. Garde une longueur similaire (90–130 mots). Retourne UNIQUEMENT la description peaufinée — sans titres, sans markdown.`,
+  rw: `Nozeza kandi utunganye incamake y'igicuruzwa ikurikira ariko ugumane icyo ivuga. Kosora imyandikire, unozeze imvugo, uyigire iryoshye kandi ishimishije. Komeza uburebure busa (amagambo 90–130). Subiza GUSA incamake yanozejwe — nta mitwe, nta markdown.`,
+};
+
+const SHORTEN_INSTRUCTIONS: Record<Lang, string> = {
+  en: `Shorten the following product description to 30–50 words while keeping the key selling points and warm tone. End with a short call-to-action. Return ONLY the shortened description — no headings, no markdown.`,
+  fr: `Raccourcis la description de produit suivante à 30–50 mots en gardant les arguments clés et le ton chaleureux. Termine par un court appel à l'action. Retourne UNIQUEMENT la description raccourcie — sans titres, sans markdown.`,
+  rw: `Gabanya incamake y'igicuruzwa ikurikira igere ku magambo 30–50 ariko ugumane ingingo z'ingenzi n'ijwi ryiza. Soza n'interuro ngufi ihamagarira gukora. Subiza GUSA incamake ngufi — nta mitwe, nta markdown.`,
+};
+
+const NAME_INSTRUCTIONS: Record<Lang, string> = {
+  en: `Suggest a single short, catchy product name (2–5 words) based on the description below. Return ONLY the name — no quotes, no punctuation at end, no preamble.`,
+  fr: `Propose UN seul nom de produit court et accrocheur (2–5 mots) basé sur la description ci-dessous. Retourne UNIQUEMENT le nom — sans guillemets, sans ponctuation finale, sans préambule.`,
+  rw: `Tanga izina RIMWE rigufi kandi rishimishije ry'igicuruzwa (amagambo 2–5) rishingiye ku ncamake ikurikira. Subiza GUSA izina — nta tugemu, nta kamenyetso ku iherezo, nta mvugiro.`,
+};
+
 function buildPrompt(opts: {
-  mode: "caption" | "description";
+  mode: "caption" | "description" | "polish" | "shorten" | "name";
   lang: Lang;
   brandName: string;
   product: any;
   captionType?: string;
   salePct?: number;
+  text?: string;
 }) {
-  const { mode, lang, brandName, product, captionType, salePct } = opts;
+  const { mode, lang, brandName, product, captionType, salePct, text } = opts;
   const system = SYSTEM_PROMPTS[lang](brandName);
 
   if (mode === "caption") {
@@ -56,6 +75,31 @@ ${HASHTAG_HINTS[lang]}
 Product: ${product.name}
 Price: ${product.price} RWF
 Caption type: ${type}${type === "sale" ? ` (discount ${pct}%)` : ""}`;
+    return { system, user };
+  }
+
+  if (mode === "polish") {
+    const user = `${POLISH_INSTRUCTIONS[lang]}
+
+Existing description:
+${text ?? ""}`;
+    return { system, user };
+  }
+
+  if (mode === "shorten") {
+    const user = `${SHORTEN_INSTRUCTIONS[lang]}
+
+Existing description:
+${text ?? ""}`;
+    return { system, user };
+  }
+
+  if (mode === "name") {
+    const user = `${NAME_INSTRUCTIONS[lang]}
+
+Description:
+${text ?? ""}
+${product?.category ? `Category: ${product.category}` : ""}`;
     return { system, user };
   }
 
@@ -109,24 +153,33 @@ Deno.serve(async (req) => {
       brand,
       language,
       languages,
+      text: inputText,
     } = body as {
-      mode: "caption" | "description";
-      product: any;
+      mode: "caption" | "description" | "polish" | "shorten" | "name";
+      product?: any;
       captionType?: string;
       salePct?: number;
       brand?: string;
       language?: Lang;
       languages?: Lang[];
+      text?: string;
     };
 
-    if (!mode || !product?.name) {
-      return new Response(JSON.stringify({ error: "mode and product.name are required" }), {
+    const VALID_MODES = ["caption", "description", "polish", "shorten", "name"];
+    if (!mode || !VALID_MODES.includes(mode)) {
+      return new Response(JSON.stringify({ error: "Invalid mode" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    if (mode !== "caption" && mode !== "description") {
-      return new Response(JSON.stringify({ error: "Invalid mode" }), {
+    if ((mode === "caption" || mode === "description") && !product?.name) {
+      return new Response(JSON.stringify({ error: "product.name is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if ((mode === "polish" || mode === "shorten" || mode === "name") && !inputText?.trim()) {
+      return new Response(JSON.stringify({ error: "text is required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -148,6 +201,7 @@ Deno.serve(async (req) => {
               product,
               captionType,
               salePct,
+              text: inputText,
             });
             const text = await callAI(apiKey, system, user);
             return [lang, text] as const;
@@ -182,6 +236,7 @@ Deno.serve(async (req) => {
       product,
       captionType,
       salePct,
+      text: inputText,
     });
 
     try {

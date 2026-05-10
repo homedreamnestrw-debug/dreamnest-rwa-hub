@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Search, Sparkles, Loader2, Languages } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Sparkles, Loader2, Languages, Wand2, Scissors, Type } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { ProductImageUpload } from "@/components/admin/ProductImageUpload";
@@ -101,6 +101,61 @@ export default function Products() {
       toast({ title: "AI failed", description: e.message, variant: "destructive" });
     } finally {
       setAiBatchLoading(false);
+    }
+  };
+
+  const currentDescField = (l: StudioLanguage) =>
+    l === "fr" ? "description_fr" : l === "rw" ? "description_rw" : "description";
+
+  const getCurrentDesc = () => {
+    const key = currentDescField(descLang) as "description" | "description_fr" | "description_rw";
+    return (form[key] as string) || "";
+  };
+
+  const transformDescription = async (mode: "polish" | "shorten") => {
+    const text = getCurrentDesc();
+    if (!text.trim()) {
+      toast({ title: "No description to transform", description: "Generate or write one first.", variant: "destructive" });
+      return;
+    }
+    setAiLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("gemini-generate", {
+        body: { mode, text, language: descLang },
+      });
+      if (error) throw error;
+      if (!data?.text) throw new Error("Empty response");
+      const key = currentDescField(descLang);
+      setForm((f) => ({ ...f, [key]: data.text }));
+      toast({ title: mode === "polish" ? "Description polished" : "Description shortened" });
+    } catch (e: any) {
+      toast({ title: "AI failed", description: e.message, variant: "destructive" });
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const generateNameFromDescription = async () => {
+    const text = getCurrentDesc();
+    if (!text.trim()) {
+      toast({ title: "Write or generate a description first", variant: "destructive" });
+      return;
+    }
+    setAiLoading(true);
+    try {
+      const cat = categories.find((c) => c.id === form.category_id)?.name;
+      const { data, error } = await supabase.functions.invoke("gemini-generate", {
+        body: { mode: "name", text, language: descLang, product: { category: cat } },
+      });
+      if (error) throw error;
+      if (!data?.text) throw new Error("Empty response");
+      const cleaned = String(data.text).replace(/^["'`]+|["'`.!?]+$/g, "").trim();
+      setForm((f) => ({ ...f, name: cleaned }));
+      toast({ title: "Name suggested", description: cleaned });
+    } catch (e: any) {
+      toast({ title: "AI failed", description: e.message, variant: "destructive" });
+    } finally {
+      setAiLoading(false);
     }
   };
 
@@ -287,7 +342,13 @@ export default function Products() {
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label>Name</Label>
+                <div className="flex items-center justify-between gap-2">
+                  <Label>Name</Label>
+                  <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={generateNameFromDescription} disabled={aiLoading || aiBatchLoading}>
+                    {aiLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Type className="h-3.5 w-3.5" />}
+                    Suggest from description
+                  </Button>
+                </div>
                 <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
               </div>
               <div>
@@ -303,6 +364,14 @@ export default function Products() {
                   <Button type="button" size="sm" variant="outline" onClick={generateDescription} disabled={aiLoading || aiBatchLoading}>
                     {aiLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
                     Generate ({descLang.toUpperCase()})
+                  </Button>
+                  <Button type="button" size="sm" variant="outline" onClick={() => transformDescription("polish")} disabled={aiLoading || aiBatchLoading}>
+                    {aiLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
+                    Polish
+                  </Button>
+                  <Button type="button" size="sm" variant="outline" onClick={() => transformDescription("shorten")} disabled={aiLoading || aiBatchLoading}>
+                    {aiLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Scissors className="h-3.5 w-3.5" />}
+                    Shorten
                   </Button>
                   <Button type="button" size="sm" variant="secondary" onClick={generateAllDescriptions} disabled={aiLoading || aiBatchLoading}>
                     {aiBatchLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Languages className="h-3.5 w-3.5" />}
