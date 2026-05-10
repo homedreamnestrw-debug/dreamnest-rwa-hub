@@ -236,6 +236,7 @@ Deno.serve(async (req) => {
       product,
       captionType,
       salePct,
+      text: inputText,
     });
 
     try {
