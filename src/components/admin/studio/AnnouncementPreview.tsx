@@ -64,9 +64,14 @@ export const AnnouncementPreview = forwardRef<Konva.Stage, Props>(
     const logoSize = Math.round(w * 0.1);
 
     const headline =
-      template.buildHeadline?.(values) ?? template.defaultHeadline;
+      values._headline?.trim() ||
+      template.buildHeadline?.(values) ||
+      template.defaultHeadline;
     const subline =
-      template.buildSubline?.(values) ?? template.defaultSubline ?? "";
+      values._subline?.trim() ||
+      template.buildSubline?.(values) ||
+      template.defaultSubline ||
+      "";
 
     return (
       <Stage
