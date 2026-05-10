@@ -201,6 +201,7 @@ Deno.serve(async (req) => {
               product,
               captionType,
               salePct,
+              text: inputText,
             });
             const text = await callAI(apiKey, system, user);
             return [lang, text] as const;
