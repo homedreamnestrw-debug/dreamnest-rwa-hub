@@ -181,14 +181,14 @@ export function AnnouncementsPanel() {
           <ExportBar
             stageRef={stageRef}
             filenameBase={`dreamnest-${tpl.key}-${format}`}
-            caption={`${tpl.buildHeadline?.(values) ?? tpl.defaultHeadline}\n${tpl.buildSubline?.(values) ?? tpl.defaultSubline ?? ""}\ndreamnestrw.com`}
+            caption={`${values._headline?.trim() || tpl.buildHeadline?.(values) || tpl.defaultHeadline}\n${values._subline?.trim() || tpl.buildSubline?.(values) || tpl.defaultSubline || ""}\ndreamnestrw.com`}
             onLogged={() =>
               log.mutate({
                 asset_type: "announcement",
                 template_key: tpl.key,
                 platform_format: format,
                 config: { values },
-                caption: `${tpl.buildHeadline?.(values) ?? tpl.defaultHeadline}`,
+                caption: `${values._headline?.trim() || tpl.buildHeadline?.(values) || tpl.defaultHeadline}`,
               })
             }
           />
