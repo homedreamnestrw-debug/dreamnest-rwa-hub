@@ -88,37 +88,63 @@ export function AnnouncementsPanel() {
             ))}
           </Tabs>
 
-          {tpl.fields.length > 0 && (
-            <div className="space-y-2 border-t pt-3">
-              <div className="text-xs font-medium text-muted-foreground">
-                Fill in details
-              </div>
-              {tpl.fields.map((f) => (
-                <div key={f.key} className="space-y-1">
-                  <Label className="text-xs">{f.label}</Label>
-                  {f.type === "textarea" ? (
-                    <Textarea
-                      rows={3}
-                      placeholder={f.placeholder}
-                      value={values[f.key] ?? ""}
-                      onChange={(e) =>
-                        setValues({ ...values, [f.key]: e.target.value })
-                      }
-                    />
-                  ) : (
-                    <Input
-                      type={f.type === "number" || f.type === "rating" ? "number" : "text"}
-                      placeholder={f.placeholder}
-                      value={values[f.key] ?? ""}
-                      onChange={(e) =>
-                        setValues({ ...values, [f.key]: e.target.value })
-                      }
-                    />
-                  )}
-                </div>
-              ))}
+          <div className="space-y-2 border-t pt-3">
+            <div className="text-xs font-medium text-muted-foreground">
+              Customize this post
             </div>
-          )}
+            <div className="space-y-1">
+              <Label className="text-xs">Custom headline (optional)</Label>
+              <Input
+                placeholder={tpl.defaultHeadline}
+                value={values._headline ?? ""}
+                onChange={(e) =>
+                  setValues({ ...values, _headline: e.target.value })
+                }
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Custom message (optional)</Label>
+              <Textarea
+                rows={2}
+                placeholder={tpl.defaultSubline ?? "Add your own message…"}
+                value={values._subline ?? ""}
+                onChange={(e) =>
+                  setValues({ ...values, _subline: e.target.value })
+                }
+              />
+            </div>
+            {tpl.fields.length > 0 && (
+              <>
+                <div className="pt-2 text-xs font-medium text-muted-foreground">
+                  Template details
+                </div>
+                {tpl.fields.map((f) => (
+                  <div key={f.key} className="space-y-1">
+                    <Label className="text-xs">{f.label}</Label>
+                    {f.type === "textarea" ? (
+                      <Textarea
+                        rows={3}
+                        placeholder={f.placeholder}
+                        value={values[f.key] ?? ""}
+                        onChange={(e) =>
+                          setValues({ ...values, [f.key]: e.target.value })
+                        }
+                      />
+                    ) : (
+                      <Input
+                        type={f.type === "number" || f.type === "rating" ? "number" : "text"}
+                        placeholder={f.placeholder}
+                        value={values[f.key] ?? ""}
+                        onChange={(e) =>
+                          setValues({ ...values, [f.key]: e.target.value })
+                        }
+                      />
+                    )}
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -155,14 +181,14 @@ export function AnnouncementsPanel() {
           <ExportBar
             stageRef={stageRef}
             filenameBase={`dreamnest-${tpl.key}-${format}`}
-            caption={`${tpl.buildHeadline?.(values) ?? tpl.defaultHeadline}\n${tpl.buildSubline?.(values) ?? tpl.defaultSubline ?? ""}\ndreamnestrw.com`}
+            caption={`${values._headline?.trim() || tpl.buildHeadline?.(values) || tpl.defaultHeadline}\n${values._subline?.trim() || tpl.buildSubline?.(values) || tpl.defaultSubline || ""}\ndreamnestrw.com`}
             onLogged={() =>
               log.mutate({
                 asset_type: "announcement",
                 template_key: tpl.key,
                 platform_format: format,
                 config: { values },
-                caption: `${tpl.buildHeadline?.(values) ?? tpl.defaultHeadline}`,
+                caption: `${values._headline?.trim() || tpl.buildHeadline?.(values) || tpl.defaultHeadline}`,
               })
             }
           />
