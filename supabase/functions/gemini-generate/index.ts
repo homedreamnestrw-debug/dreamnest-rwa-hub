@@ -153,24 +153,33 @@ Deno.serve(async (req) => {
       brand,
       language,
       languages,
+      text: inputText,
     } = body as {
-      mode: "caption" | "description";
-      product: any;
+      mode: "caption" | "description" | "polish" | "shorten" | "name";
+      product?: any;
       captionType?: string;
       salePct?: number;
       brand?: string;
       language?: Lang;
       languages?: Lang[];
+      text?: string;
     };
 
-    if (!mode || !product?.name) {
-      return new Response(JSON.stringify({ error: "mode and product.name are required" }), {
+    const VALID_MODES = ["caption", "description", "polish", "shorten", "name"];
+    if (!mode || !VALID_MODES.includes(mode)) {
+      return new Response(JSON.stringify({ error: "Invalid mode" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    if (mode !== "caption" && mode !== "description") {
-      return new Response(JSON.stringify({ error: "Invalid mode" }), {
+    if ((mode === "caption" || mode === "description") && !product?.name) {
+      return new Response(JSON.stringify({ error: "product.name is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if ((mode === "polish" || mode === "shorten" || mode === "name") && !inputText?.trim()) {
+      return new Response(JSON.stringify({ error: "text is required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
