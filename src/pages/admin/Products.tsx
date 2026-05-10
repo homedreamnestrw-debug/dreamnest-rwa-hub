@@ -104,6 +104,61 @@ export default function Products() {
     }
   };
 
+  const currentDescField = (l: StudioLanguage) =>
+    l === "fr" ? "description_fr" : l === "rw" ? "description_rw" : "description";
+
+  const getCurrentDesc = () => {
+    const key = currentDescField(descLang) as "description" | "description_fr" | "description_rw";
+    return (form[key] as string) || "";
+  };
+
+  const transformDescription = async (mode: "polish" | "shorten") => {
+    const text = getCurrentDesc();
+    if (!text.trim()) {
+      toast({ title: "No description to transform", description: "Generate or write one first.", variant: "destructive" });
+      return;
+    }
+    setAiLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("gemini-generate", {
+        body: { mode, text, language: descLang },
+      });
+      if (error) throw error;
+      if (!data?.text) throw new Error("Empty response");
+      const key = currentDescField(descLang);
+      setForm((f) => ({ ...f, [key]: data.text }));
+      toast({ title: mode === "polish" ? "Description polished" : "Description shortened" });
+    } catch (e: any) {
+      toast({ title: "AI failed", description: e.message, variant: "destructive" });
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const generateNameFromDescription = async () => {
+    const text = getCurrentDesc();
+    if (!text.trim()) {
+      toast({ title: "Write or generate a description first", variant: "destructive" });
+      return;
+    }
+    setAiLoading(true);
+    try {
+      const cat = categories.find((c) => c.id === form.category_id)?.name;
+      const { data, error } = await supabase.functions.invoke("gemini-generate", {
+        body: { mode: "name", text, language: descLang, product: { category: cat } },
+      });
+      if (error) throw error;
+      if (!data?.text) throw new Error("Empty response");
+      const cleaned = String(data.text).replace(/^["'`]+|["'`.!?]+$/g, "").trim();
+      setForm((f) => ({ ...f, name: cleaned }));
+      toast({ title: "Name suggested", description: cleaned });
+    } catch (e: any) {
+      toast({ title: "AI failed", description: e.message, variant: "destructive" });
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   const [form, setForm] = useState({
     name: "",
     slug: "",
