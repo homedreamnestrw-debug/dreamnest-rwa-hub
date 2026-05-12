@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Plus, X, Sparkles, ImageIcon } from "lucide-react";
+import { Plus, X, Sparkles, ImageIcon, Trash2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 
 export type OptionsSchema = Record<string, string[]>;
@@ -16,6 +17,7 @@ export interface VariantRow {
   price_override: number | null;
   is_active: boolean;
   image_url: string | null; // optional override image (must be one of product.images)
+  description?: string | null; // optional variant-specific description
   stock: Record<string, number>; // location_id -> qty
 }
 
@@ -113,6 +115,7 @@ export function VariantManager({
         price_override: null,
         is_active: true,
         image_url: null,
+        description: null,
         stock: initStock,
       };
     });
@@ -222,7 +225,27 @@ export function VariantManager({
                     className="h-7 w-28 text-xs"
                     min={0}
                   />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-destructive hover:text-destructive"
+                    onClick={() => {
+                      if (!confirm(`Remove variant "${v.variant_name || "(unnamed)"}"?`)) return;
+                      onVariantsChange(variants.filter((_, i) => i !== idx));
+                    }}
+                    title="Delete this variant"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
+                <Textarea
+                  placeholder="Variant description (optional) — shown when this variant is selected"
+                  value={v.description ?? ""}
+                  onChange={(e) => updateVariant(idx, { description: e.target.value })}
+                  rows={2}
+                  className="text-xs"
+                />
                 {locations.length > 0 && (
                   <div className="grid grid-cols-2 gap-1.5">
                     {locations.map((l) => (
@@ -326,6 +349,7 @@ export async function persistVariants(
           sku: v.sku || null,
           price_override: v.price_override,
           image_url: v.image_url ?? null,
+          description: v.description ?? null,
           is_active: true,
         } as any)
         .eq("id", match.id);
@@ -341,6 +365,7 @@ export async function persistVariants(
           sku: v.sku || null,
           price_override: v.price_override,
           image_url: v.image_url ?? null,
+          description: v.description ?? null,
           is_active: true,
         } as any)
         .select("id")

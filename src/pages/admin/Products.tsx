@@ -230,7 +230,7 @@ export default function Products() {
     setOptionsSchema(schema);
     const { data: vData } = await supabase
       .from("product_variants")
-      .select("id, variant_name, attributes, sku, price_override, is_active, image_url")
+      .select("id, variant_name, attributes, sku, price_override, is_active, image_url, description")
       .eq("product_id", p.id)
       .eq("is_active", true);
     const variantIds = (vData ?? []).map((v) => v.id);
@@ -254,6 +254,7 @@ export default function Products() {
         price_override: v.price_override,
         is_active: v.is_active,
         image_url: v.image_url ?? null,
+        description: v.description ?? null,
         stock: stockByVariant[v.id] ?? {},
       }))
     );
