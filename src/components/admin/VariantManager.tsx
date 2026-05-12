@@ -349,6 +349,7 @@ export async function persistVariants(
           sku: v.sku || null,
           price_override: v.price_override,
           image_url: v.image_url ?? null,
+          description: v.description ?? null,
           is_active: true,
         } as any)
         .eq("id", match.id);
@@ -364,6 +365,7 @@ export async function persistVariants(
           sku: v.sku || null,
           price_override: v.price_override,
           image_url: v.image_url ?? null,
+          description: v.description ?? null,
           is_active: true,
         } as any)
         .select("id")
