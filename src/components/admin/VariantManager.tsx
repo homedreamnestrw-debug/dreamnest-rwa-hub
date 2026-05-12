@@ -115,6 +115,7 @@ export function VariantManager({
         price_override: null,
         is_active: true,
         image_url: null,
+        description: null,
         stock: initStock,
       };
     });
@@ -224,7 +225,27 @@ export function VariantManager({
                     className="h-7 w-28 text-xs"
                     min={0}
                   />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-destructive hover:text-destructive"
+                    onClick={() => {
+                      if (!confirm(`Remove variant "${v.variant_name || "(unnamed)"}"?`)) return;
+                      onVariantsChange(variants.filter((_, i) => i !== idx));
+                    }}
+                    title="Delete this variant"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
+                <Textarea
+                  placeholder="Variant description (optional) — shown when this variant is selected"
+                  value={v.description ?? ""}
+                  onChange={(e) => updateVariant(idx, { description: e.target.value })}
+                  rows={2}
+                  className="text-xs"
+                />
                 {locations.length > 0 && (
                   <div className="grid grid-cols-2 gap-1.5">
                     {locations.map((l) => (
