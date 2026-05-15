@@ -245,11 +245,11 @@ export function VariantManager({
                   </Button>
                 </div>
                 <Textarea
-                  placeholder="Variant description (optional) — shown when this variant is selected"
+                  placeholder="Variant description (optional)"
                   value={v.description ?? ""}
                   onChange={(e) => updateVariant(idx, { description: e.target.value })}
-                  rows={2}
-                  className="text-xs"
+                  rows={1}
+                  className="text-xs min-h-[32px] py-1"
                 />
                 {locations.length > 0 && (
                   <div className="grid grid-cols-2 gap-1.5">
