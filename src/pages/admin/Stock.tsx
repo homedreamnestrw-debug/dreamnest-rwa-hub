@@ -232,6 +232,30 @@ export default function Stock() {
                 console.error("[import variant failed]", vr, ve);
               }
             }
+
+            // Aggregate variant_attributes onto the product so storefront/admin recognise variants
+            try {
+              const { data: allVariants } = await supabase
+                .from("product_variants")
+                .select("attributes")
+                .eq("product_id", prod!.id)
+                .eq("is_active", true);
+              const schema: Record<string, string[]> = {};
+              for (const v of allVariants || []) {
+                const attrs = (v.attributes ?? {}) as Record<string, any>;
+                for (const [k, val] of Object.entries(attrs)) {
+                  if (val == null || val === "") continue;
+                  const sval = String(val);
+                  if (!schema[k]) schema[k] = [];
+                  if (!schema[k].includes(sval)) schema[k].push(sval);
+                }
+              }
+              if (Object.keys(schema).length > 0) {
+                await supabase.from("products").update({ variant_attributes: schema as any }).eq("id", prod!.id);
+              }
+            } catch (aggErr) {
+              console.warn("[import] failed to aggregate variant_attributes", aggErr);
+            }
           } catch (e: any) {
             failed++;
             const msg = e?.message || e?.details || JSON.stringify(e);
