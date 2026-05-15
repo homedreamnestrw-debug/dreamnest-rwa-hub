@@ -151,8 +151,18 @@ export function VariantManager({
           <div key={name} className="rounded-md bg-muted/40 p-2 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wide">{name}</span>
-              <Button type="button" variant="ghost" size="sm" onClick={() => removeOption(name)}>
-                <X className="h-3.5 w-3.5" />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 text-destructive hover:text-destructive hover:bg-destructive/10 gap-1"
+                onClick={() => {
+                  if (!confirm(`Remove the "${name}" option and all its variants?`)) return;
+                  removeOption(name);
+                }}
+                title={`Remove ${name} option`}
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Remove {name}
               </Button>
             </div>
             <div className="flex flex-wrap gap-1.5">
@@ -208,7 +218,12 @@ export function VariantManager({
             {variants.map((v, idx) => (
               <div key={idx} className="rounded-md border p-2 space-y-2 bg-card">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium flex-1 truncate">{v.variant_name || "(unnamed)"}</span>
+                  <Input
+                    placeholder="Variant name"
+                    value={v.variant_name}
+                    onChange={(e) => updateVariant(idx, { variant_name: e.target.value })}
+                    className="h-7 flex-1 text-xs font-medium"
+                  />
                   <Input
                     placeholder="SKU"
                     value={v.sku}
@@ -240,11 +255,11 @@ export function VariantManager({
                   </Button>
                 </div>
                 <Textarea
-                  placeholder="Variant description (optional) — shown when this variant is selected"
+                  placeholder="Variant description (optional)"
                   value={v.description ?? ""}
                   onChange={(e) => updateVariant(idx, { description: e.target.value })}
-                  rows={2}
-                  className="text-xs"
+                  rows={1}
+                  className="text-xs min-h-[32px] py-1"
                 />
                 {locations.length > 0 && (
                   <div className="grid grid-cols-2 gap-1.5">
