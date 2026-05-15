@@ -151,8 +151,18 @@ export function VariantManager({
           <div key={name} className="rounded-md bg-muted/40 p-2 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wide">{name}</span>
-              <Button type="button" variant="ghost" size="sm" onClick={() => removeOption(name)}>
-                <X className="h-3.5 w-3.5" />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 text-destructive hover:text-destructive hover:bg-destructive/10 gap-1"
+                onClick={() => {
+                  if (!confirm(`Remove the "${name}" option and all its variants?`)) return;
+                  removeOption(name);
+                }}
+                title={`Remove ${name} option`}
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Remove {name}
               </Button>
             </div>
             <div className="flex flex-wrap gap-1.5">
