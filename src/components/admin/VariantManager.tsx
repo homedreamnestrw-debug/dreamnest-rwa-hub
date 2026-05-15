@@ -51,6 +51,7 @@ export function VariantManager({
 }: Props) {
   const [newOptName, setNewOptName] = useState("");
   const [newOptValue, setNewOptValue] = useState<Record<string, string>>({});
+  const lastNamesRef = useRef<Record<number, string>>({});
 
   const optionNames = Object.keys(options);
   const hasOptions = optionNames.length > 0;
@@ -227,12 +228,17 @@ export function VariantManager({
                     placeholder="Variant name"
                     value={v.variant_name}
                     onChange={(e) => updateVariant(idx, { variant_name: e.target.value })}
+                    onFocus={(e) => {
+                      if (lastNamesRef.current[idx] === undefined) {
+                        lastNamesRef.current[idx] = e.target.value;
+                      }
+                    }}
                     onBlur={(e) => {
                       const next = e.target.value.trim();
-                      const prev = (v as any)._lastName ?? v.variant_name;
+                      const prev = lastNamesRef.current[idx] ?? v.variant_name;
                       if (next && next !== prev) {
                         toast({ title: "Variant renamed", description: `"${prev}" → "${next}"` });
-                        (v as any)._lastName = next;
+                        lastNamesRef.current[idx] = next;
                       }
                     }}
                     className="h-7 flex-1 text-xs font-medium"
