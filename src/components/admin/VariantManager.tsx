@@ -208,7 +208,12 @@ export function VariantManager({
             {variants.map((v, idx) => (
               <div key={idx} className="rounded-md border p-2 space-y-2 bg-card">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium flex-1 truncate">{v.variant_name || "(unnamed)"}</span>
+                  <Input
+                    placeholder="Variant name"
+                    value={v.variant_name}
+                    onChange={(e) => updateVariant(idx, { variant_name: e.target.value })}
+                    className="h-7 flex-1 text-xs font-medium"
+                  />
                   <Input
                     placeholder="SKU"
                     value={v.sku}
