@@ -158,7 +158,12 @@ export function VariantManager({
                 className="h-7 text-destructive hover:text-destructive hover:bg-destructive/10 gap-1"
                 onClick={() => {
                   if (!confirm(`Remove the "${name}" option and all its variants?`)) return;
+                  const affected = variants.filter((v) => v.attributes[name] !== undefined).length;
                   removeOption(name);
+                  toast({
+                    title: `Removed option "${name}"`,
+                    description: affected > 0 ? `Updated ${affected} variant${affected === 1 ? "" : "s"}.` : undefined,
+                  });
                 }}
                 title={`Remove ${name} option`}
               >
@@ -222,6 +227,14 @@ export function VariantManager({
                     placeholder="Variant name"
                     value={v.variant_name}
                     onChange={(e) => updateVariant(idx, { variant_name: e.target.value })}
+                    onBlur={(e) => {
+                      const next = e.target.value.trim();
+                      const prev = (v as any)._lastName ?? v.variant_name;
+                      if (next && next !== prev) {
+                        toast({ title: "Variant renamed", description: `"${prev}" → "${next}"` });
+                        (v as any)._lastName = next;
+                      }
+                    }}
                     className="h-7 flex-1 text-xs font-medium"
                   />
                   <Input
