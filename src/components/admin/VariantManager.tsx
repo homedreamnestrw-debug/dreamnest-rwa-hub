@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +51,7 @@ export function VariantManager({
 }: Props) {
   const [newOptName, setNewOptName] = useState("");
   const [newOptValue, setNewOptValue] = useState<Record<string, string>>({});
+  const lastNamesRef = useRef<Record<number, string>>({});
 
   const optionNames = Object.keys(options);
   const hasOptions = optionNames.length > 0;
@@ -158,7 +159,12 @@ export function VariantManager({
                 className="h-7 text-destructive hover:text-destructive hover:bg-destructive/10 gap-1"
                 onClick={() => {
                   if (!confirm(`Remove the "${name}" option and all its variants?`)) return;
+                  const affected = variants.filter((v) => v.attributes[name] !== undefined).length;
                   removeOption(name);
+                  toast({
+                    title: `Removed option "${name}"`,
+                    description: affected > 0 ? `Updated ${affected} variant${affected === 1 ? "" : "s"}.` : undefined,
+                  });
                 }}
                 title={`Remove ${name} option`}
               >
@@ -222,6 +228,19 @@ export function VariantManager({
                     placeholder="Variant name"
                     value={v.variant_name}
                     onChange={(e) => updateVariant(idx, { variant_name: e.target.value })}
+                    onFocus={(e) => {
+                      if (lastNamesRef.current[idx] === undefined) {
+                        lastNamesRef.current[idx] = e.target.value;
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const next = e.target.value.trim();
+                      const prev = lastNamesRef.current[idx] ?? v.variant_name;
+                      if (next && next !== prev) {
+                        toast({ title: "Variant renamed", description: `"${prev}" → "${next}"` });
+                        lastNamesRef.current[idx] = next;
+                      }
+                    }}
                     className="h-7 flex-1 text-xs font-medium"
                   />
                   <Input
