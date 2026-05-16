@@ -216,6 +216,7 @@ export default function Products() {
       is_active: p.is_active,
       featured: p.featured,
       images: p.images || [],
+      ai_attributes: ((p as any).ai_attributes ?? {}) as Record<string, string>,
     });
     // Load per-location stock
     const { data } = await supabase
