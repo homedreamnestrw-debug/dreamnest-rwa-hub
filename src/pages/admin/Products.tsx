@@ -277,6 +277,7 @@ export default function Products() {
       variant_attributes: optionsSchema as any,
       description_fr: form.description_fr || null,
       description_rw: form.description_rw || null,
+      ai_attributes: form.ai_attributes as any,
     } as any;
 
     let productId: string;
