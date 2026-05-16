@@ -967,6 +967,7 @@ export type Database = {
       }
       products: {
         Row: {
+          ai_attributes: Json
           category_id: string | null
           cost_price: number
           created_at: string
@@ -988,6 +989,7 @@ export type Database = {
           variant_attributes: Json
         }
         Insert: {
+          ai_attributes?: Json
           category_id?: string | null
           cost_price?: number
           created_at?: string
@@ -1009,6 +1011,7 @@ export type Database = {
           variant_attributes?: Json
         }
         Update: {
+          ai_attributes?: Json
           category_id?: string | null
           cost_price?: number
           created_at?: string
@@ -1619,6 +1622,7 @@ export type Database = {
       get_admin_products_with_costs: {
         Args: never
         Returns: {
+          ai_attributes: Json
           category_id: string | null
           cost_price: number
           created_at: string
