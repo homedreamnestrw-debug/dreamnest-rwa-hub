@@ -146,33 +146,83 @@ export function ProductImageUpload({ images, onChange, hiddenImages = [], onHidd
         <Switch id="auto-enhance" checked={autoEnhance} onCheckedChange={setAutoEnhance} />
       </div>
       <div className="flex flex-wrap gap-3">
-        {images.map((url, i) => (
-          <div key={i} className="relative w-20 h-20 rounded-md overflow-hidden border group">
-            <img src={url} alt="" className="w-full h-full object-cover" />
-            <button
-              type="button"
-              onClick={() => removeImage(i)}
-              className="absolute top-0.5 right-0.5 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <X className="h-3 w-3" />
-            </button>
-            <button
-              type="button"
-              title="Enhance with Cloudinary AI"
-              onClick={() => setEditorIdx(i)}
-              className="absolute bottom-0.5 right-0.5 bg-primary text-primary-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <Sparkles className="h-3 w-3" />
-            </button>
-          </div>
-        ))}
-        <label className="w-20 h-20 border-2 border-dashed rounded-md flex items-center justify-center cursor-pointer hover:border-primary transition-colors">
+        {images.map((url, i) => {
+          const isHidden = hiddenImages.includes(url);
+          return (
+            <div key={i} className="relative w-24 rounded-md border group bg-background">
+              <div className="relative w-24 h-24 overflow-hidden rounded-t-md">
+                <img
+                  src={url}
+                  alt=""
+                  className={`w-full h-full object-cover ${isHidden ? "opacity-40 grayscale" : ""}`}
+                />
+                {i === 0 && !isHidden && (
+                  <span className="absolute top-0.5 left-0.5 bg-primary text-primary-foreground text-[9px] uppercase tracking-wide px-1 rounded">
+                    Cover
+                  </span>
+                )}
+                {isHidden && (
+                  <span className="absolute top-0.5 left-0.5 bg-muted text-foreground text-[9px] uppercase tracking-wide px-1 rounded">
+                    Hidden
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => removeImage(i)}
+                  className="absolute top-0.5 right-0.5 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="Delete image"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+                <button
+                  type="button"
+                  title="Enhance with Cloudinary AI"
+                  onClick={() => setEditorIdx(i)}
+                  className="absolute bottom-0.5 right-0.5 bg-primary text-primary-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <Sparkles className="h-3 w-3" />
+                </button>
+              </div>
+              <div className="flex items-center justify-between px-1 py-0.5 border-t">
+                <button
+                  type="button"
+                  onClick={() => moveImage(i, i - 1)}
+                  disabled={i === 0}
+                  className="p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30"
+                  title="Move left"
+                >
+                  <ArrowLeft className="h-3 w-3" />
+                </button>
+                {onHiddenChange && (
+                  <button
+                    type="button"
+                    onClick={() => toggleHidden(url)}
+                    className="p-0.5 text-muted-foreground hover:text-foreground"
+                    title={isHidden ? "Show on shop" : "Hide from shop"}
+                  >
+                    {isHidden ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => moveImage(i, i + 1)}
+                  disabled={i === images.length - 1}
+                  className="p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30"
+                  title="Move right"
+                >
+                  <ArrowRight className="h-3 w-3" />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+        <label className="w-24 h-24 border-2 border-dashed rounded-md flex items-center justify-center cursor-pointer hover:border-primary transition-colors">
           {uploading ? <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /> : <ImagePlus className="h-5 w-5 text-muted-foreground" />}
           <input type="file" accept="image/*" multiple className="hidden" onChange={handleUpload} disabled={uploading} />
         </label>
       </div>
       <p className="text-[10px] text-muted-foreground">
-        Click ✨ on any image to fine-tune: enhance, sharpen, remove or replace background with AI.
+        Use ← → to reorder (first image is the cover). Click the eye to hide an image from the public shop while keeping it here. ✨ to enhance.
       </p>
 
       {editorIdx !== null && (
