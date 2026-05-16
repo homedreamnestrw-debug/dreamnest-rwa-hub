@@ -174,6 +174,7 @@ export default function Products() {
     is_active: true,
     featured: false,
     images: [] as string[],
+    hidden_images: [] as string[],
     ai_attributes: {} as Record<string, string>,
   });
 
@@ -192,7 +193,7 @@ export default function Products() {
   useEffect(() => { fetchData(); }, []);
 
   const resetForm = () => {
-    setForm({ name: "", slug: "", description: "", description_fr: "", description_rw: "", price: 0, cost_price: 0, sku: "", low_stock_threshold: 5, category_id: "", tax_enabled: true, is_active: true, featured: false, images: [], ai_attributes: {} });
+    setForm({ name: "", slug: "", description: "", description_fr: "", description_rw: "", price: 0, cost_price: 0, sku: "", low_stock_threshold: 5, category_id: "", tax_enabled: true, is_active: true, featured: false, images: [], hidden_images: [], ai_attributes: {} });
     setLocationStock({});
     setOptionsSchema({});
     setVariantRows([]);
@@ -216,6 +217,7 @@ export default function Products() {
       is_active: p.is_active,
       featured: p.featured,
       images: p.images || [],
+      hidden_images: ((p as any).hidden_images ?? []) as string[],
       ai_attributes: ((p as any).ai_attributes ?? {}) as Record<string, string>,
     });
     // Load per-location stock
@@ -267,13 +269,16 @@ export default function Products() {
 
   const handleSave = async () => {
     const slug = form.slug || form.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-    const { images, ...rest } = form;
+    const { images, hidden_images, ...rest } = form;
     const hasVariants = variantRows.length > 0;
+    // Keep hidden_images in sync with current images (drop any that no longer exist)
+    const cleanedHidden = (hidden_images || []).filter((u) => images.includes(u));
     const payload: TablesInsert<"products"> = {
       ...rest,
       slug,
       category_id: form.category_id || null,
       images: images.length > 0 ? images : null,
+      hidden_images: cleanedHidden,
       variant_attributes: optionsSchema as any,
       description_fr: form.description_fr || null,
       description_rw: form.description_rw || null,
@@ -530,7 +535,12 @@ export default function Products() {
               </div>
               <div>
                 <Label>Images</Label>
-                <ProductImageUpload images={form.images} onChange={(imgs) => setForm({ ...form, images: imgs })} />
+                <ProductImageUpload
+                  images={form.images}
+                  onChange={(imgs) => setForm({ ...form, images: imgs })}
+                  hiddenImages={form.hidden_images}
+                  onHiddenChange={(h) => setForm({ ...form, hidden_images: h })}
+                />
               </div>
               <Button onClick={handleSave} className="w-full">{editing ? "Update" : "Create"} Product</Button>
             </div>
