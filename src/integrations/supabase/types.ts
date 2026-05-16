@@ -975,6 +975,7 @@ export type Database = {
           description_fr: string | null
           description_rw: string | null
           featured: boolean
+          hidden_images: string[]
           id: string
           images: string[] | null
           is_active: boolean
@@ -997,6 +998,7 @@ export type Database = {
           description_fr?: string | null
           description_rw?: string | null
           featured?: boolean
+          hidden_images?: string[]
           id?: string
           images?: string[] | null
           is_active?: boolean
@@ -1019,6 +1021,7 @@ export type Database = {
           description_fr?: string | null
           description_rw?: string | null
           featured?: boolean
+          hidden_images?: string[]
           id?: string
           images?: string[] | null
           is_active?: boolean
@@ -1630,6 +1633,7 @@ export type Database = {
           description_fr: string | null
           description_rw: string | null
           featured: boolean
+          hidden_images: string[]
           id: string
           images: string[] | null
           is_active: boolean
