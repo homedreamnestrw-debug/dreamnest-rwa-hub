@@ -12,7 +12,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { ImagePlus, X, Loader2, Sparkles, Wand2, Scissors, Palette, Sun } from "lucide-react";
+import { ImagePlus, X, Loader2, Sparkles, Wand2, Scissors, Palette, Sun, ArrowLeft, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const CLOUD_NAME = "ddhy9zqh2";
@@ -21,6 +21,8 @@ const AUTO_ENHANCE = "e_improve,e_auto_color,e_sharpen:80,c_limit,w_2000,f_auto,
 interface ProductImageUploadProps {
   images: string[];
   onChange: (images: string[]) => void;
+  hiddenImages?: string[];
+  onHiddenChange?: (hidden: string[]) => void;
 }
 
 interface PolishOpts {
@@ -79,10 +81,26 @@ function buildCloudinaryUrl(publicId: string, transform: string, ext = "jpg") {
   return `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/${transform}/${publicId}.${ext}`;
 }
 
-export function ProductImageUpload({ images, onChange }: ProductImageUploadProps) {
+export function ProductImageUpload({ images, onChange, hiddenImages = [], onHiddenChange }: ProductImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [autoEnhance, setAutoEnhance] = useState(true);
   const [editorIdx, setEditorIdx] = useState<number | null>(null);
+
+  const toggleHidden = (url: string) => {
+    if (!onHiddenChange) return;
+    const next = hiddenImages.includes(url)
+      ? hiddenImages.filter((u) => u !== url)
+      : [...hiddenImages, url];
+    onHiddenChange(next);
+  };
+
+  const moveImage = (from: number, to: number) => {
+    if (to < 0 || to >= images.length) return;
+    const next = [...images];
+    const [item] = next.splice(from, 1);
+    next.splice(to, 0, item);
+    onChange(next);
+  };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
