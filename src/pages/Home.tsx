@@ -9,6 +9,7 @@ import heroBedroom from "@/assets/hero-bedroom.jpg";
 import { useWebsiteContent } from "@/hooks/useWebsiteContent";
 import { useShopEnabled } from "@/hooks/useShopEnabled";
 import { SEO } from "@/components/SEO";
+import { visibleImages } from "@/lib/utils";
 
 export default function Home() {
   const { content: c } = useWebsiteContent();
