@@ -52,7 +52,7 @@ export default function Products() {
       const { data, error } = await supabase.functions.invoke("gemini-generate", {
         body: {
           mode: "description",
-          product: { name: form.name, price: form.price, category: cat },
+          product: { name: form.name, price: form.price, category: cat, attributes: form.ai_attributes },
           language: descLang,
         },
       });
