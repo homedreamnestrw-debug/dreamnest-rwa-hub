@@ -104,11 +104,20 @@ ${product?.category ? `Category: ${product.category}` : ""}`;
   }
 
   // description
+  const attrs = product?.attributes && typeof product.attributes === "object"
+    ? Object.entries(product.attributes)
+        .filter(([k, v]) => k && v != null && String(v).trim() !== "")
+        .map(([k, v]) => `- ${k}: ${v}`)
+        .join("\n")
+    : "";
+  const attrsBlock = attrs
+    ? `\n\nProduct attributes (MUST be naturally mentioned in the description):\n${attrs}`
+    : "";
   const user = `${DESCRIPTION_INSTRUCTIONS[lang]}
 
 Name: ${product.name}
 ${product.category ? `Category: ${product.category}` : ""}
-${product.price ? `Price: ${product.price} RWF` : ""}`;
+${product.price ? `Price: ${product.price} RWF` : ""}${attrsBlock}`;
   return { system, user };
 }
 
