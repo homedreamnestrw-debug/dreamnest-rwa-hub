@@ -19,7 +19,7 @@ export default function Home() {
     queryFn: async () => {
       const { data } = await supabase
         .from("products")
-        .select("id, name, slug, price, images, stock_quantity, low_stock_threshold, categories(name)")
+        .select("id, name, slug, price, images, hidden_images, stock_quantity, low_stock_threshold, categories(name)")
         .eq("is_active", true)
         .eq("featured", true)
         .limit(4);
@@ -159,11 +159,11 @@ export default function Home() {
                 featuredProducts.map((product: any) => (
                   <Link key={product.id} to={`/product/${product.slug}`} className="group">
                     <div className="aspect-square rounded-lg overflow-hidden bg-muted mb-4">
-                      {product.images?.[0] ? (
-                        <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      {(() => { const v = visibleImages(product); return v[0] ? (
+                        <img src={v[0]} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-muted-foreground font-serif">DreamNest</div>
-                      )}
+                      ); })()}
                     </div>
                     <div className="space-y-1">
                       <p className="text-xs text-muted-foreground uppercase tracking-wider">{product.categories?.name}</p>

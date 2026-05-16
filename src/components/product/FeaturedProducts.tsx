@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { visibleImages } from "@/lib/utils";
 
 interface FeaturedProductsProps {
   excludeId?: string;
@@ -14,7 +15,7 @@ export function FeaturedProducts({ excludeId, title = "You May Also Like", limit
     queryFn: async () => {
       let query = supabase
         .from("products")
-        .select("id, name, slug, price, images")
+        .select("id, name, slug, price, images, hidden_images")
         .eq("is_active", true)
         .eq("featured", true)
         .limit(limit + (excludeId ? 1 : 0));
@@ -39,9 +40,9 @@ export function FeaturedProducts({ excludeId, title = "You May Also Like", limit
             className="group block"
           >
             <div className="aspect-square rounded-lg overflow-hidden bg-muted mb-3">
-              {p.images?.[0] ? (
+              {(() => { const v = visibleImages(p); return v[0] ? (
                 <img
-                  src={p.images[0]}
+                  src={v[0]}
                   alt={p.name}
                   loading="lazy"
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
@@ -50,7 +51,7 @@ export function FeaturedProducts({ excludeId, title = "You May Also Like", limit
                 <div className="w-full h-full flex items-center justify-center text-muted-foreground font-serif">
                   DreamNest
                 </div>
-              )}
+              ); })()}
             </div>
             <h3 className="text-sm font-medium line-clamp-1 group-hover:underline">{p.name}</h3>
             <p className="text-sm font-serif text-muted-foreground mt-1">{formatPrice(p.price)}</p>
