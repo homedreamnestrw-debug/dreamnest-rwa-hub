@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { useShopEnabled } from "@/hooks/useShopEnabled";
+import { visibleImages } from "@/lib/utils";
 import { ComingSoon } from "@/components/layout/ComingSoon";
 import { SEO } from "@/components/SEO";
 
