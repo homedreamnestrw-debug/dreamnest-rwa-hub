@@ -14,6 +14,7 @@ import { ComingSoon } from "@/components/layout/ComingSoon";
 import { SEO } from "@/components/SEO";
 import { FeaturedProducts } from "@/components/product/FeaturedProducts";
 import { pickLocalizedDescription } from "@/lib/studioLanguage";
+import { visibleImages } from "@/lib/utils";
 
 /**
  * Best-effort mapping of a free-text color value (e.g. "Rabbit plush warm sun orange",
@@ -123,11 +124,13 @@ export default function ProductDetail() {
       )
     : null;
 
+  const displayImages = product ? visibleImages(product as any) : [];
+
   // When a variant with its own image is selected, switch the gallery to that image
   useEffect(() => {
     const variantImg = (matchedVariant as any)?.image_url as string | null | undefined;
-    if (variantImg && product?.images) {
-      const idx = product.images.indexOf(variantImg);
+    if (variantImg && displayImages.length > 0) {
+      const idx = displayImages.indexOf(variantImg);
       if (idx >= 0) setSelectedImage(idx);
     }
   }, [matchedVariant, product?.images]);
@@ -264,7 +267,7 @@ export default function ProductDetail() {
     : null;
 
   const localizedDescription = pickLocalizedDescription(product as any);
-  const productImage = product.images?.[0];
+  const productImage = displayImages[0];
   const categoryName = product.categories?.name ?? "home decor";
   const seoDesc = localizedDescription
     ? localizedDescription.replace(/<[^>]*>/g, "").slice(0, 160)
@@ -274,7 +277,7 @@ export default function ProductDetail() {
     "@context": "https://schema.org/",
     "@type": "Product",
     name: product.name,
-    image: product.images ?? [],
+    image: displayImages,
     description: seoDesc,
     sku: product.sku ?? undefined,
     category: product.categories?.name,
@@ -325,15 +328,15 @@ export default function ProductDetail() {
           {/* Images */}
           <div className="space-y-4">
             <div className="aspect-square rounded-lg overflow-hidden bg-muted">
-              {product.images?.[selectedImage] ? (
-                <img src={product.images[selectedImage]} alt={product.name} className="w-full h-full object-cover" />
+              {displayImages[selectedImage] ? (
+                <img src={displayImages[selectedImage]} alt={product.name} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-muted-foreground font-serif text-2xl">DreamNest</div>
               )}
             </div>
-            {product.images && product.images.length > 1 && (
+            {displayImages.length > 1 && (
               <div className="flex gap-3">
-                {product.images.map((img: string, i: number) => (
+                {displayImages.map((img: string, i: number) => (
                   <button
                     key={i}
                     onClick={() => setSelectedImage(i)}
