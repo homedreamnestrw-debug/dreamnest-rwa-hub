@@ -192,7 +192,7 @@ export default function Products() {
   useEffect(() => { fetchData(); }, []);
 
   const resetForm = () => {
-    setForm({ name: "", slug: "", description: "", description_fr: "", description_rw: "", price: 0, cost_price: 0, sku: "", low_stock_threshold: 5, category_id: "", tax_enabled: true, is_active: true, featured: false, images: [] });
+    setForm({ name: "", slug: "", description: "", description_fr: "", description_rw: "", price: 0, cost_price: 0, sku: "", low_stock_threshold: 5, category_id: "", tax_enabled: true, is_active: true, featured: false, images: [], ai_attributes: {} });
     setLocationStock({});
     setOptionsSchema({});
     setVariantRows([]);
