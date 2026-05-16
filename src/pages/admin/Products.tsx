@@ -174,6 +174,7 @@ export default function Products() {
     is_active: true,
     featured: false,
     images: [] as string[],
+    ai_attributes: {} as Record<string, string>,
   });
 
   const fetchData = async () => {
