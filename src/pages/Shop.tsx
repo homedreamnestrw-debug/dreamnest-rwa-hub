@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { useShopEnabled } from "@/hooks/useShopEnabled";
+import { visibleImages } from "@/lib/utils";
 import { ComingSoon } from "@/components/layout/ComingSoon";
 import { SEO } from "@/components/SEO";
 
@@ -31,7 +32,7 @@ export default function Shop() {
     queryFn: async () => {
       let query = supabase
         .from("products")
-        .select("id, name, slug, price, images, stock_quantity, low_stock_threshold, category_id, categories(name, slug)")
+        .select("id, name, slug, price, images, hidden_images, stock_quantity, low_stock_threshold, category_id, categories(name, slug)")
         .eq("is_active", true);
 
       if (categorySlug) {
@@ -127,11 +128,11 @@ export default function Shop() {
             {products.map((product: any) => (
               <Link key={product.id} to={`/product/${product.slug}`} className="group">
                 <div className="aspect-square rounded-lg overflow-hidden bg-muted mb-4">
-                  {product.images?.[0] ? (
-                    <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  {(() => { const v = visibleImages(product); return v[0] ? (
+                    <img src={v[0]} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-muted-foreground font-serif text-lg">DreamNest</div>
-                  )}
+                  ); })()}
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground uppercase tracking-wider">{product.categories?.name}</p>

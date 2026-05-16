@@ -31,15 +31,15 @@ const CAPTION_INSTRUCTIONS: Record<Lang, string> = {
 };
 
 const DESCRIPTION_INSTRUCTIONS: Record<Lang, string> = {
-  en: `Write a polished product description (90–130 words). Mention materials/comfort/use-cases when relevant. End with a short call-to-action sentence. Return ONLY the description — no headings, no markdown, plain prose.`,
-  fr: `Rédige une description de produit soignée (90–130 mots). Mentionne les matériaux, le confort et les usages quand c'est pertinent. Termine par une courte phrase d'appel à l'action. Retourne UNIQUEMENT la description — sans titres, sans markdown, en prose simple.`,
-  rw: `Andika incamake y'igicuruzwa nziza (amagambo 90–130). Vuga ibikoresho, ubworoherane n'aho bikoreshwa iyo bikwiriye. Sozanya n'interuro ngufi ihamagarira gukora. Subiza GUSA incamake — nta mitwe, nta markdown, mu nyandiko isanzwe.`,
+  en: `Write a concise product description: MAXIMUM 4 short lines (about 35–55 words total). Be warm and aspirational. End with a brief call-to-action. Return ONLY the description — no headings, no markdown, plain prose. Do not exceed 4 lines.`,
+  fr: `Rédige une description de produit concise : MAXIMUM 4 lignes courtes (environ 35–55 mots au total). Ton chaleureux et inspirant. Termine par un bref appel à l'action. Retourne UNIQUEMENT la description — sans titres, sans markdown, en prose simple. Ne dépasse pas 4 lignes.`,
+  rw: `Andika incamake y'igicuruzwa ngufi: NTIRENZE imirongo 4 migufi (amagambo 35–55 mu rusange). Ijwi ryiza kandi rishimishije. Soza n'interuro ngufi ihamagarira gukora. Subiza GUSA incamake — nta mitwe, nta markdown. Ntugakomeze irenze imirongo 4.`,
 };
 
 const POLISH_INSTRUCTIONS: Record<Lang, string> = {
-  en: `Polish and improve the following product description while preserving its meaning. Fix grammar, improve flow, make it warm and aspirational. Keep length similar (90–130 words). Return ONLY the polished description — no headings, no markdown.`,
-  fr: `Améliore et peaufine la description de produit suivante en préservant son sens. Corrige la grammaire, améliore le style, rends-la chaleureuse et inspirante. Garde une longueur similaire (90–130 mots). Retourne UNIQUEMENT la description peaufinée — sans titres, sans markdown.`,
-  rw: `Nozeza kandi utunganye incamake y'igicuruzwa ikurikira ariko ugumane icyo ivuga. Kosora imyandikire, unozeze imvugo, uyigire iryoshye kandi ishimishije. Komeza uburebure busa (amagambo 90–130). Subiza GUSA incamake yanozejwe — nta mitwe, nta markdown.`,
+  en: `Polish and improve the following product description while preserving its meaning. Fix grammar, make it warm and aspirational. MAXIMUM 4 short lines (about 35–55 words). Return ONLY the polished description — no headings, no markdown. Do not exceed 4 lines.`,
+  fr: `Améliore et peaufine la description suivante en préservant son sens. Corrige la grammaire, rends-la chaleureuse et inspirante. MAXIMUM 4 lignes courtes (environ 35–55 mots). Retourne UNIQUEMENT la description peaufinée — sans titres, sans markdown. Ne dépasse pas 4 lignes.`,
+  rw: `Nozeza incamake ikurikira ugumane icyo ivuga. Kosora imyandikire, uyigire iryoshye. NTIRENZE imirongo 4 migufi (amagambo 35–55). Subiza GUSA incamake yanozejwe — nta mitwe, nta markdown. Ntugakomeze irenze imirongo 4.`,
 };
 
 const SHORTEN_INSTRUCTIONS: Record<Lang, string> = {
