@@ -401,6 +401,74 @@ export default function Products() {
                   </TabsContent>
                 </Tabs>
               </div>
+
+              <div className="rounded-md border p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Product Attributes (for AI)</Label>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-xs"
+                    onClick={() => {
+                      const attrs = { ...form.ai_attributes };
+                      let i = 1;
+                      let key = "Attribute";
+                      while (attrs[key]) { key = `Attribute ${++i}`; }
+                      attrs[key] = "";
+                      setForm({ ...form, ai_attributes: attrs });
+                    }}
+                  >
+                    <Plus className="h-3.5 w-3.5" /> Add
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Key facts (Size, Material, Color, etc.) that the AI must always include in descriptions.
+                </p>
+                {Object.keys(form.ai_attributes).length === 0 ? (
+                  <p className="text-xs text-muted-foreground italic">No attributes yet.</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {Object.entries(form.ai_attributes).map(([k, v]) => (
+                      <div key={k} className="flex items-center gap-2">
+                        <Input
+                          className="h-8 text-xs w-32"
+                          value={k}
+                          placeholder="Size"
+                          onChange={(e) => {
+                            const newKey = e.target.value;
+                            const entries = Object.entries(form.ai_attributes);
+                            const updated: Record<string, string> = {};
+                            entries.forEach(([ek, ev]) => {
+                              updated[ek === k ? newKey : ek] = ev;
+                            });
+                            setForm({ ...form, ai_attributes: updated });
+                          }}
+                        />
+                        <Input
+                          className="h-8 text-xs flex-1"
+                          value={v}
+                          placeholder="Queen"
+                          onChange={(e) => setForm({ ...form, ai_attributes: { ...form.ai_attributes, [k]: e.target.value } })}
+                        />
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-destructive"
+                          onClick={() => {
+                            const { [k]: _, ...rest } = form.ai_attributes;
+                            setForm({ ...form, ai_attributes: rest });
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div><Label>Price (RWF)</Label><Input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: +e.target.value })} /></div>
                 <div><Label>Cost Price</Label><Input type="number" value={form.cost_price} onChange={(e) => setForm({ ...form, cost_price: +e.target.value })} /></div>
