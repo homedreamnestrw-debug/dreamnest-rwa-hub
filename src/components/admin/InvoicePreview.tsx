@@ -254,7 +254,7 @@ export function InvoicePreview({ invoiceId, fallback }: PreviewProps) {
           <div className="flex justify-between font-bold text-sm border-t border-black mt-1 pt-1"><span>TOTAL</span><span>{formatRWF(data.total)}</span></div>
 
           <div className="border-t border-dashed border-black my-2" />
-          <div className="text-center italic text-[10px]">{footer}</div>
+          {footer && <div className="text-center italic text-[10px]">{footer}</div>}
         </div>
       </TabsContent>
     </Tabs>
