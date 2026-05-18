@@ -195,7 +195,7 @@ export async function buildOrderInvoicePdfFromData(opts: {
   y = Math.max(y + 6, my + 2);
 
   // Customer block
-  if (opts.customerName || opts.customerPhone || opts.customerEmail) {
+  if (opts.customerName || opts.customerPhone || opts.customerEmail || opts.customerAddress) {
     doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
     doc.text("Bill To:", margin, y + 4);
@@ -204,6 +204,10 @@ export async function buildOrderInvoicePdfFromData(opts: {
     if (opts.customerName) { doc.text(opts.customerName, margin, cy); cy += 4.5; }
     if (opts.customerPhone) { doc.text(opts.customerPhone, margin, cy); cy += 4.5; }
     if (opts.customerEmail) { doc.text(opts.customerEmail, margin, cy); cy += 4.5; }
+    if (opts.customerAddress) {
+      const addrLines = doc.splitTextToSize(opts.customerAddress, 90);
+      doc.text(addrLines, margin, cy); cy += 4.5 * addrLines.length;
+    }
     if (opts.servedBy) { doc.text(`Served by: ${opts.servedBy}`, margin, cy); cy += 4.5; }
     y = Math.max(y + 12, cy);
   } else {
