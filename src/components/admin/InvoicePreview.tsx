@@ -20,6 +20,10 @@ interface PreviewProps {
     paid_at?: string | null;
     due_date?: string | null;
     order_id?: string | null;
+    client_name?: string | null;
+    client_phone?: string | null;
+    client_email?: string | null;
+    client_address?: string | null;
   };
 }
 
@@ -102,7 +106,13 @@ export function InvoicePreview({ invoiceId, fallback }: PreviewProps) {
   const phone = settings?.phone;
   const email = settings?.email;
   const logoUrl = settings?.receipt_logo_url || settings?.logo_url;
-  const footer = settings?.receipt_footer || "Thank you for your purchase!";
+  const isProforma = (data.document_type as string) === "proforma" || (data.document_type as string) === "quote";
+  const footer = isProforma ? null : (settings?.receipt_footer || "Thank you for your purchase!");
+  // Prefer client_* fields stored directly on the invoice, fall back to linked order guest_* fields
+  const clientName = (data as any).client_name || order?.guest_name;
+  const clientPhone = (data as any).client_phone || order?.guest_phone;
+  const clientEmail = (data as any).client_email || order?.guest_email;
+  const clientAddress = (data as any).client_address;
 
   return (
     <Tabs defaultValue="a4" className="w-full">
@@ -143,12 +153,13 @@ export function InvoicePreview({ invoiceId, fallback }: PreviewProps) {
           </div>
 
           {/* Bill To */}
-          {(order?.guest_name || order?.guest_phone || order?.guest_email) && (
+          {(clientName || clientPhone || clientEmail || clientAddress) && (
             <div className="mt-4 text-xs">
               <div className="font-semibold mb-1">Bill To:</div>
-              {order.guest_name && <div>{order.guest_name}</div>}
-              {order.guest_phone && <div>{order.guest_phone}</div>}
-              {order.guest_email && <div>{order.guest_email}</div>}
+              {clientName && <div>{clientName}</div>}
+              {clientPhone && <div>{clientPhone}</div>}
+              {clientEmail && <div>{clientEmail}</div>}
+              {clientAddress && <div>{clientAddress}</div>}
             </div>
           )}
 
@@ -195,7 +206,7 @@ export function InvoicePreview({ invoiceId, fallback }: PreviewProps) {
             </div>
           )}
 
-          <div className="text-center text-xs italic text-gray-500 mt-8 pt-3 border-t">{footer}</div>
+          {footer && <div className="text-center text-xs italic text-gray-500 mt-8 pt-3 border-t">{footer}</div>}
         </div>
       </TabsContent>
 
@@ -243,7 +254,7 @@ export function InvoicePreview({ invoiceId, fallback }: PreviewProps) {
           <div className="flex justify-between font-bold text-sm border-t border-black mt-1 pt-1"><span>TOTAL</span><span>{formatRWF(data.total)}</span></div>
 
           <div className="border-t border-dashed border-black my-2" />
-          <div className="text-center italic text-[10px]">{footer}</div>
+          {footer && <div className="text-center italic text-[10px]">{footer}</div>}
         </div>
       </TabsContent>
     </Tabs>

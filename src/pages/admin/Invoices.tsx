@@ -77,6 +77,10 @@ export default function Invoices() {
     due_date: "",
     payment_terms: "",
     notes: "",
+    client_name: "",
+    client_phone: "",
+    client_email: "",
+    client_address: "",
   });
 
   const [editForm, setEditForm] = useState({
@@ -184,7 +188,7 @@ export default function Invoices() {
   };
 
   const resetForm = () => {
-    setForm({ document_type: "proforma", status: "draft", tax_rate: 18, discount: 0, due_date: "", payment_terms: "", notes: "" });
+    setForm({ document_type: "proforma", status: "draft", tax_rate: 18, discount: 0, due_date: "", payment_terms: "", notes: "", client_name: "", client_phone: "", client_email: "", client_address: "" });
     setLineItems([]);
   };
 
@@ -220,6 +224,10 @@ export default function Invoices() {
       total: formTotal,
       due_date: form.due_date || null,
       notes: combinedNotes || null,
+      client_name: form.client_name.trim() || null,
+      client_phone: form.client_phone.trim() || null,
+      client_email: form.client_email.trim() || null,
+      client_address: form.client_address.trim() || null,
     };
     const { data: created, error } = await supabase.from("invoices").insert(payload).select("id").single();
     if (error || !created) { toast({ title: "Error", description: error?.message, variant: "destructive" }); return; }
@@ -490,6 +498,16 @@ export default function Invoices() {
                 </Select>
               </div>
 
+              <div className="rounded-md border p-3 space-y-2">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Client / Bill To</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input placeholder="Client name" value={form.client_name} onChange={(e) => setForm({ ...form, client_name: e.target.value })} />
+                  <Input placeholder="Phone" value={form.client_phone} onChange={(e) => setForm({ ...form, client_phone: e.target.value })} />
+                  <Input placeholder="Email" value={form.client_email} onChange={(e) => setForm({ ...form, client_email: e.target.value })} />
+                  <Input placeholder="Address" value={form.client_address} onChange={(e) => setForm({ ...form, client_address: e.target.value })} />
+                </div>
+              </div>
+
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <Label>Line Items</Label>
@@ -738,6 +756,10 @@ export default function Invoices() {
                   paid_at: viewing.paid_at,
                   due_date: viewing.due_date,
                   order_id: viewing._order_id || viewing.order_id,
+                  client_name: (viewing as any).client_name,
+                  client_phone: (viewing as any).client_phone,
+                  client_email: (viewing as any).client_email,
+                  client_address: (viewing as any).client_address,
                 }}
               />
               <div className="flex gap-2 flex-wrap justify-end pt-2 border-t">

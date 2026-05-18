@@ -571,6 +571,10 @@ export type Database = {
       }
       invoices: {
         Row: {
+          client_address: string | null
+          client_email: string | null
+          client_name: string | null
+          client_phone: string | null
           created_at: string
           customer_id: string | null
           discount: number
@@ -589,6 +593,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          client_address?: string | null
+          client_email?: string | null
+          client_name?: string | null
+          client_phone?: string | null
           created_at?: string
           customer_id?: string | null
           discount?: number
@@ -607,6 +615,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          client_address?: string | null
+          client_email?: string | null
+          client_name?: string | null
+          client_phone?: string | null
           created_at?: string
           customer_id?: string | null
           discount?: number

@@ -115,6 +115,7 @@ export async function buildOrderInvoicePdfFromData(opts: {
   customerName?: string | null;
   customerPhone?: string | null;
   customerEmail?: string | null;
+  customerAddress?: string | null;
   paymentMethod?: string | null;
   servedBy?: string | null;
   items: Array<{ description: string; quantity: number; unit_price: number; total: number }>;
@@ -194,7 +195,7 @@ export async function buildOrderInvoicePdfFromData(opts: {
   y = Math.max(y + 6, my + 2);
 
   // Customer block
-  if (opts.customerName || opts.customerPhone || opts.customerEmail) {
+  if (opts.customerName || opts.customerPhone || opts.customerEmail || opts.customerAddress) {
     doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
     doc.text("Bill To:", margin, y + 4);
@@ -203,6 +204,10 @@ export async function buildOrderInvoicePdfFromData(opts: {
     if (opts.customerName) { doc.text(opts.customerName, margin, cy); cy += 4.5; }
     if (opts.customerPhone) { doc.text(opts.customerPhone, margin, cy); cy += 4.5; }
     if (opts.customerEmail) { doc.text(opts.customerEmail, margin, cy); cy += 4.5; }
+    if (opts.customerAddress) {
+      const addrLines = doc.splitTextToSize(opts.customerAddress, 90);
+      doc.text(addrLines, margin, cy); cy += 4.5 * addrLines.length;
+    }
     if (opts.servedBy) { doc.text(`Served by: ${opts.servedBy}`, margin, cy); cy += 4.5; }
     y = Math.max(y + 12, cy);
   } else {
@@ -277,10 +282,13 @@ export async function buildOrderInvoicePdfFromData(opts: {
     doc.text(lines, margin, finalY);
   }
 
-  // Footer
-  const footerText = settings?.receipt_footer || "Thank you for your purchase!";
-  doc.setFont("helvetica", "italic"); doc.setFontSize(9); doc.setTextColor(100);
-  doc.text(footerText, pageWidth / 2, pageHeight - 12, { align: "center" });
+  // Footer (skip for proforma / quote documents)
+  const docTypeLower = opts.documentType.toLowerCase();
+  if (docTypeLower !== "proforma" && docTypeLower !== "quote") {
+    const footerText = settings?.receipt_footer || "Thank you for your purchase!";
+    doc.setFont("helvetica", "italic"); doc.setFontSize(9); doc.setTextColor(100);
+    doc.text(footerText, pageWidth / 2, pageHeight - 12, { align: "center" });
+  }
 
   doc.save(`${opts.documentType.toUpperCase()}-${opts.documentNumber}.pdf`);
 }
@@ -302,9 +310,10 @@ export async function downloadInvoicePdf(invoiceId: string) {
     documentNumber: invoice.document_number,
     createdAt: new Date(invoice.created_at),
     status: invoice.status as string,
-    customerName: order?.guest_name || null,
-    customerPhone: order?.guest_phone || null,
-    customerEmail: order?.guest_email || null,
+    customerName: (invoice as any).client_name || order?.guest_name || null,
+    customerPhone: (invoice as any).client_phone || order?.guest_phone || null,
+    customerEmail: (invoice as any).client_email || order?.guest_email || null,
+    customerAddress: (invoice as any).client_address || null,
     paymentMethod: order?.payment_method || null,
     items: (items || []).map((it: any) => ({
       description: it.description,
