@@ -77,6 +77,10 @@ export default function Invoices() {
     due_date: "",
     payment_terms: "",
     notes: "",
+    client_name: "",
+    client_phone: "",
+    client_email: "",
+    client_address: "",
   });
 
   const [editForm, setEditForm] = useState({
