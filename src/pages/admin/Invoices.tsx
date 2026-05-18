@@ -188,7 +188,7 @@ export default function Invoices() {
   };
 
   const resetForm = () => {
-    setForm({ document_type: "proforma", status: "draft", tax_rate: 18, discount: 0, due_date: "", payment_terms: "", notes: "" });
+    setForm({ document_type: "proforma", status: "draft", tax_rate: 18, discount: 0, due_date: "", payment_terms: "", notes: "", client_name: "", client_phone: "", client_email: "", client_address: "" });
     setLineItems([]);
   };
 
