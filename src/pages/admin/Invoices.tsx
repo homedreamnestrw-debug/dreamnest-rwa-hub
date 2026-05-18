@@ -756,6 +756,10 @@ export default function Invoices() {
                   paid_at: viewing.paid_at,
                   due_date: viewing.due_date,
                   order_id: viewing._order_id || viewing.order_id,
+                  client_name: (viewing as any).client_name,
+                  client_phone: (viewing as any).client_phone,
+                  client_email: (viewing as any).client_email,
+                  client_address: (viewing as any).client_address,
                 }}
               />
               <div className="flex gap-2 flex-wrap justify-end pt-2 border-t">
