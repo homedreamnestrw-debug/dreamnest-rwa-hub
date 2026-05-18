@@ -153,12 +153,13 @@ export function InvoicePreview({ invoiceId, fallback }: PreviewProps) {
           </div>
 
           {/* Bill To */}
-          {(order?.guest_name || order?.guest_phone || order?.guest_email) && (
+          {(clientName || clientPhone || clientEmail || clientAddress) && (
             <div className="mt-4 text-xs">
               <div className="font-semibold mb-1">Bill To:</div>
-              {order.guest_name && <div>{order.guest_name}</div>}
-              {order.guest_phone && <div>{order.guest_phone}</div>}
-              {order.guest_email && <div>{order.guest_email}</div>}
+              {clientName && <div>{clientName}</div>}
+              {clientPhone && <div>{clientPhone}</div>}
+              {clientEmail && <div>{clientEmail}</div>}
+              {clientAddress && <div>{clientAddress}</div>}
             </div>
           )}
 
