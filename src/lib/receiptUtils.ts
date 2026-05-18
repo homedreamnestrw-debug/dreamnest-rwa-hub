@@ -277,10 +277,13 @@ export async function buildOrderInvoicePdfFromData(opts: {
     doc.text(lines, margin, finalY);
   }
 
-  // Footer
-  const footerText = settings?.receipt_footer || "Thank you for your purchase!";
-  doc.setFont("helvetica", "italic"); doc.setFontSize(9); doc.setTextColor(100);
-  doc.text(footerText, pageWidth / 2, pageHeight - 12, { align: "center" });
+  // Footer (skip for proforma / quote documents)
+  const docTypeLower = opts.documentType.toLowerCase();
+  if (docTypeLower !== "proforma" && docTypeLower !== "quote") {
+    const footerText = settings?.receipt_footer || "Thank you for your purchase!";
+    doc.setFont("helvetica", "italic"); doc.setFontSize(9); doc.setTextColor(100);
+    doc.text(footerText, pageWidth / 2, pageHeight - 12, { align: "center" });
+  }
 
   doc.save(`${opts.documentType.toUpperCase()}-${opts.documentNumber}.pdf`);
 }
