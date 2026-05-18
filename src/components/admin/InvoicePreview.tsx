@@ -20,6 +20,10 @@ interface PreviewProps {
     paid_at?: string | null;
     due_date?: string | null;
     order_id?: string | null;
+    client_name?: string | null;
+    client_phone?: string | null;
+    client_email?: string | null;
+    client_address?: string | null;
   };
 }
 
