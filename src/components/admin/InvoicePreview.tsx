@@ -206,7 +206,7 @@ export function InvoicePreview({ invoiceId, fallback }: PreviewProps) {
             </div>
           )}
 
-          <div className="text-center text-xs italic text-gray-500 mt-8 pt-3 border-t">{footer}</div>
+          {footer && <div className="text-center text-xs italic text-gray-500 mt-8 pt-3 border-t">{footer}</div>}
         </div>
       </TabsContent>
 
