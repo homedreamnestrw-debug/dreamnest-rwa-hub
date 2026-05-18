@@ -506,6 +506,7 @@ export default function Invoices() {
                   <Input placeholder="Email" value={form.client_email} onChange={(e) => setForm({ ...form, client_email: e.target.value })} />
                   <Input placeholder="Address" value={form.client_address} onChange={(e) => setForm({ ...form, client_address: e.target.value })} />
                 </div>
+              </div>
 
               <div>
                 <div className="flex items-center justify-between mb-2">
