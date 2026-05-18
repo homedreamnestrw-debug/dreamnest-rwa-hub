@@ -64,15 +64,18 @@ export default function Invoices() {
   const [invoiceItems, setInvoiceItems] = useState<any[]>([]);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
 
+  type LineItem = { description: string; quantity: number; unit_price: number; product_id?: string | null };
+  const [lineItems, setLineItems] = useState<LineItem[]>([]);
+  const [products, setProducts] = useState<{ id: string; name: string; price: number; sku: string | null }[]>([]);
+  const [productPickerOpen, setProductPickerOpen] = useState(false);
+
   const [form, setForm] = useState({
-    document_type: "invoice" as Invoice["document_type"],
+    document_type: "proforma" as Invoice["document_type"],
     status: "draft" as Invoice["status"],
-    subtotal: 0,
     tax_rate: 18,
-    tax_amount: 0,
     discount: 0,
-    total: 0,
     due_date: "",
+    payment_terms: "",
     notes: "",
   });
 
