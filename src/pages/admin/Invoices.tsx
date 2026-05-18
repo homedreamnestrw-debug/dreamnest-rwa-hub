@@ -11,7 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Search, Eye, Pencil, History, Download, Share2, FileText, Store, Globe } from "lucide-react";
+import { Plus, Search, Eye, Pencil, History, Download, Share2, FileText, Store, Globe, X, Package } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { downloadInvoicePdf, shareInvoiceOnWhatsApp } from "@/lib/receiptUtils";
 import { InvoicePreview } from "@/components/admin/InvoicePreview";
 import { toast } from "@/hooks/use-toast";
@@ -62,15 +64,18 @@ export default function Invoices() {
   const [invoiceItems, setInvoiceItems] = useState<any[]>([]);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
 
+  type LineItem = { description: string; quantity: number; unit_price: number; product_id?: string | null };
+  const [lineItems, setLineItems] = useState<LineItem[]>([]);
+  const [products, setProducts] = useState<{ id: string; name: string; price: number; sku: string | null }[]>([]);
+  const [productPickerOpen, setProductPickerOpen] = useState(false);
+
   const [form, setForm] = useState({
-    document_type: "invoice" as Invoice["document_type"],
+    document_type: "proforma" as Invoice["document_type"],
     status: "draft" as Invoice["status"],
-    subtotal: 0,
     tax_rate: 18,
-    tax_amount: 0,
     discount: 0,
-    total: 0,
     due_date: "",
+    payment_terms: "",
     notes: "",
   });
 
@@ -155,17 +160,22 @@ export default function Invoices() {
 
   useEffect(() => { fetchData(); }, []);
 
+  useEffect(() => {
+    if (!dialogOpen) return;
+    (async () => {
+      const { data } = await supabase.from("products").select("id, name, price, sku").eq("is_active", true).order("name");
+      setProducts(data || []);
+    })();
+  }, [dialogOpen]);
+
   const recalculate = (subtotal: number, taxRate: number, discount: number) => {
     const taxAmount = Math.round(subtotal * taxRate / 100);
     const total = subtotal + taxAmount - discount;
     return { tax_amount: taxAmount, total };
   };
 
-  const updateForm = (patch: Partial<typeof form>) => {
-    const next = { ...form, ...patch };
-    const calc = recalculate(next.subtotal, next.tax_rate, next.discount);
-    setForm({ ...next, ...calc });
-  };
+  const subtotalFromItems = lineItems.reduce((s, it) => s + (it.quantity * it.unit_price), 0);
+  const { tax_amount: formTaxAmount, total: formTotal } = recalculate(subtotalFromItems, form.tax_rate, form.discount);
 
   const updateEditForm = (patch: Partial<typeof editForm>) => {
     const next = { ...editForm, ...patch };
@@ -174,24 +184,56 @@ export default function Invoices() {
   };
 
   const resetForm = () => {
-    setForm({ document_type: "invoice", status: "draft", subtotal: 0, tax_rate: 18, tax_amount: 0, discount: 0, total: 0, due_date: "", notes: "" });
+    setForm({ document_type: "proforma", status: "draft", tax_rate: 18, discount: 0, due_date: "", payment_terms: "", notes: "" });
+    setLineItems([]);
   };
 
+  const addProductLine = (p: { id: string; name: string; price: number }) => {
+    setLineItems((prev) => [...prev, { description: p.name, quantity: 1, unit_price: Number(p.price) || 0, product_id: p.id }]);
+    setProductPickerOpen(false);
+  };
+  const addCustomLine = () => {
+    setLineItems((prev) => [...prev, { description: "", quantity: 1, unit_price: 0, product_id: null }]);
+  };
+  const updateLine = (idx: number, patch: Partial<LineItem>) => {
+    setLineItems((prev) => prev.map((it, i) => i === idx ? { ...it, ...patch } : it));
+  };
+  const removeLine = (idx: number) => setLineItems((prev) => prev.filter((_, i) => i !== idx));
+
   const handleCreate = async () => {
+    if (lineItems.length === 0) { toast({ title: "Add at least one line item", variant: "destructive" }); return; }
+    if (lineItems.some(it => !it.description.trim())) { toast({ title: "All items need a description", variant: "destructive" }); return; }
+
+    const combinedNotes = [
+      form.payment_terms ? `Payment terms: ${form.payment_terms}` : "",
+      form.notes,
+    ].filter(Boolean).join("\n\n");
+
     const payload: TablesInsert<"invoices"> = {
-      document_number: "AUTO", // overwritten by BEFORE INSERT trigger
+      document_number: "AUTO",
       document_type: form.document_type,
       status: form.status,
-      subtotal: form.subtotal,
+      subtotal: subtotalFromItems,
       tax_rate: form.tax_rate,
-      tax_amount: form.tax_amount,
+      tax_amount: formTaxAmount,
       discount: form.discount,
-      total: form.total,
+      total: formTotal,
       due_date: form.due_date || null,
-      notes: form.notes || null,
+      notes: combinedNotes || null,
     };
-    const { error } = await supabase.from("invoices").insert(payload);
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    const { data: created, error } = await supabase.from("invoices").insert(payload).select("id").single();
+    if (error || !created) { toast({ title: "Error", description: error?.message, variant: "destructive" }); return; }
+
+    const items = lineItems.map(it => ({
+      invoice_id: created.id,
+      description: it.description,
+      quantity: it.quantity,
+      unit_price: it.unit_price,
+      tax: 0,
+      total: it.quantity * it.unit_price,
+    }));
+    await supabase.from("invoice_items").insert(items);
+
     toast({ title: "Document created" });
     setDialogOpen(false);
     resetForm();
@@ -433,30 +475,105 @@ export default function Invoices() {
           <DialogTrigger asChild>
             <Button><Plus className="h-4 w-4 mr-2" /> New Document</Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create Document</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
                 <Label>Document Type</Label>
-                <Select value={form.document_type} onValueChange={(v: any) => updateForm({ document_type: v })}>
+                <Select value={form.document_type} onValueChange={(v: any) => setForm({ ...form, document_type: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {docTypes.map((t) => <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div><Label>Subtotal (RWF)</Label><Input type="number" value={form.subtotal} onChange={(e) => updateForm({ subtotal: +e.target.value })} /></div>
-                <div><Label>Tax Rate (%)</Label><Input type="number" value={form.tax_rate} onChange={(e) => updateForm({ tax_rate: +e.target.value })} /></div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label>Line Items</Label>
+                  <div className="flex gap-2">
+                    <Popover open={productPickerOpen} onOpenChange={setProductPickerOpen}>
+                      <PopoverTrigger asChild>
+                        <Button type="button" size="sm" variant="outline"><Package className="h-3.5 w-3.5 mr-1" /> Add stock product</Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="p-0 w-[320px]" align="end">
+                        <Command>
+                          <CommandInput placeholder="Search products..." />
+                          <CommandList>
+                            <CommandEmpty>No products found.</CommandEmpty>
+                            <CommandGroup>
+                              {products.map((p) => (
+                                <CommandItem key={p.id} value={`${p.name} ${p.sku ?? ""}`} onSelect={() => addProductLine(p)}>
+                                  <div className="flex flex-col">
+                                    <span>{p.name}</span>
+                                    <span className="text-xs text-muted-foreground">{p.sku || "—"} · {formatRWF(p.price)}</span>
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <Button type="button" size="sm" variant="outline" onClick={addCustomLine}><Plus className="h-3.5 w-3.5 mr-1" /> Custom item</Button>
+                  </div>
+                </div>
+
+                {lineItems.length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-4 border rounded-md">No items yet. Add a stock product or a custom item.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {lineItems.map((it, idx) => (
+                      <div key={idx} className="grid grid-cols-12 gap-2 items-start border rounded-md p-2">
+                        <div className="col-span-6">
+                          <Label className="text-[10px] uppercase text-muted-foreground">Name / Description</Label>
+                          <Input value={it.description} onChange={(e) => updateLine(idx, { description: e.target.value })} placeholder="Item name" />
+                        </div>
+                        <div className="col-span-2">
+                          <Label className="text-[10px] uppercase text-muted-foreground">Qty</Label>
+                          <Input type="number" min={1} value={it.quantity} onChange={(e) => updateLine(idx, { quantity: Math.max(1, +e.target.value || 1) })} />
+                        </div>
+                        <div className="col-span-3">
+                          <Label className="text-[10px] uppercase text-muted-foreground">Unit Price (RWF)</Label>
+                          <Input type="number" value={it.unit_price} onChange={(e) => updateLine(idx, { unit_price: +e.target.value || 0 })} />
+                        </div>
+                        <div className="col-span-1 flex justify-end pt-5">
+                          <Button type="button" variant="ghost" size="icon" onClick={() => removeLine(idx)}><X className="h-4 w-4" /></Button>
+                        </div>
+                        <div className="col-span-12 text-right text-xs text-muted-foreground">
+                          Line total: <span className="font-medium text-foreground">{formatRWF(it.quantity * it.unit_price)}</span>
+                          {it.product_id && <span className="ml-2 text-[10px] uppercase tracking-wide rounded px-1 bg-secondary text-secondary-foreground">Stock</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
+
               <div className="grid grid-cols-2 gap-4">
-                <div><Label>Discount (RWF)</Label><Input type="number" value={form.discount} onChange={(e) => updateForm({ discount: +e.target.value })} /></div>
-                <div><Label>Total</Label><Input value={formatRWF(form.total)} disabled /></div>
+                <div><Label>Tax Rate (%)</Label><Input type="number" value={form.tax_rate} onChange={(e) => setForm({ ...form, tax_rate: +e.target.value || 0 })} /></div>
+                <div><Label>Discount (RWF)</Label><Input type="number" value={form.discount} onChange={(e) => setForm({ ...form, discount: +e.target.value || 0 })} /></div>
               </div>
+              <div className="rounded-md bg-muted/50 p-3 text-sm space-y-1">
+                <div className="flex justify-between"><span>Subtotal</span><span>{formatRWF(subtotalFromItems)}</span></div>
+                <div className="flex justify-between"><span>VAT ({form.tax_rate}%)</span><span>{formatRWF(formTaxAmount)}</span></div>
+                {form.discount > 0 && <div className="flex justify-between"><span>Discount</span><span>-{formatRWF(form.discount)}</span></div>}
+                <div className="flex justify-between font-semibold border-t pt-1"><span>Total</span><span>{formatRWF(formTotal)}</span></div>
+              </div>
+
               <div><Label>Due Date</Label><Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
-              <div><Label>Notes</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+              <div>
+                <Label>Payment Terms</Label>
+                <Textarea
+                  value={form.payment_terms}
+                  onChange={(e) => setForm({ ...form, payment_terms: e.target.value })}
+                  placeholder="e.g. 50% deposit, balance on delivery. Bank transfer to BK 000123456789. Valid 14 days."
+                  rows={2}
+                />
+              </div>
+              <div><Label>Notes</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} /></div>
               <Button onClick={handleCreate} className="w-full">Create Document</Button>
             </div>
           </DialogContent>
