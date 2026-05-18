@@ -160,17 +160,22 @@ export default function Invoices() {
 
   useEffect(() => { fetchData(); }, []);
 
+  useEffect(() => {
+    if (!dialogOpen) return;
+    (async () => {
+      const { data } = await supabase.from("products").select("id, name, price, sku").eq("is_active", true).order("name");
+      setProducts(data || []);
+    })();
+  }, [dialogOpen]);
+
   const recalculate = (subtotal: number, taxRate: number, discount: number) => {
     const taxAmount = Math.round(subtotal * taxRate / 100);
     const total = subtotal + taxAmount - discount;
     return { tax_amount: taxAmount, total };
   };
 
-  const updateForm = (patch: Partial<typeof form>) => {
-    const next = { ...form, ...patch };
-    const calc = recalculate(next.subtotal, next.tax_rate, next.discount);
-    setForm({ ...next, ...calc });
-  };
+  const subtotalFromItems = lineItems.reduce((s, it) => s + (it.quantity * it.unit_price), 0);
+  const { tax_amount: formTaxAmount, total: formTotal } = recalculate(subtotalFromItems, form.tax_rate, form.discount);
 
   const updateEditForm = (patch: Partial<typeof editForm>) => {
     const next = { ...editForm, ...patch };
@@ -179,24 +184,56 @@ export default function Invoices() {
   };
 
   const resetForm = () => {
-    setForm({ document_type: "invoice", status: "draft", subtotal: 0, tax_rate: 18, tax_amount: 0, discount: 0, total: 0, due_date: "", notes: "" });
+    setForm({ document_type: "proforma", status: "draft", tax_rate: 18, discount: 0, due_date: "", payment_terms: "", notes: "" });
+    setLineItems([]);
   };
 
+  const addProductLine = (p: { id: string; name: string; price: number }) => {
+    setLineItems((prev) => [...prev, { description: p.name, quantity: 1, unit_price: Number(p.price) || 0, product_id: p.id }]);
+    setProductPickerOpen(false);
+  };
+  const addCustomLine = () => {
+    setLineItems((prev) => [...prev, { description: "", quantity: 1, unit_price: 0, product_id: null }]);
+  };
+  const updateLine = (idx: number, patch: Partial<LineItem>) => {
+    setLineItems((prev) => prev.map((it, i) => i === idx ? { ...it, ...patch } : it));
+  };
+  const removeLine = (idx: number) => setLineItems((prev) => prev.filter((_, i) => i !== idx));
+
   const handleCreate = async () => {
+    if (lineItems.length === 0) { toast({ title: "Add at least one line item", variant: "destructive" }); return; }
+    if (lineItems.some(it => !it.description.trim())) { toast({ title: "All items need a description", variant: "destructive" }); return; }
+
+    const combinedNotes = [
+      form.payment_terms ? `Payment terms: ${form.payment_terms}` : "",
+      form.notes,
+    ].filter(Boolean).join("\n\n");
+
     const payload: TablesInsert<"invoices"> = {
-      document_number: "AUTO", // overwritten by BEFORE INSERT trigger
+      document_number: "AUTO",
       document_type: form.document_type,
       status: form.status,
-      subtotal: form.subtotal,
+      subtotal: subtotalFromItems,
       tax_rate: form.tax_rate,
-      tax_amount: form.tax_amount,
+      tax_amount: formTaxAmount,
       discount: form.discount,
-      total: form.total,
+      total: formTotal,
       due_date: form.due_date || null,
-      notes: form.notes || null,
+      notes: combinedNotes || null,
     };
-    const { error } = await supabase.from("invoices").insert(payload);
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    const { data: created, error } = await supabase.from("invoices").insert(payload).select("id").single();
+    if (error || !created) { toast({ title: "Error", description: error?.message, variant: "destructive" }); return; }
+
+    const items = lineItems.map(it => ({
+      invoice_id: created.id,
+      description: it.description,
+      quantity: it.quantity,
+      unit_price: it.unit_price,
+      tax: 0,
+      total: it.quantity * it.unit_price,
+    }));
+    await supabase.from("invoice_items").insert(items);
+
     toast({ title: "Document created" });
     setDialogOpen(false);
     resetForm();
