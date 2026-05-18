@@ -224,6 +224,10 @@ export default function Invoices() {
       total: formTotal,
       due_date: form.due_date || null,
       notes: combinedNotes || null,
+      client_name: form.client_name.trim() || null,
+      client_phone: form.client_phone.trim() || null,
+      client_email: form.client_email.trim() || null,
+      client_address: form.client_address.trim() || null,
     };
     const { data: created, error } = await supabase.from("invoices").insert(payload).select("id").single();
     if (error || !created) { toast({ title: "Error", description: error?.message, variant: "destructive" }); return; }
