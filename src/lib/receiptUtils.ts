@@ -305,9 +305,9 @@ export async function downloadInvoicePdf(invoiceId: string) {
     documentNumber: invoice.document_number,
     createdAt: new Date(invoice.created_at),
     status: invoice.status as string,
-    customerName: order?.guest_name || null,
-    customerPhone: order?.guest_phone || null,
-    customerEmail: order?.guest_email || null,
+    customerName: (invoice as any).client_name || order?.guest_name || null,
+    customerPhone: (invoice as any).client_phone || order?.guest_phone || null,
+    customerEmail: (invoice as any).client_email || order?.guest_email || null,
     paymentMethod: order?.payment_method || null,
     items: (items || []).map((it: any) => ({
       description: it.description,
