@@ -498,6 +498,15 @@ export default function Invoices() {
                 </Select>
               </div>
 
+              <div className="rounded-md border p-3 space-y-2">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Client / Bill To</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input placeholder="Client name" value={form.client_name} onChange={(e) => setForm({ ...form, client_name: e.target.value })} />
+                  <Input placeholder="Phone" value={form.client_phone} onChange={(e) => setForm({ ...form, client_phone: e.target.value })} />
+                  <Input placeholder="Email" value={form.client_email} onChange={(e) => setForm({ ...form, client_email: e.target.value })} />
+                  <Input placeholder="Address" value={form.client_address} onChange={(e) => setForm({ ...form, client_address: e.target.value })} />
+                </div>
+
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <Label>Line Items</Label>
