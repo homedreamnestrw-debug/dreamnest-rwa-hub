@@ -115,6 +115,7 @@ export async function buildOrderInvoicePdfFromData(opts: {
   customerName?: string | null;
   customerPhone?: string | null;
   customerEmail?: string | null;
+  customerAddress?: string | null;
   paymentMethod?: string | null;
   servedBy?: string | null;
   items: Array<{ description: string; quantity: number; unit_price: number; total: number }>;
