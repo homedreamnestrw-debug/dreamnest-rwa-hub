@@ -106,7 +106,13 @@ export function InvoicePreview({ invoiceId, fallback }: PreviewProps) {
   const phone = settings?.phone;
   const email = settings?.email;
   const logoUrl = settings?.receipt_logo_url || settings?.logo_url;
-  const footer = settings?.receipt_footer || "Thank you for your purchase!";
+  const isProforma = (data.document_type as string) === "proforma" || (data.document_type as string) === "quote";
+  const footer = isProforma ? null : (settings?.receipt_footer || "Thank you for your purchase!");
+  // Prefer client_* fields stored directly on the invoice, fall back to linked order guest_* fields
+  const clientName = (data as any).client_name || order?.guest_name;
+  const clientPhone = (data as any).client_phone || order?.guest_phone;
+  const clientEmail = (data as any).client_email || order?.guest_email;
+  const clientAddress = (data as any).client_address;
 
   return (
     <Tabs defaultValue="a4" className="w-full">
