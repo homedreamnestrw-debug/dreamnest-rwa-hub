@@ -283,46 +283,87 @@ export default function Invoices() {
   const openEdit = async (inv: Invoice) => {
     setEditing(inv);
     setEditForm({
-      subtotal: inv.subtotal,
       tax_rate: Number(inv.tax_rate),
-      tax_amount: inv.tax_amount,
       discount: inv.discount,
-      total: inv.total,
       due_date: inv.due_date || "",
       notes: inv.notes || "",
       status: inv.status,
+      client_name: (inv as any).client_name || "",
+      client_phone: (inv as any).client_phone || "",
+      client_email: (inv as any).client_email || "",
+      client_address: (inv as any).client_address || "",
     });
-    // Load invoice items
+    if (products.length === 0) {
+      const { data: prods } = await supabase.from("products").select("id, name, price, sku").eq("is_active", true).order("name");
+      setProducts(prods || []);
+    }
     const { data } = await supabase.from("invoice_items").select("*").eq("invoice_id", inv.id).order("created_at");
     setInvoiceItems(data || []);
+    setEditLineItems((data || []).map((it: any) => ({
+      description: it.description,
+      quantity: it.quantity,
+      unit_price: Number(it.unit_price),
+      product_id: null,
+    })));
   };
 
   const handleSaveEdit = async () => {
     if (!editing) return;
+    if (editLineItems.length === 0) { toast({ title: "Add at least one line item", variant: "destructive" }); return; }
+    if (editLineItems.some(it => !it.description.trim())) { toast({ title: "All items need a description", variant: "destructive" }); return; }
+
+    const newSubtotal = editSubtotal;
+    const newTaxAmount = editTaxAmount;
+    const newTotal = editTotal;
+
     const changes: { field: string; old_val: string; new_val: string }[] = [];
-    const fields: (keyof typeof editForm)[] = ["subtotal", "tax_rate", "discount", "total", "due_date", "notes", "status"];
-    for (const f of fields) {
-      const oldVal = String((editing as any)[f] ?? "");
-      const newVal = String(editForm[f] ?? "");
-      if (oldVal !== newVal) changes.push({ field: f, old_val: oldVal, new_val: newVal });
+    const compare: Array<[string, any, any]> = [
+      ["subtotal", editing.subtotal, newSubtotal],
+      ["tax_rate", editing.tax_rate, editForm.tax_rate],
+      ["discount", editing.discount, editForm.discount],
+      ["total", editing.total, newTotal],
+      ["due_date", editing.due_date || "", editForm.due_date],
+      ["notes", editing.notes || "", editForm.notes],
+      ["status", editing.status, editForm.status],
+      ["client_name", (editing as any).client_name || "", editForm.client_name],
+      ["client_phone", (editing as any).client_phone || "", editForm.client_phone],
+      ["client_email", (editing as any).client_email || "", editForm.client_email],
+      ["client_address", (editing as any).client_address || "", editForm.client_address],
+    ];
+    for (const [f, oldV, newV] of compare) {
+      if (String(oldV ?? "") !== String(newV ?? "")) changes.push({ field: f, old_val: String(oldV ?? ""), new_val: String(newV ?? "") });
     }
 
     const update: any = {
-      subtotal: editForm.subtotal,
+      subtotal: newSubtotal,
       tax_rate: editForm.tax_rate,
-      tax_amount: editForm.tax_amount,
+      tax_amount: newTaxAmount,
       discount: editForm.discount,
-      total: editForm.total,
+      total: newTotal,
       due_date: editForm.due_date || null,
       notes: editForm.notes || null,
       status: editForm.status,
+      client_name: editForm.client_name.trim() || null,
+      client_phone: editForm.client_phone.trim() || null,
+      client_email: editForm.client_email.trim() || null,
+      client_address: editForm.client_address.trim() || null,
     };
     if (editForm.status === "paid" && editing.status !== "paid") update.paid_at = new Date().toISOString();
 
     const { error } = await supabase.from("invoices").update(update).eq("id", editing.id);
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
 
-    // Write audit log
+    await supabase.from("invoice_items").delete().eq("invoice_id", editing.id);
+    const items = editLineItems.map(it => ({
+      invoice_id: editing.id,
+      description: it.description,
+      quantity: it.quantity,
+      unit_price: it.unit_price,
+      tax: 0,
+      total: it.quantity * it.unit_price,
+    }));
+    if (items.length) await supabase.from("invoice_items").insert(items);
+
     if (changes.length > 0) {
       const logs = changes.map(c => ({
         invoice_id: editing.id,
@@ -334,7 +375,7 @@ export default function Invoices() {
       await supabase.from("invoice_audit_log" as any).insert(logs);
     }
 
-    toast({ title: "Invoice updated" });
+    toast({ title: "Document updated" });
     setEditing(null);
     fetchData();
   };
