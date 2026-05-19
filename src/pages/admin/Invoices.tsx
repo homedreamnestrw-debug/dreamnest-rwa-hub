@@ -832,7 +832,7 @@ export default function Invoices() {
 
       {/* Edit Dialog */}
       <Dialog open={!!editing} onOpenChange={(o) => { if (!o) setEditing(null); }}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Edit Document — {editing?.document_number}</DialogTitle></DialogHeader>
           {editing && (
             <div className="space-y-4">
@@ -845,44 +845,92 @@ export default function Invoices() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div><Label>Subtotal (RWF)</Label><Input type="number" value={editForm.subtotal} onChange={(e) => updateEditForm({ subtotal: +e.target.value })} /></div>
-                <div><Label>Tax Rate (%)</Label><Input type="number" value={editForm.tax_rate} onChange={(e) => updateEditForm({ tax_rate: +e.target.value })} /></div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div><Label>Discount (RWF)</Label><Input type="number" value={editForm.discount} onChange={(e) => updateEditForm({ discount: +e.target.value })} /></div>
-                <div><Label>Total</Label><Input value={formatRWF(editForm.total)} disabled /></div>
-              </div>
-              <div><Label>Due Date</Label><Input type="date" value={editForm.due_date} onChange={(e) => setEditForm({ ...editForm, due_date: e.target.value })} /></div>
-              <div><Label>Notes</Label><Textarea value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} /></div>
 
-              {invoiceItems.length > 0 && (
-                <div>
-                  <Label className="mb-2 block">Line Items</Label>
-                  <div className="rounded-md border text-xs">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="text-xs">Description</TableHead>
-                          <TableHead className="text-xs text-center">Qty</TableHead>
-                          <TableHead className="text-xs text-right">Unit Price</TableHead>
-                          <TableHead className="text-xs text-right">Total</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {invoiceItems.map((item: any) => (
-                          <TableRow key={item.id}>
-                            <TableCell className="text-xs">{item.description}</TableCell>
-                            <TableCell className="text-xs text-center">{item.quantity}</TableCell>
-                            <TableCell className="text-xs text-right">{formatRWF(item.unit_price)}</TableCell>
-                            <TableCell className="text-xs text-right">{formatRWF(item.total)}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+              <div className="rounded-md border p-3 space-y-2">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Client / Bill To</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input placeholder="Client name" value={editForm.client_name} onChange={(e) => setEditForm({ ...editForm, client_name: e.target.value })} />
+                  <Input placeholder="Phone" value={editForm.client_phone} onChange={(e) => setEditForm({ ...editForm, client_phone: e.target.value })} />
+                  <Input placeholder="Email" value={editForm.client_email} onChange={(e) => setEditForm({ ...editForm, client_email: e.target.value })} />
+                  <Input placeholder="Address" value={editForm.client_address} onChange={(e) => setEditForm({ ...editForm, client_address: e.target.value })} />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label>Line Items</Label>
+                  <div className="flex gap-2">
+                    <Popover open={editProductPickerOpen} onOpenChange={setEditProductPickerOpen}>
+                      <PopoverTrigger asChild>
+                        <Button type="button" size="sm" variant="outline"><Package className="h-3.5 w-3.5 mr-1" /> Add stock product</Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="p-0 w-[320px]" align="end">
+                        <Command>
+                          <CommandInput placeholder="Search products..." />
+                          <CommandList>
+                            <CommandEmpty>No products found.</CommandEmpty>
+                            <CommandGroup>
+                              {products.map((p) => (
+                                <CommandItem key={p.id} value={`${p.name} ${p.sku ?? ""}`} onSelect={() => addEditProductLine(p)}>
+                                  <div className="flex flex-col">
+                                    <span>{p.name}</span>
+                                    <span className="text-xs text-muted-foreground">{p.sku || "—"} · {formatRWF(p.price)}</span>
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <Button type="button" size="sm" variant="outline" onClick={addEditCustomLine}><Plus className="h-3.5 w-3.5 mr-1" /> Custom item</Button>
                   </div>
                 </div>
-              )}
+
+                {editLineItems.length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-4 border rounded-md">No items yet. Add a stock product or a custom item.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {editLineItems.map((it, idx) => (
+                      <div key={idx} className="grid grid-cols-12 gap-2 items-start border rounded-md p-2">
+                        <div className="col-span-6">
+                          <Label className="text-[10px] uppercase text-muted-foreground">Name / Description</Label>
+                          <Input value={it.description} onChange={(e) => updateEditLine(idx, { description: e.target.value })} placeholder="Item name" />
+                        </div>
+                        <div className="col-span-2">
+                          <Label className="text-[10px] uppercase text-muted-foreground">Qty</Label>
+                          <Input type="number" min={1} value={it.quantity} onChange={(e) => updateEditLine(idx, { quantity: Math.max(1, +e.target.value || 1) })} />
+                        </div>
+                        <div className="col-span-3">
+                          <Label className="text-[10px] uppercase text-muted-foreground">Unit Price (RWF)</Label>
+                          <Input type="number" value={it.unit_price} onChange={(e) => updateEditLine(idx, { unit_price: +e.target.value || 0 })} />
+                        </div>
+                        <div className="col-span-1 flex justify-end pt-5">
+                          <Button type="button" variant="ghost" size="icon" onClick={() => removeEditLine(idx)}><X className="h-4 w-4" /></Button>
+                        </div>
+                        <div className="col-span-12 text-right text-xs text-muted-foreground">
+                          Line total: <span className="font-medium text-foreground">{formatRWF(it.quantity * it.unit_price)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div><Label>Tax Rate (%)</Label><Input type="number" value={editForm.tax_rate} onChange={(e) => setEditForm({ ...editForm, tax_rate: +e.target.value || 0 })} /></div>
+                <div><Label>Discount (RWF)</Label><Input type="number" value={editForm.discount} onChange={(e) => setEditForm({ ...editForm, discount: +e.target.value || 0 })} /></div>
+              </div>
+              <div className="rounded-md bg-muted/50 p-3 text-sm space-y-1">
+                <div className="flex justify-between"><span>Subtotal</span><span>{formatRWF(editSubtotal)}</span></div>
+                <div className="flex justify-between"><span>VAT ({editForm.tax_rate}%)</span><span>{formatRWF(editTaxAmount)}</span></div>
+                {editForm.discount > 0 && <div className="flex justify-between"><span>Discount</span><span>-{formatRWF(editForm.discount)}</span></div>}
+                <div className="flex justify-between font-semibold border-t pt-1"><span>Total</span><span>{formatRWF(editTotal)}</span></div>
+              </div>
+
+              <div><Label>Due Date</Label><Input type="date" value={editForm.due_date} onChange={(e) => setEditForm({ ...editForm, due_date: e.target.value })} /></div>
+              <div><Label>Notes</Label><Textarea value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} rows={3} /></div>
+
 
               <Separator />
               <div className="flex gap-2">
