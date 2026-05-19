@@ -84,15 +84,24 @@ export default function Invoices() {
   });
 
   const [editForm, setEditForm] = useState({
-    subtotal: 0,
     tax_rate: 18,
-    tax_amount: 0,
     discount: 0,
-    total: 0,
     due_date: "",
     notes: "",
     status: "draft" as Invoice["status"],
+    client_name: "",
+    client_phone: "",
+    client_email: "",
+    client_address: "",
   });
+  const [editLineItems, setEditLineItems] = useState<LineItem[]>([]);
+  const [editProductPickerOpen, setEditProductPickerOpen] = useState(false);
+
+  const editSubtotal = editLineItems.reduce((s, it) => s + it.quantity * it.unit_price, 0);
+  const { tax_amount: editTaxAmount, total: editTotal } = (() => {
+    const taxAmount = Math.round(editSubtotal * editForm.tax_rate / 100);
+    return { tax_amount: taxAmount, total: editSubtotal + taxAmount - editForm.discount };
+  })();
 
   const fetchData = async () => {
     setLoading(true);
@@ -181,11 +190,14 @@ export default function Invoices() {
   const subtotalFromItems = lineItems.reduce((s, it) => s + (it.quantity * it.unit_price), 0);
   const { tax_amount: formTaxAmount, total: formTotal } = recalculate(subtotalFromItems, form.tax_rate, form.discount);
 
-  const updateEditForm = (patch: Partial<typeof editForm>) => {
-    const next = { ...editForm, ...patch };
-    const calc = recalculate(next.subtotal, next.tax_rate, next.discount);
-    setEditForm({ ...next, ...calc });
+  const addEditProductLine = (p: { id: string; name: string; price: number }) => {
+    setEditLineItems((prev) => [...prev, { description: p.name, quantity: 1, unit_price: Number(p.price) || 0, product_id: p.id }]);
+    setEditProductPickerOpen(false);
   };
+  const addEditCustomLine = () => setEditLineItems((prev) => [...prev, { description: "", quantity: 1, unit_price: 0, product_id: null }]);
+  const updateEditLine = (idx: number, patch: Partial<LineItem>) =>
+    setEditLineItems((prev) => prev.map((it, i) => i === idx ? { ...it, ...patch } : it));
+  const removeEditLine = (idx: number) => setEditLineItems((prev) => prev.filter((_, i) => i !== idx));
 
   const resetForm = () => {
     setForm({ document_type: "proforma", status: "draft", tax_rate: 18, discount: 0, due_date: "", payment_terms: "", notes: "", client_name: "", client_phone: "", client_email: "", client_address: "" });
@@ -271,46 +283,87 @@ export default function Invoices() {
   const openEdit = async (inv: Invoice) => {
     setEditing(inv);
     setEditForm({
-      subtotal: inv.subtotal,
       tax_rate: Number(inv.tax_rate),
-      tax_amount: inv.tax_amount,
       discount: inv.discount,
-      total: inv.total,
       due_date: inv.due_date || "",
       notes: inv.notes || "",
       status: inv.status,
+      client_name: (inv as any).client_name || "",
+      client_phone: (inv as any).client_phone || "",
+      client_email: (inv as any).client_email || "",
+      client_address: (inv as any).client_address || "",
     });
-    // Load invoice items
+    if (products.length === 0) {
+      const { data: prods } = await supabase.from("products").select("id, name, price, sku").eq("is_active", true).order("name");
+      setProducts(prods || []);
+    }
     const { data } = await supabase.from("invoice_items").select("*").eq("invoice_id", inv.id).order("created_at");
     setInvoiceItems(data || []);
+    setEditLineItems((data || []).map((it: any) => ({
+      description: it.description,
+      quantity: it.quantity,
+      unit_price: Number(it.unit_price),
+      product_id: null,
+    })));
   };
 
   const handleSaveEdit = async () => {
     if (!editing) return;
+    if (editLineItems.length === 0) { toast({ title: "Add at least one line item", variant: "destructive" }); return; }
+    if (editLineItems.some(it => !it.description.trim())) { toast({ title: "All items need a description", variant: "destructive" }); return; }
+
+    const newSubtotal = editSubtotal;
+    const newTaxAmount = editTaxAmount;
+    const newTotal = editTotal;
+
     const changes: { field: string; old_val: string; new_val: string }[] = [];
-    const fields: (keyof typeof editForm)[] = ["subtotal", "tax_rate", "discount", "total", "due_date", "notes", "status"];
-    for (const f of fields) {
-      const oldVal = String((editing as any)[f] ?? "");
-      const newVal = String(editForm[f] ?? "");
-      if (oldVal !== newVal) changes.push({ field: f, old_val: oldVal, new_val: newVal });
+    const compare: Array<[string, any, any]> = [
+      ["subtotal", editing.subtotal, newSubtotal],
+      ["tax_rate", editing.tax_rate, editForm.tax_rate],
+      ["discount", editing.discount, editForm.discount],
+      ["total", editing.total, newTotal],
+      ["due_date", editing.due_date || "", editForm.due_date],
+      ["notes", editing.notes || "", editForm.notes],
+      ["status", editing.status, editForm.status],
+      ["client_name", (editing as any).client_name || "", editForm.client_name],
+      ["client_phone", (editing as any).client_phone || "", editForm.client_phone],
+      ["client_email", (editing as any).client_email || "", editForm.client_email],
+      ["client_address", (editing as any).client_address || "", editForm.client_address],
+    ];
+    for (const [f, oldV, newV] of compare) {
+      if (String(oldV ?? "") !== String(newV ?? "")) changes.push({ field: f, old_val: String(oldV ?? ""), new_val: String(newV ?? "") });
     }
 
     const update: any = {
-      subtotal: editForm.subtotal,
+      subtotal: newSubtotal,
       tax_rate: editForm.tax_rate,
-      tax_amount: editForm.tax_amount,
+      tax_amount: newTaxAmount,
       discount: editForm.discount,
-      total: editForm.total,
+      total: newTotal,
       due_date: editForm.due_date || null,
       notes: editForm.notes || null,
       status: editForm.status,
+      client_name: editForm.client_name.trim() || null,
+      client_phone: editForm.client_phone.trim() || null,
+      client_email: editForm.client_email.trim() || null,
+      client_address: editForm.client_address.trim() || null,
     };
     if (editForm.status === "paid" && editing.status !== "paid") update.paid_at = new Date().toISOString();
 
     const { error } = await supabase.from("invoices").update(update).eq("id", editing.id);
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
 
-    // Write audit log
+    await supabase.from("invoice_items").delete().eq("invoice_id", editing.id);
+    const items = editLineItems.map(it => ({
+      invoice_id: editing.id,
+      description: it.description,
+      quantity: it.quantity,
+      unit_price: it.unit_price,
+      tax: 0,
+      total: it.quantity * it.unit_price,
+    }));
+    if (items.length) await supabase.from("invoice_items").insert(items);
+
     if (changes.length > 0) {
       const logs = changes.map(c => ({
         invoice_id: editing.id,
@@ -322,7 +375,7 @@ export default function Invoices() {
       await supabase.from("invoice_audit_log" as any).insert(logs);
     }
 
-    toast({ title: "Invoice updated" });
+    toast({ title: "Document updated" });
     setEditing(null);
     fetchData();
   };
@@ -779,7 +832,7 @@ export default function Invoices() {
 
       {/* Edit Dialog */}
       <Dialog open={!!editing} onOpenChange={(o) => { if (!o) setEditing(null); }}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Edit Document — {editing?.document_number}</DialogTitle></DialogHeader>
           {editing && (
             <div className="space-y-4">
@@ -792,44 +845,92 @@ export default function Invoices() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div><Label>Subtotal (RWF)</Label><Input type="number" value={editForm.subtotal} onChange={(e) => updateEditForm({ subtotal: +e.target.value })} /></div>
-                <div><Label>Tax Rate (%)</Label><Input type="number" value={editForm.tax_rate} onChange={(e) => updateEditForm({ tax_rate: +e.target.value })} /></div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div><Label>Discount (RWF)</Label><Input type="number" value={editForm.discount} onChange={(e) => updateEditForm({ discount: +e.target.value })} /></div>
-                <div><Label>Total</Label><Input value={formatRWF(editForm.total)} disabled /></div>
-              </div>
-              <div><Label>Due Date</Label><Input type="date" value={editForm.due_date} onChange={(e) => setEditForm({ ...editForm, due_date: e.target.value })} /></div>
-              <div><Label>Notes</Label><Textarea value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} /></div>
 
-              {invoiceItems.length > 0 && (
-                <div>
-                  <Label className="mb-2 block">Line Items</Label>
-                  <div className="rounded-md border text-xs">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="text-xs">Description</TableHead>
-                          <TableHead className="text-xs text-center">Qty</TableHead>
-                          <TableHead className="text-xs text-right">Unit Price</TableHead>
-                          <TableHead className="text-xs text-right">Total</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {invoiceItems.map((item: any) => (
-                          <TableRow key={item.id}>
-                            <TableCell className="text-xs">{item.description}</TableCell>
-                            <TableCell className="text-xs text-center">{item.quantity}</TableCell>
-                            <TableCell className="text-xs text-right">{formatRWF(item.unit_price)}</TableCell>
-                            <TableCell className="text-xs text-right">{formatRWF(item.total)}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+              <div className="rounded-md border p-3 space-y-2">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Client / Bill To</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input placeholder="Client name" value={editForm.client_name} onChange={(e) => setEditForm({ ...editForm, client_name: e.target.value })} />
+                  <Input placeholder="Phone" value={editForm.client_phone} onChange={(e) => setEditForm({ ...editForm, client_phone: e.target.value })} />
+                  <Input placeholder="Email" value={editForm.client_email} onChange={(e) => setEditForm({ ...editForm, client_email: e.target.value })} />
+                  <Input placeholder="Address" value={editForm.client_address} onChange={(e) => setEditForm({ ...editForm, client_address: e.target.value })} />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label>Line Items</Label>
+                  <div className="flex gap-2">
+                    <Popover open={editProductPickerOpen} onOpenChange={setEditProductPickerOpen}>
+                      <PopoverTrigger asChild>
+                        <Button type="button" size="sm" variant="outline"><Package className="h-3.5 w-3.5 mr-1" /> Add stock product</Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="p-0 w-[320px]" align="end">
+                        <Command>
+                          <CommandInput placeholder="Search products..." />
+                          <CommandList>
+                            <CommandEmpty>No products found.</CommandEmpty>
+                            <CommandGroup>
+                              {products.map((p) => (
+                                <CommandItem key={p.id} value={`${p.name} ${p.sku ?? ""}`} onSelect={() => addEditProductLine(p)}>
+                                  <div className="flex flex-col">
+                                    <span>{p.name}</span>
+                                    <span className="text-xs text-muted-foreground">{p.sku || "—"} · {formatRWF(p.price)}</span>
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <Button type="button" size="sm" variant="outline" onClick={addEditCustomLine}><Plus className="h-3.5 w-3.5 mr-1" /> Custom item</Button>
                   </div>
                 </div>
-              )}
+
+                {editLineItems.length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-4 border rounded-md">No items yet. Add a stock product or a custom item.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {editLineItems.map((it, idx) => (
+                      <div key={idx} className="grid grid-cols-12 gap-2 items-start border rounded-md p-2">
+                        <div className="col-span-6">
+                          <Label className="text-[10px] uppercase text-muted-foreground">Name / Description</Label>
+                          <Input value={it.description} onChange={(e) => updateEditLine(idx, { description: e.target.value })} placeholder="Item name" />
+                        </div>
+                        <div className="col-span-2">
+                          <Label className="text-[10px] uppercase text-muted-foreground">Qty</Label>
+                          <Input type="number" min={1} value={it.quantity} onChange={(e) => updateEditLine(idx, { quantity: Math.max(1, +e.target.value || 1) })} />
+                        </div>
+                        <div className="col-span-3">
+                          <Label className="text-[10px] uppercase text-muted-foreground">Unit Price (RWF)</Label>
+                          <Input type="number" value={it.unit_price} onChange={(e) => updateEditLine(idx, { unit_price: +e.target.value || 0 })} />
+                        </div>
+                        <div className="col-span-1 flex justify-end pt-5">
+                          <Button type="button" variant="ghost" size="icon" onClick={() => removeEditLine(idx)}><X className="h-4 w-4" /></Button>
+                        </div>
+                        <div className="col-span-12 text-right text-xs text-muted-foreground">
+                          Line total: <span className="font-medium text-foreground">{formatRWF(it.quantity * it.unit_price)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div><Label>Tax Rate (%)</Label><Input type="number" value={editForm.tax_rate} onChange={(e) => setEditForm({ ...editForm, tax_rate: +e.target.value || 0 })} /></div>
+                <div><Label>Discount (RWF)</Label><Input type="number" value={editForm.discount} onChange={(e) => setEditForm({ ...editForm, discount: +e.target.value || 0 })} /></div>
+              </div>
+              <div className="rounded-md bg-muted/50 p-3 text-sm space-y-1">
+                <div className="flex justify-between"><span>Subtotal</span><span>{formatRWF(editSubtotal)}</span></div>
+                <div className="flex justify-between"><span>VAT ({editForm.tax_rate}%)</span><span>{formatRWF(editTaxAmount)}</span></div>
+                {editForm.discount > 0 && <div className="flex justify-between"><span>Discount</span><span>-{formatRWF(editForm.discount)}</span></div>}
+                <div className="flex justify-between font-semibold border-t pt-1"><span>Total</span><span>{formatRWF(editTotal)}</span></div>
+              </div>
+
+              <div><Label>Due Date</Label><Input type="date" value={editForm.due_date} onChange={(e) => setEditForm({ ...editForm, due_date: e.target.value })} /></div>
+              <div><Label>Notes</Label><Textarea value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} rows={3} /></div>
+
 
               <Separator />
               <div className="flex gap-2">
