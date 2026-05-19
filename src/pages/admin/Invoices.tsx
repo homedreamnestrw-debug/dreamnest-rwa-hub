@@ -190,11 +190,14 @@ export default function Invoices() {
   const subtotalFromItems = lineItems.reduce((s, it) => s + (it.quantity * it.unit_price), 0);
   const { tax_amount: formTaxAmount, total: formTotal } = recalculate(subtotalFromItems, form.tax_rate, form.discount);
 
-  const updateEditForm = (patch: Partial<typeof editForm>) => {
-    const next = { ...editForm, ...patch };
-    const calc = recalculate(next.subtotal, next.tax_rate, next.discount);
-    setEditForm({ ...next, ...calc });
+  const addEditProductLine = (p: { id: string; name: string; price: number }) => {
+    setEditLineItems((prev) => [...prev, { description: p.name, quantity: 1, unit_price: Number(p.price) || 0, product_id: p.id }]);
+    setEditProductPickerOpen(false);
   };
+  const addEditCustomLine = () => setEditLineItems((prev) => [...prev, { description: "", quantity: 1, unit_price: 0, product_id: null }]);
+  const updateEditLine = (idx: number, patch: Partial<LineItem>) =>
+    setEditLineItems((prev) => prev.map((it, i) => i === idx ? { ...it, ...patch } : it));
+  const removeEditLine = (idx: number) => setEditLineItems((prev) => prev.filter((_, i) => i !== idx));
 
   const resetForm = () => {
     setForm({ document_type: "proforma", status: "draft", tax_rate: 18, discount: 0, due_date: "", payment_terms: "", notes: "", client_name: "", client_phone: "", client_email: "", client_address: "" });
