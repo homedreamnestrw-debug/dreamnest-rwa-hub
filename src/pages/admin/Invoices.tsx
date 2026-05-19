@@ -84,15 +84,24 @@ export default function Invoices() {
   });
 
   const [editForm, setEditForm] = useState({
-    subtotal: 0,
     tax_rate: 18,
-    tax_amount: 0,
     discount: 0,
-    total: 0,
     due_date: "",
     notes: "",
     status: "draft" as Invoice["status"],
+    client_name: "",
+    client_phone: "",
+    client_email: "",
+    client_address: "",
   });
+  const [editLineItems, setEditLineItems] = useState<LineItem[]>([]);
+  const [editProductPickerOpen, setEditProductPickerOpen] = useState(false);
+
+  const editSubtotal = editLineItems.reduce((s, it) => s + it.quantity * it.unit_price, 0);
+  const { tax_amount: editTaxAmount, total: editTotal } = (() => {
+    const taxAmount = Math.round(editSubtotal * editForm.tax_rate / 100);
+    return { tax_amount: taxAmount, total: editSubtotal + taxAmount - editForm.discount };
+  })();
 
   const fetchData = async () => {
     setLoading(true);
