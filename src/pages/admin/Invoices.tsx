@@ -753,30 +753,31 @@ export default function Invoices() {
                   <TableCell className="text-sm whitespace-nowrap">{format(new Date(inv.created_at), "MMM d, yyyy HH:mm")}</TableCell>
                   <TableCell className="whitespace-nowrap">
                     <div className="flex items-center gap-0.5 flex-nowrap">
-                      <Button variant="ghost" size="icon" onClick={() => setViewing(inv)} title="View"><Eye className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleEdit(inv)} title="Edit"><Pencil className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDownload(inv)} title="Download PDF"><Download className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleShare(inv)} title="Share via WhatsApp"><Share2 className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewing(inv)} title="View"><Eye className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(inv)} title="Edit"><Pencil className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDownload(inv)} title="Download PDF"><Download className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleShare(inv)} title="Share via WhatsApp"><Share2 className="h-4 w-4" /></Button>
                       {!isVirtual && (
-                        <Button variant="ghost" size="icon" onClick={() => fetchAuditLog(inv.id)} title="Audit trail"><History className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => fetchAuditLog(inv.id)} title="Audit trail"><History className="h-4 w-4" /></Button>
                       )}
                       {isVirtual && inv._order_channel !== "online" && (
                         <Button
                           variant="outline"
                           size="sm"
+                          className="h-8 px-2"
                           onClick={() => generateFromOrder(inv)}
                           disabled={generatingId === inv.id}
                           title="Generate document from this order"
                         >
                           <FileText className="h-3.5 w-3.5 mr-1" />
-                          {generatingId === inv.id ? "Generating..." : "Generate"}
+                          {generatingId === inv.id ? "..." : "Generate"}
                         </Button>
                       )}
                       {inv.status === "draft" && (
-                        <Button variant="ghost" size="sm" onClick={() => handleMarkSent(inv)}>Send</Button>
+                        <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => handleMarkSent(inv)}>Send</Button>
                       )}
                       {(inv.status === "sent" || inv.status === "overdue") && (
-                        <Button variant="ghost" size="sm" onClick={() => handleMarkPaid(inv)}>Mark Paid</Button>
+                        <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => handleMarkPaid(inv)}>Mark Paid</Button>
                       )}
                     </div>
                   </TableCell>
