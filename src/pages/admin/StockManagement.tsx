@@ -32,6 +32,7 @@ export default function StockManagement() {
   const [locations, setLocations] = useState<StockLocation[]>([]);
   const [productStock, setProductStock] = useState<ProductStock[]>([]);
   const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<string>("name_asc");
   const [loading, setLoading] = useState(true);
   const [overviewLocation, setOverviewLocation] = useState<string>("all");
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
