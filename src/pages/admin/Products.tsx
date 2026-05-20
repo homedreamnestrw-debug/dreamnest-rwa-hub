@@ -336,7 +336,20 @@ export default function Products() {
 
   const formatRWF = (n: number) => new Intl.NumberFormat("en-RW", { style: "currency", currency: "RWF", minimumFractionDigits: 0 }).format(n);
 
-  const filtered = products.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()));
+  const filtered = products
+    .filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => {
+      switch (sortBy) {
+        case "name_desc": return b.name.localeCompare(a.name);
+        case "price_asc": return Number(a.price) - Number(b.price);
+        case "price_desc": return Number(b.price) - Number(a.price);
+        case "stock_asc": return (a.stock_quantity ?? 0) - (b.stock_quantity ?? 0);
+        case "stock_desc": return (b.stock_quantity ?? 0) - (a.stock_quantity ?? 0);
+        case "newest": return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case "oldest": return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        default: return a.name.localeCompare(b.name);
+      }
+    });
 
   return (
     <div className="space-y-6">
