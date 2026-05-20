@@ -734,25 +734,25 @@ export default function Invoices() {
                 ? `POS #${inv._order_number ?? ""}`
                 : inv.order_id ? "Linked" : "Manual";
               return (
-                <TableRow key={inv.id} className={isVirtual ? "bg-muted/20" : undefined}>
-                  <TableCell className="font-medium font-mono">
+              <TableRow key={inv.id} className={isVirtual ? "bg-muted/20" : undefined}>
+                  <TableCell className="font-medium font-mono whitespace-nowrap">
                     {inv.document_number}
                     {isVirtual && <span className="ml-2 text-[9px] uppercase tracking-wide rounded px-1 py-0.5 bg-secondary text-secondary-foreground">Pending</span>}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="whitespace-nowrap">
                     <div className="flex items-center gap-1.5 text-xs">
                       {sourceIcon}
                       <span className="text-muted-foreground">{sourceLabel}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="capitalize">{inv.document_type}</TableCell>
-                  <TableCell>
+                  <TableCell className="capitalize whitespace-nowrap">{inv.document_type}</TableCell>
+                  <TableCell className="whitespace-nowrap">
                     <Badge variant={statusColors[inv.status] || "secondary"} className="capitalize">{inv.status}</Badge>
                   </TableCell>
-                  <TableCell>{formatRWF(inv.total)}</TableCell>
-                  <TableCell className="text-sm">{format(new Date(inv.created_at), "MMM d, yyyy HH:mm")}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-1 flex-wrap">
+                  <TableCell className="whitespace-nowrap">{formatRWF(inv.total)}</TableCell>
+                  <TableCell className="text-sm whitespace-nowrap">{format(new Date(inv.created_at), "MMM d, yyyy HH:mm")}</TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    <div className="flex items-center gap-0.5 flex-nowrap">
                       <Button variant="ghost" size="icon" onClick={() => setViewing(inv)} title="View"><Eye className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" onClick={() => handleEdit(inv)} title="Edit"><Pencil className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" onClick={() => handleDownload(inv)} title="Download PDF"><Download className="h-4 w-4" /></Button>
