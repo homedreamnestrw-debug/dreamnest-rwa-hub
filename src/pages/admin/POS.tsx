@@ -502,6 +502,7 @@ export default function POS() {
     }
 
     setSubmitting(true);
+    let createdOrderId: string | null = null;
 
     try {
       const paidAmount = isCredit && amountPaid ? Number(amountPaid) : 0;
@@ -533,6 +534,7 @@ export default function POS() {
         .single();
 
       if (orderErr) throw orderErr;
+      createdOrderId = order.id;
 
       // Auto-save new POS customer as contact (with full details for credit, or any new customer)
       if (!selectedCustomer && (customerPhone || customerEmail)) {
@@ -620,6 +622,9 @@ export default function POS() {
         await supabase.from("invoice_items").insert(invoiceItems);
       }
 
+      // Sale fully committed — clear rollback id so the catch below doesn't undo it
+      createdOrderId = null;
+
       setReceiptOrder({
         order_number: order.order_number,
         items: [...cart],
@@ -648,6 +653,19 @@ export default function POS() {
       // VAT is always inclusive — no toggle to reset
       clearCustomer();
     } catch (err: any) {
+      // Roll back the order if it was created but a later step failed
+      // (e.g. stock-deduction trigger raised "Insufficient stock" on order_items insert).
+      // Without this, every failed checkout left an empty paid/delivered order
+      // in the DB, which then surfaced as blank receipts in Invoices.
+      if (createdOrderId) {
+        try {
+          await supabase.from("invoices").delete().eq("order_id", createdOrderId);
+          await supabase.from("order_items").delete().eq("order_id", createdOrderId);
+          await supabase.from("orders").delete().eq("id", createdOrderId);
+        } catch {
+          // best-effort cleanup
+        }
+      }
       toast.error(err.message || "Failed to process sale");
     } finally {
       setSubmitting(false);
