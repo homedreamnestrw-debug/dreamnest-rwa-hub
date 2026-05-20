@@ -334,6 +334,16 @@ export default function StockManagement() {
                 {locations.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
               </SelectContent>
             </Select>
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-[180px]"><SelectValue placeholder="Sort by" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="name_asc">Name (A → Z)</SelectItem>
+                <SelectItem value="name_desc">Name (Z → A)</SelectItem>
+                <SelectItem value="stock_asc">Stock (low → high)</SelectItem>
+                <SelectItem value="stock_desc">Stock (high → low)</SelectItem>
+                <SelectItem value="low_stock">Below threshold first</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="rounded-md border">
             <Table>
