@@ -713,7 +713,7 @@ export default function Invoices() {
               <TableHead>Status</TableHead>
               <TableHead>Total</TableHead>
               <TableHead>Created</TableHead>
-              <TableHead className="w-40">Actions</TableHead>
+              <TableHead className="w-[320px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
