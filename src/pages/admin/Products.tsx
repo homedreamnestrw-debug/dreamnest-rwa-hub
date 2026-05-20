@@ -31,6 +31,7 @@ export default function Products() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [locations, setLocations] = useState<StockLocation[]>([]);
   const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<string>("name_asc");
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
