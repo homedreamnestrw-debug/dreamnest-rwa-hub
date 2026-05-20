@@ -31,6 +31,7 @@ export default function Products() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [locations, setLocations] = useState<StockLocation[]>([]);
   const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<string>("name_asc");
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
@@ -335,7 +336,20 @@ export default function Products() {
 
   const formatRWF = (n: number) => new Intl.NumberFormat("en-RW", { style: "currency", currency: "RWF", minimumFractionDigits: 0 }).format(n);
 
-  const filtered = products.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()));
+  const filtered = products
+    .filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => {
+      switch (sortBy) {
+        case "name_desc": return b.name.localeCompare(a.name);
+        case "price_asc": return Number(a.price) - Number(b.price);
+        case "price_desc": return Number(b.price) - Number(a.price);
+        case "stock_asc": return (a.stock_quantity ?? 0) - (b.stock_quantity ?? 0);
+        case "stock_desc": return (b.stock_quantity ?? 0) - (a.stock_quantity ?? 0);
+        case "newest": return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case "oldest": return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        default: return a.name.localeCompare(b.name);
+      }
+    });
 
   return (
     <div className="space-y-6">
@@ -548,9 +562,24 @@ export default function Products() {
         </Dialog>
       </div>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Search products..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative max-w-sm flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Search products..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+        </div>
+        <Select value={sortBy} onValueChange={setSortBy}>
+          <SelectTrigger className="w-[200px]"><SelectValue placeholder="Sort by" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="name_asc">Name (A → Z)</SelectItem>
+            <SelectItem value="name_desc">Name (Z → A)</SelectItem>
+            <SelectItem value="price_asc">Price (low → high)</SelectItem>
+            <SelectItem value="price_desc">Price (high → low)</SelectItem>
+            <SelectItem value="stock_asc">Stock (low → high)</SelectItem>
+            <SelectItem value="stock_desc">Stock (high → low)</SelectItem>
+            <SelectItem value="newest">Newest first</SelectItem>
+            <SelectItem value="oldest">Oldest first</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="rounded-md border">

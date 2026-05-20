@@ -32,6 +32,7 @@ export default function StockManagement() {
   const [locations, setLocations] = useState<StockLocation[]>([]);
   const [productStock, setProductStock] = useState<ProductStock[]>([]);
   const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<string>("name_asc");
   const [loading, setLoading] = useState(true);
   const [overviewLocation, setOverviewLocation] = useState<string>("all");
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -119,10 +120,21 @@ export default function StockManagement() {
 
   const lowStockProducts = products.filter((p) => p.stock_quantity <= p.low_stock_threshold);
   const outOfStock = products.filter((p) => p.stock_quantity <= 0);
-  const filtered = products.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    (p.sku || "").toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = products
+    .filter((p) =>
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      (p.sku || "").toLowerCase().includes(search.toLowerCase())
+    )
+    .sort((a, b) => {
+      switch (sortBy) {
+        case "name_desc": return b.name.localeCompare(a.name);
+        case "stock_asc": return (a.stock_quantity ?? 0) - (b.stock_quantity ?? 0);
+        case "stock_desc": return (b.stock_quantity ?? 0) - (a.stock_quantity ?? 0);
+        case "low_stock":
+          return (a.stock_quantity - a.low_stock_threshold) - (b.stock_quantity - b.low_stock_threshold);
+        default: return a.name.localeCompare(b.name);
+      }
+    });
 
   const openAdjustProduct = (p: Product) => {
     setAdjustProduct(p);
@@ -320,6 +332,16 @@ export default function StockManagement() {
               <SelectContent>
                 <SelectItem value="all">All Locations (total)</SelectItem>
                 {locations.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-[180px]"><SelectValue placeholder="Sort by" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="name_asc">Name (A → Z)</SelectItem>
+                <SelectItem value="name_desc">Name (Z → A)</SelectItem>
+                <SelectItem value="stock_asc">Stock (low → high)</SelectItem>
+                <SelectItem value="stock_desc">Stock (high → low)</SelectItem>
+                <SelectItem value="low_stock">Below threshold first</SelectItem>
               </SelectContent>
             </Select>
           </div>
