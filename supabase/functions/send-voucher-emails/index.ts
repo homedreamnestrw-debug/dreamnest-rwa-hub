@@ -60,10 +60,7 @@ Deno.serve(async (req) => {
       )
     }
 
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const supabase = createClient(supabaseUrl, serviceKey)
+    // supabase client already created above with service role
 
     // Fetch voucher
     const { data: voucher, error: vErr } = await supabase
