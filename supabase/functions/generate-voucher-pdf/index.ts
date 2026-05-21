@@ -11,6 +11,30 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+
+    // Require authentication
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const token = authHeader.replace('Bearer ', '')
+    const supabaseAuth = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    })
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token)
+    if (claimsError || !claimsData?.claims?.sub) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const callerId = claimsData.claims.sub as string
+    const callerEmail = (claimsData.claims as any).email as string | undefined
+
     const { voucher_code } = await req.json()
     if (!voucher_code) {
       return new Response(JSON.stringify({ error: 'voucher_code required' }), {
@@ -18,8 +42,6 @@ Deno.serve(async (req) => {
       })
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, serviceKey)
 
     const { data: voucher, error } = await supabase
@@ -34,6 +56,21 @@ Deno.serve(async (req) => {
       })
     }
 
+    // Authorize: must be admin/staff, or the buyer of this voucher
+    const { data: roleRows } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', callerId)
+    const roles = (roleRows ?? []).map((r: any) => r.role)
+    const isStaff = roles.includes('admin') || roles.includes('staff')
+    const isBuyer = callerEmail && voucher.buyer_email &&
+      callerEmail.toLowerCase() === String(voucher.buyer_email).toLowerCase()
+    if (!isStaff && !isBuyer) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     const { data: settings } = await supabase.rpc('get_public_business_settings')
     const biz = settings?.[0]
 
@@ -44,11 +81,6 @@ Deno.serve(async (req) => {
       year: 'numeric', month: 'long', day: 'numeric',
     })
 
-    // Generate a simple HTML-based voucher that we'll convert via a basic approach
-    // Since we don't have a PDF library in Deno easily, we'll return an HTML voucher
-    // that the client can print or we'll use a simple text-based PDF approach
-    
-    // Using a minimal PDF generator
     const pdfContent = generateSimplePDF(voucher, biz, formatPrice, expiresDate)
 
     return new Response(JSON.stringify({ pdf: pdfContent }), {
@@ -56,7 +88,7 @@ Deno.serve(async (req) => {
     })
   } catch (err) {
     console.error('PDF generation error:', err)
-    return new Response(JSON.stringify({ error: err.message }), {
+    return new Response(JSON.stringify({ error: 'PDF generation failed' }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
