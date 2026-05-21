@@ -35,6 +35,23 @@ Deno.serve(async (req) => {
       )
     }
 
+    const callerId = claimsData.claims.sub as string
+
+    // Require admin or staff role to send emails (prevents open relay abuse)
+    const serviceKeyForRole = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const supabaseService = createClient(supabaseUrl, serviceKeyForRole)
+    const { data: roleRows } = await supabaseService
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', callerId)
+    const roles = (roleRows ?? []).map((r: any) => r.role)
+    if (!roles.includes('admin') && !roles.includes('staff')) {
+      return new Response(
+        JSON.stringify({ error: 'Forbidden' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const { to, subject, html, text } = await req.json()
 
     if (!to || !subject || (!html && !text)) {
