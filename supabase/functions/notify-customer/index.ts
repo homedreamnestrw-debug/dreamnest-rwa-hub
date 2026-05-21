@@ -61,9 +61,8 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Read SMTP settings from business_settings using service role
-    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const supabase = createClient(supabaseUrl, serviceKey)
+    // Reuse the service-role client for SMTP settings
+    const supabase = supabaseService
 
     const { data: settings, error: settingsError } = await supabase
       .from('business_settings')
