@@ -94,6 +94,7 @@ export default function POS() {
   const [variantPickerProduct, setVariantPickerProduct] = useState<any | null>(null);
   const [variantPickerOptions, setVariantPickerOptions] = useState<VariantOption[]>([]);
   const [variantPickerSelections, setVariantPickerSelections] = useState<Record<string, string>>({});
+  const [variantPickerQuantities, setVariantPickerQuantities] = useState<Record<string, number>>({});
   const [variantPickerLoading, setVariantPickerLoading] = useState(false);
   // VAT is always inclusive in displayed price (no toggle)
   // Discount
