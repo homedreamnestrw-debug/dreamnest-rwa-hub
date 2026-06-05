@@ -1236,90 +1236,118 @@ export default function POS() {
         </ResizablePanelGroup>
       </div>
 
-      {/* Variant Picker Dialog */}
+      {/* Variant Picker Dialog — multi-select */}
       <Dialog
         open={!!variantPickerProduct}
-        onOpenChange={(o) => { if (!o) { setVariantPickerProduct(null); setVariantPickerOptions([]); setVariantPickerSelections({}); } }}
+        onOpenChange={(o) => { if (!o) closeVariantPicker(); }}
       >
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Choose options — {variantPickerProduct?.name}</DialogTitle>
+            <DialogTitle>Choose variants — {variantPickerProduct?.name}</DialogTitle>
           </DialogHeader>
           {variantPickerLoading ? (
             <div className="py-8 text-center text-sm text-muted-foreground"><Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" /> Loading variants…</div>
-          ) : (
-            <div className="space-y-4">
-              {variantOptionNames.length === 0 && variantPickerOptions.length > 0 && (
-                <div className="space-y-1.5">
-                  <p className="text-sm font-medium">Variant</p>
+          ) : variantPickerOptions.length === 0 ? (
+            <div className="py-6 text-center text-sm text-muted-foreground">No variants available for this product.</div>
+          ) : (() => {
+            const selectedEntries = Object.entries(variantPickerQuantities).filter(([, q]) => q > 0);
+            const totalUnits = selectedEntries.reduce((s, [, q]) => s + q, 0);
+            const setQty = (vid: string, qty: number, stock: number) => {
+              const clamped = Math.max(0, Math.min(stock, Math.floor(qty)));
+              setVariantPickerQuantities((prev) => {
+                const next = { ...prev };
+                if (clamped <= 0) delete next[vid]; else next[vid] = clamped;
+                return next;
+              });
+            };
+            return (
+              <div className="space-y-3">
+                <ScrollArea className="max-h-[55vh] pr-2">
                   <div className="space-y-2">
                     {variantPickerOptions.map((variant) => {
-                      const inStock = (variant.stock_quantity ?? 0) > 0;
-                      const isSelected = variantPickerSelections.__variantId === variant.id;
+                      const stock = variant.stock_quantity ?? 0;
+                      const inStock = stock > 0;
+                      const qty = variantPickerQuantities[variant.id] ?? 0;
+                      const isSelected = qty > 0;
+                      const unitPrice = variant.price_override ?? variantPickerProduct?.price ?? 0;
                       return (
-                        <button
+                        <div
                           key={variant.id}
-                          type="button"
-                          disabled={!inStock && !isSelected}
-                          onClick={() => setVariantPickerSelections({ __variantId: variant.id })}
-                          className={`flex w-full items-center justify-between rounded-md border px-3 py-2 text-left text-sm transition-colors ${isSelected ? "border-primary bg-primary/10" : "hover:bg-muted/60"} ${!inStock ? "opacity-60" : ""}`}
+                          className={`flex items-center gap-3 rounded-md border px-3 py-2 text-sm transition-colors ${isSelected ? "border-primary bg-primary/5" : ""} ${!inStock ? "opacity-60" : ""}`}
                         >
-                          <span className="font-medium">{variant.variant_name}</span>
-                          <span className="text-xs text-muted-foreground">Stock {variant.stock_quantity ?? 0}</span>
-                        </button>
+                          <Checkbox
+                            checked={isSelected}
+                            disabled={!inStock}
+                            onCheckedChange={(checked) => {
+                              if (checked) setQty(variant.id, Math.max(1, qty), stock);
+                              else setQty(variant.id, 0, stock);
+                            }}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium truncate">{variant.variant_name}</div>
+                            <div className="text-xs text-muted-foreground flex gap-3">
+                              <span>{formatPrice(unitPrice)}</span>
+                              <span className={!inStock ? "text-destructive" : ""}>
+                                {inStock ? `Stock ${stock}` : "Out of stock"}
+                              </span>
+                              {variant.sku && <span className="truncate">SKU {variant.sku}</span>}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="outline"
+                              className="h-8 w-8"
+                              disabled={!inStock || qty <= 0}
+                              onClick={() => setQty(variant.id, qty - 1, stock)}
+                            >
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            <Input
+                              type="number"
+                              min={0}
+                              max={stock}
+                              value={qty}
+                              disabled={!inStock}
+                              onChange={(e) => setQty(variant.id, Number(e.target.value) || 0, stock)}
+                              className="h-8 w-14 text-center"
+                            />
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="outline"
+                              className="h-8 w-8"
+                              disabled={!inStock || qty >= stock}
+                              onClick={() => setQty(variant.id, qty + 1, stock)}
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
                       );
                     })}
                   </div>
-                </div>
-              )}
-              {variantOptionNames.map((opt) => {
-                const values = variantOptionGroups[opt] ?? [];
-                return (
-                  <div key={opt} className="space-y-1.5">
-                    <p className="text-sm font-medium">
-                      {opt}: <span className="text-muted-foreground font-normal">{variantPickerSelections[opt] ?? "Choose"}</span>
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {values.map((val) => {
-                        const candidate = { ...variantPickerSelections, [opt]: val };
-                        const matched = variantPickerOptions.find((v) =>
-                          variantOptionNames.every((n) => (v.attributes ?? {})[n] === candidate[n])
-                        );
-                        const inStock = matched ? (matched.stock_quantity ?? 0) > 0 : true;
-                        const isSelected = variantPickerSelections[opt] === val;
-                        return (
-                          <Button
-                            key={val}
-                            type="button"
-                            size="sm"
-                            variant={isSelected ? "default" : "outline"}
-                            disabled={!inStock && !isSelected}
-                            onClick={() => setVariantPickerSelections({ ...variantPickerSelections, [opt]: val })}
-                            className={!inStock ? "line-through opacity-60" : ""}
-                          >
-                            {val}
-                          </Button>
-                        );
-                      })}
-                    </div>
+                </ScrollArea>
+                <div className="flex items-center justify-between gap-2 pt-2 border-t">
+                  <div className="text-xs text-muted-foreground">
+                    {selectedEntries.length === 0
+                      ? "Select one or more variants"
+                      : `${selectedEntries.length} variant${selectedEntries.length > 1 ? "s" : ""}, ${totalUnits} unit${totalUnits > 1 ? "s" : ""}`}
                   </div>
-                );
-              })}
-              {matchedPickerVariant && (
-                <div className="text-xs text-muted-foreground rounded-md bg-muted/40 p-2">
-                  <div className="flex justify-between"><span>Price</span><span className="font-medium text-foreground">{formatPrice(matchedPickerVariant.price_override ?? variantPickerProduct?.price ?? 0)}</span></div>
-                  <div className="flex justify-between"><span>Stock</span><span className={(matchedPickerVariant.stock_quantity ?? 0) <= 0 ? "text-destructive font-medium" : "font-medium text-foreground"}>{matchedPickerVariant.stock_quantity ?? 0}</span></div>
-                  {matchedPickerVariant.sku && <div className="flex justify-between"><span>SKU</span><span>{matchedPickerVariant.sku}</span></div>}
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={closeVariantPicker}>Cancel</Button>
+                    <Button onClick={confirmVariantMultiPick} disabled={selectedEntries.length === 0}>
+                      Add {totalUnits > 0 ? `${totalUnits} item${totalUnits > 1 ? "s" : ""}` : "to cart"}
+                    </Button>
+                  </div>
                 </div>
-              )}
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => { setVariantPickerProduct(null); setVariantPickerOptions([]); setVariantPickerSelections({}); }}>Cancel</Button>
-                <Button onClick={confirmVariantPick} disabled={!matchedPickerVariant || (matchedPickerVariant.stock_quantity ?? 0) <= 0}>Continue</Button>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </DialogContent>
       </Dialog>
+
 
       {/* Quantity Prompt Dialog */}
       <Dialog open={!!qtyPromptProduct} onOpenChange={(o) => { if (!o) { setQtyPromptProduct(null); setQtyPromptVariant(null); } }}>
