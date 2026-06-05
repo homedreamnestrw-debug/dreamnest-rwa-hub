@@ -414,6 +414,34 @@ export default function POS() {
     setVariantPickerSelections({});
   };
 
+  const closeVariantPicker = () => {
+    setVariantPickerProduct(null);
+    setVariantPickerOptions([]);
+    setVariantPickerSelections({});
+    setVariantPickerQuantities({});
+  };
+
+  const confirmVariantMultiPick = () => {
+    if (!variantPickerProduct) return;
+    const entries = Object.entries(variantPickerQuantities).filter(([, q]) => q > 0);
+    if (entries.length === 0) {
+      toast.error("Select at least one variant");
+      return;
+    }
+    let added = 0;
+    for (const [vid, qty] of entries) {
+      const v = variantPickerOptions.find((opt) => opt.id === vid);
+      if (!v) continue;
+      const stock = v.stock_quantity ?? 0;
+      if (stock <= 0) continue;
+      const useQty = Math.min(qty, stock);
+      addToCart(variantPickerProduct, useQty, v);
+      added += 1;
+    }
+    if (added > 0) toast.success(`Added ${added} variant${added > 1 ? "s" : ""} to cart`);
+    closeVariantPicker();
+  };
+
   const updateQty = (key: string, delta: number) => {
     setCart((prev) =>
       prev.map((i) => {
