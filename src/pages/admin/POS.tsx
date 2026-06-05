@@ -337,6 +337,7 @@ export default function POS() {
     if (variants.length > 0 || productHasVariantSchema(product)) {
       setVariantPickerProduct(product);
       setVariantPickerSelections({});
+      setVariantPickerQuantities({});
       setVariantPickerOptions(variants);
       if (variants.length === 0) {
         setVariantPickerLoading(true);
