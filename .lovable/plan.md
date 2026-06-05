@@ -1,76 +1,46 @@
-## What's actually broken
+## Goal
 
-Verified from the DB and code:
+In the POS variant picker dialog, let the cashier add several variants of the same product to the cart in one step, each with its own quantity — instead of being forced to pick one attribute combination, confirm, and reopen the dialog for the next variant.
 
-1. **Storefront shows every variant as "OUT"** even when stock exists.
-   - Example: "Testing Sheets" has 6 active variants with 23 units of variant stock, but the product detail page strikes them all through.
-   - Cause: the `useQuery` for variants in `src/pages/ProductDetail.tsx` uses **Supabase's default 1000-row limit and a stale cache key**, but the real bug is that `stock_quantity` on `product_variants` is the **sum across all locations**, while the UI logic just reads `candidate.stock_quantity`. When the trigger `sync_variant_total_stock` hasn't been refreshed (or for variants created before per-location seeding), the value stays at 0 even though `variant_stock` rows exist. We need to read from `variant_stock` directly (or the synced `stock_quantity`) **and** backfill / re-sync existing variants.
+## UX
 
-2. **Stock Hub → Inventory tab doesn't show variants.**
-   - `StockManagement.tsx` only loads `products` + `product_stock`. Variants and `variant_stock` are completely ignored, so a product with variants shows `0` (or a stale total) and "Adjust" writes to `product_stock`, which is then **overwritten** by the variant-sync trigger as soon as anything changes. That's why "the quantity you added doesn't appear and adjustments don't stick".
+Replace the current "attribute dropdowns → single matched variant → qty prompt" flow with a single dialog that lists every active variant of the product:
 
-3. **Total stock on the product row** (`products.stock_quantity`) for variant products is wrong because:
-   - When a variant product is first created with non-zero `locationStock`, the Products form upserts to `product_stock` AND persists variants. The product-stock sync trigger sets `products.stock_quantity` from `product_stock`, then the variant-stock sync trigger overrides it from variants. The two paths fight. Result: "Testing Sheets" shows total=2 but variants sum to 23.
-
-4. **Inventory CSV export, low-stock report, transfer dialog** — all variant-blind. Same root cause as #2.
-
-5. **POS** already handles variants (good), but the picker reads `stock_quantity` on the variant which is currently unreliable for the same reason as #1.
-
-## Fix plan
-
-### A. Database — one migration
-
-1. **Backfill `product_variants.stock_quantity`** = `SUM(variant_stock.quantity)` for every active variant, then re-sync `products.stock_quantity` for variant products from variants, and for non-variant products from `product_stock`. This fixes the existing wrong totals (Testing Sheets, Turkish Bath Towel Set).
-2. **Harden `sync_product_total_stock`** so it does NOT overwrite `products.stock_quantity` when the product has active variants — variants are the source of truth in that case. Today both triggers write and the order they fire decides the outcome.
-3. Add an **RPC `adjust_variant_stock(p_variant_id, p_location_id, p_new_qty, p_reason, p_movement_type)`** that upserts `variant_stock` and inserts a `stock_movements` row (with `variant_id` set). This gives the inventory UI a single safe entry point that mirrors `transfer_variant_stock`.
-
-### B. Stock Hub → Inventory (`StockManagement.tsx`)
-
-Make it variant-aware without breaking the simple case:
-
-- Load `product_variants` (active) and `variant_stock` alongside products.
-- New table layout: each product is a parent row; products with variants expand to show one sub-row per variant with its own per-location qty, threshold status and "Adjust" button.
-- "Adjust" dialog:
-  - For a non-variant product → existing `product_stock` upsert path (unchanged).
-  - For a variant → call new `adjust_variant_stock` RPC.
-- "Transfer" dialog gains a variant selector (uses `transfer_variant_stock` when a variant is chosen, otherwise existing `transfer_stock`).
-- Movement log already stores `variant_id`; show the variant name next to the product.
-- Summary cards count variants too (a product is "out of stock" only if every active variant is 0).
-
-### C. Stock Hub → Inventory CSV import/export (`Stock.tsx`)
-
-- Export now includes a `variant_sku` column (blank for products without variants); each row is product+variant+location.
-- Import resolves by `variant_sku` first, then `product_sku`. Same logging via the new RPC.
-
-### D. Products page (`Products.tsx`) — small fixes
-
-- Hide the per-product "Stock per Location" block ONLY when variants exist (already done) — keep, but additionally **clear `product_stock` rows to 0** for that product when variants are introduced, so the old per-product numbers don't linger and confuse the inventory view.
-- Show variant total stock in the products table for variant products (sum of variant stock) instead of the possibly-stale `stock_quantity`.
-
-### E. Storefront `ProductDetail.tsx`
-
-- Query variants together with their per-location totals: `product_variants(id, …, stock_quantity)`. After the DB backfill in A.1, `stock_quantity` becomes reliable, so the existing `inStock = candidate.stock_quantity > 0` check starts working and the strike-through disappears.
-- Add a small fallback: if `stock_quantity` is 0 but the variant has any `variant_stock` row > 0, treat as in stock (defensive).
-- Same fix benefits the POS variant picker automatically.
-
-### F. Shop listing
-
-`Shop.tsx` uses `product.stock_quantity` for the "Out of stock" pill. Once A.1/A.2 are in place, that becomes correct for variant products too — no code change needed.
-
-## Files touched
-
-```
-supabase/migrations/<new>.sql           backfill + trigger guard + adjust_variant_stock RPC
-src/pages/admin/StockManagement.tsx     variant-aware table, adjust + transfer dialogs
-src/pages/admin/Stock.tsx               CSV export/import include variant_sku
-src/pages/admin/Products.tsx            zero out product_stock when introducing variants; show variant totals
-src/pages/ProductDetail.tsx             defensive in-stock check; rely on synced totals
+```text
+Pillowcases
+─────────────────────────────
+Variant            Stock  Qty
+[ ] White / Small    12   [ 0 ▲▼ ]
+[ ] White / Large     4   [ 0 ▲▼ ]
+[x] Beige / Small     7   [ 2 ▲▼ ]
+[x] Beige / Large     3   [ 1 ▲▼ ]
+[ ] Grey  / Small     0   out of stock (disabled)
+─────────────────────────────
+Selected: 2 variants, 3 units      [Cancel]  [Add 3 items]
 ```
 
-## What this does NOT change
+Behaviour:
+- One row per variant from `variantPickerOptions` (already location-aware).
+- Checkbox toggles inclusion; checking auto-sets qty to 1, unchecking resets to 0.
+- Qty stepper clamped to `1..stock_quantity`. Rows with `stock_quantity <= 0` show "Out of stock" and are disabled.
+- "Add N items" button adds each selected variant to the cart by reusing the existing `addToCart(product, qty, variant)` (which already merges with existing cart lines and respects stock).
+- Disabled when nothing is selected or any selected qty exceeds stock.
+- Search/keyboard: a small filter input at the top of the list when the product has many variants (>8).
 
-- Cart, checkout, order creation, and the stock-deduction triggers — they already handle `variant_id` correctly.
-- The POS UI flow (variant picker stays as-is, just reads correct stock).
-- RLS policies — existing policies cover the new RPC (it's `SECURITY DEFINER` with admin/staff guard like `transfer_variant_stock`).
+Single-variant products (no `product_variants` rows, only `variant_attributes` schema on the product) keep today's behaviour — fall back to the existing attribute-dropdown picker when `variantPickerOptions` is empty, so imported-but-not-expanded products still work.
 
-After this, adding a product with variants in Products will immediately appear in Inventory with editable per-location stock per variant; the storefront and POS will reflect actual availability; and adjustments made in Inventory will persist and be reflected back on the product page.
+## Code changes (all in `src/pages/admin/POS.tsx`)
+
+1. Replace `variantPickerSelections: Record<string,string>` with `variantPickerQuantities: Record<string, number>` (key = variant id).
+2. Rewrite the variant picker `<Dialog>` body:
+   - When `variantPickerOptions.length > 0` → render the multi-select list described above.
+   - Else (legacy attribute-only product) → keep the existing per-attribute `Select` UI and single `confirmVariantPick`.
+3. Replace `confirmVariantPick` with `confirmVariantMultiPick` that iterates entries of `variantPickerQuantities` with `qty > 0`, calls `addToCart(variantPickerProduct, qty, variant)` for each, then closes the dialog.
+4. Remove the now-unused `matchedPickerVariant` / `variantOptionNames` paths only for the multi-select branch (keep them for the legacy branch).
+5. Keep the existing `qtyPromptProduct` flow untouched — it still handles products without variants.
+
+## Out of scope
+
+- No DB or RPC changes; stock validation continues to rely on `addToCart`'s stock check and the existing `deduct_stock_on_order_item` trigger.
+- No changes to the cart, checkout, invoice, or order creation logic.
+- No changes to the customer-facing storefront variant selector.
