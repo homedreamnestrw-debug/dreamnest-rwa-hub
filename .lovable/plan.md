@@ -1,46 +1,63 @@
-## Goal
+# Add Stock Manager Role
 
-In the POS variant picker dialog, let the cashier add several variants of the same product to the cart in one step, each with its own quantity — instead of being forced to pick one attribute combination, confirm, and reopen the dialog for the next variant.
+## Behavior
 
-## UX
+**Stock Manager = Staff + power over stock, catalog & procurement.** Admins keep full authority over everything (including managing Stock Managers).
 
-Replace the current "attribute dropdowns → single matched variant → qty prompt" flow with a single dialog that lists every active variant of the product:
+| Area | Customer | Staff | Stock Manager | Admin |
+|---|---|---|---|---|
+| POS, Orders, Invoices, Customers, Messages, Gift Vouchers | — | ✅ | ✅ | ✅ |
+| Stock (view/adjust/transfer/movements) | — | view | ✅ full | ✅ |
+| View product **cost price** | — | ❌ | ✅ | ✅ |
+| Products / Variants (create/edit, features) | — | ❌ | ✅ | ✅ |
+| Suppliers, Purchase Orders | — | ❌ | ✅ | ✅ |
+| Stock Locations (create/edit) | — | ❌ | ✅ | ✅ |
+| Dashboard, Analytics, Expenses, Finance, Credit, Settings, Staff mgmt | — | ❌ | ❌ | ✅ |
 
-```text
-Pillowcases
-─────────────────────────────
-Variant            Stock  Qty
-[ ] White / Small    12   [ 0 ▲▼ ]
-[ ] White / Large     4   [ 0 ▲▼ ]
-[x] Beige / Small     7   [ 2 ▲▼ ]
-[x] Beige / Large     3   [ 1 ▲▼ ]
-[ ] Grey  / Small     0   out of stock (disabled)
-─────────────────────────────
-Selected: 2 variants, 3 units      [Cancel]  [Add 3 items]
-```
+## Technical changes
 
-Behaviour:
-- One row per variant from `variantPickerOptions` (already location-aware).
-- Checkbox toggles inclusion; checking auto-sets qty to 1, unchecking resets to 0.
-- Qty stepper clamped to `1..stock_quantity`. Rows with `stock_quantity <= 0` show "Out of stock" and are disabled.
-- "Add N items" button adds each selected variant to the cart by reusing the existing `addToCart(product, qty, variant)` (which already merges with existing cart lines and respects stock).
-- Disabled when nothing is selected or any selected qty exceeds stock.
-- Search/keyboard: a small filter input at the top of the list when the product has many variants (>8).
+### 1. Database migration
+- Add `'stock_manager'` value to `app_role` enum.
+- Update RLS policies that currently allow only `admin` on these tables to also allow `stock_manager`:
+  - `products`, `product_variants`
+  - `product_stock`, `variant_stock`, `stock_movements`, `stock_locations`
+  - `suppliers`, `purchase_orders`, `purchase_order_items`
+  - `categories` (already admin OR staff — add stock_manager)
+- Update SECURITY DEFINER functions to authorize `stock_manager` alongside admin where appropriate:
+  - `get_admin_products_with_costs` (cost visibility)
+  - `transfer_stock`, `transfer_variant_stock`, `adjust_variant_stock` (already accept admin OR staff — extend to stock_manager explicitly; keep staff out of cost-price view)
+- Do **not** grant stock_manager access to `expenses`, `business_settings`, `user_roles` management, finance, or staff promotion functions.
 
-Single-variant products (no `product_variants` rows, only `variant_attributes` schema on the product) keep today's behaviour — fall back to the existing attribute-dropdown picker when `variantPickerOptions` is empty, so imported-but-not-expanded products still work.
+### 2. Auth context (`src/contexts/AuthContext.tsx`)
+- Add `"stock_manager"` to `AppRole` type.
+- Add derived helpers: `isStockManager` and `canManageStock = isAdmin || isStockManager`.
+- Keep `isStaff = staff || stock_manager || admin` so stock managers inherit staff areas.
 
-## Code changes (all in `src/pages/admin/POS.tsx`)
+### 3. ProtectedRoute (`src/components/ProtectedRoute.tsx`)
+- Add `"stock_manager"` to `requiredRole` union.
+- Add `canManageStock` gate option for routes that require admin OR stock_manager.
 
-1. Replace `variantPickerSelections: Record<string,string>` with `variantPickerQuantities: Record<string, number>` (key = variant id).
-2. Rewrite the variant picker `<Dialog>` body:
-   - When `variantPickerOptions.length > 0` → render the multi-select list described above.
-   - Else (legacy attribute-only product) → keep the existing per-attribute `Select` UI and single `confirmVariantPick`.
-3. Replace `confirmVariantPick` with `confirmVariantMultiPick` that iterates entries of `variantPickerQuantities` with `qty > 0`, calls `addToCart(variantPickerProduct, qty, variant)` for each, then closes the dialog.
-4. Remove the now-unused `matchedPickerVariant` / `variantOptionNames` paths only for the multi-select branch (keep them for the legacy branch).
-5. Keep the existing `qtyPromptProduct` flow untouched — it still handles products without variants.
+### 4. Routing (`src/App.tsx`)
+- Wrap `suppliers`, `purchase-orders` routes in a gate that allows admin OR stock_manager (instead of admin-only).
+- `products`, `stock`, `stock-management` already under staff gate — page-level UI will reveal edit controls based on `canManageStock`.
+
+### 5. Sidebar (`src/components/admin/AdminSidebar.tsx`)
+- New `Visibility` value `"stockPlus"` (admin + stock_manager) for Suppliers and Purchase Orders.
+- Add a new visibility tag rendering (e.g. `Ad+SM`).
+- Filter logic: show item if user role matches its visibility.
+
+### 6. Page-level gating
+- `Products.tsx`: show "Cost price" column/inputs and Add/Edit/Delete buttons when `canManageStock`; staff sees read-only product list without cost.
+- `Stock.tsx` / `StockManagement.tsx`: replace `isAdmin`-gated controls (Locations tab, adjust/transfer actions) with `canManageStock`.
+- `Suppliers.tsx`, `PurchaseOrders.tsx`: no change beyond route gate.
+
+### 7. Staff management (`src/pages/admin/Staff.tsx`)
+- Add `"Stock Manager"` to the role `Select` in the Add dialog.
+- In the table actions, add Promote/Demote buttons covering staff ↔ stock_manager ↔ admin transitions.
+- Update stats cards to include a Stock Managers count.
+- Update `roleBadgeVariant` to render `stock_manager` distinctly.
 
 ## Out of scope
-
-- No DB or RPC changes; stock validation continues to rely on `addToCart`'s stock check and the existing `deduct_stock_on_order_item` trigger.
-- No changes to the cart, checkout, invoice, or order creation logic.
-- No changes to the customer-facing storefront variant selector.
+- No changes to customer-facing storefront.
+- No changes to POS variant multi-select work.
+- No new tables.
