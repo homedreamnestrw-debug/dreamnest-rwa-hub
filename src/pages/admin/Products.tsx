@@ -495,7 +495,9 @@ export default function Products() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div><Label>Price (RWF)</Label><Input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: +e.target.value })} /></div>
-                <div><Label>Cost Price</Label><Input type="number" value={form.cost_price} onChange={(e) => setForm({ ...form, cost_price: +e.target.value })} /></div>
+                {canManageStock && (
+                  <div><Label>Cost Price</Label><Input type="number" value={form.cost_price} onChange={(e) => setForm({ ...form, cost_price: +e.target.value })} /></div>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div><Label>SKU</Label><Input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} /></div>
