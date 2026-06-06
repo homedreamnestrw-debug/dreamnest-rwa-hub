@@ -22,7 +22,7 @@ const TABS = ["inventory", "products", "categories", "locations"] as const;
 type TabKey = (typeof TABS)[number];
 
 export default function Stock() {
-  const { isAdmin } = useAuth();
+  const { canManageStock } = useAuth();
   const [params, setParams] = useSearchParams();
   const initial = (params.get("tab") as TabKey) || "inventory";
   const [tab, setTab] = useState<TabKey>(TABS.includes(initial) ? initial : "inventory");
@@ -546,7 +546,7 @@ export default function Stock() {
           <TabsTrigger value="inventory">Inventory</TabsTrigger>
           <TabsTrigger value="products">Products</TabsTrigger>
           <TabsTrigger value="categories">Categories</TabsTrigger>
-          {isAdmin && <TabsTrigger value="locations">Locations</TabsTrigger>}
+          {canManageStock && <TabsTrigger value="locations">Locations</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="inventory" className="space-y-4">
@@ -564,7 +564,7 @@ export default function Stock() {
           <div key={`cat-${reloadKey}`}><Categories /></div>
         </TabsContent>
 
-        {isAdmin && (
+        {canManageStock && (
           <TabsContent value="locations" className="space-y-4">
             {locationsBar}
             <div key={`loc-${reloadKey}`}><Locations /></div>

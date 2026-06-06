@@ -34,7 +34,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-type Visibility = "admin" | "staff" | "both";
+type Visibility = "admin" | "staff" | "both" | "stockPlus";
 
 type NavItem = {
   title: string;
@@ -65,10 +65,11 @@ const peopleItems: NavItem[] = [
 ];
 
 const operationsItems: NavItem[] = [
-  { title: "Suppliers", url: "/admin/suppliers", icon: Truck, visibility: "admin" },
-  { title: "Purchase Orders", url: "/admin/purchase-orders", icon: FileText, visibility: "admin" },
+  { title: "Suppliers", url: "/admin/suppliers", icon: Truck, visibility: "stockPlus" },
+  { title: "Purchase Orders", url: "/admin/purchase-orders", icon: FileText, visibility: "stockPlus" },
   { title: "Expenses", url: "/admin/expenses", icon: DollarSign, visibility: "admin" },
 ];
+
 
 const insightsItems: NavItem[] = [
   { title: "Dashboard", url: "/admin/dashboard", icon: LayoutDashboard, visibility: "admin" },
@@ -78,12 +79,18 @@ const insightsItems: NavItem[] = [
 ];
 
 function VisibilityTag({ visibility }: { visibility: Visibility }) {
-  const label = visibility === "admin" ? "Ad" : visibility === "staff" ? "St" : "Ad+St";
+  const label =
+    visibility === "admin" ? "Ad"
+    : visibility === "staff" ? "St"
+    : visibility === "stockPlus" ? "Ad+SM"
+    : "Ad+St";
   const cls =
     visibility === "admin"
       ? "bg-primary/15 text-primary"
       : visibility === "staff"
       ? "bg-accent/30 text-accent-foreground"
+      : visibility === "stockPlus"
+      ? "bg-primary/10 text-primary"
       : "bg-muted text-muted-foreground";
   return (
     <span
@@ -98,7 +105,7 @@ export function AdminSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const { signOut, isAdmin } = useAuth();
+  const { signOut, isAdmin, canManageStock } = useAuth();
 
   const isActive = (path: string) => {
     if (path === "/admin/pos") {
@@ -108,7 +115,12 @@ export function AdminSidebar() {
   };
 
   const filterItems = (items: NavItem[]) =>
-    items.filter((item) => item.visibility !== "admin" || isAdmin);
+    items.filter((item) => {
+      if (item.visibility === "admin") return isAdmin;
+      if (item.visibility === "stockPlus") return canManageStock;
+      return true;
+    });
+
 
   const renderGroup = (label: string, items: NavItem[]) => {
     const visible = filterItems(items);

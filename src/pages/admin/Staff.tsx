@@ -28,7 +28,7 @@ export default function Staff() {
       const { data: roles } = await supabase
         .from("user_roles")
         .select("id, user_id, role, created_at")
-        .in("role", ["admin", "staff"])
+        .in("role", ["admin", "staff", "stock_manager"])
         .order("created_at", { ascending: true });
 
       if (!roles || roles.length === 0) return [];
@@ -122,9 +122,13 @@ export default function Staff() {
 
   const roleBadgeVariant = (role: string) => {
     if (role === "admin") return "destructive" as const;
-    if (role === "staff") return "default" as const;
+    if (role === "stock_manager") return "default" as const;
+    if (role === "staff") return "outline" as const;
     return "secondary" as const;
   };
+
+  const roleLabel = (role: string) =>
+    role === "stock_manager" ? "Stock Manager" : role.charAt(0).toUpperCase() + role.slice(1);
 
   return (
     <div className="space-y-6">
@@ -159,6 +163,7 @@ export default function Staff() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="staff">Staff</SelectItem>
+                    <SelectItem value="stock_manager">Stock Manager</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
                   </SelectContent>
                 </Select>
@@ -171,14 +176,14 @@ export default function Staff() {
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <Users className="h-8 w-8 text-primary" />
               <div>
                 <p className="text-2xl font-bold">{staffUsers?.length ?? 0}</p>
-                <p className="text-sm text-muted-foreground">Total Staff</p>
+                <p className="text-sm text-muted-foreground">Total Team</p>
               </div>
             </div>
           </CardContent>
@@ -197,9 +202,20 @@ export default function Staff() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
+              <Shield className="h-8 w-8 text-primary" />
+              <div>
+                <p className="text-2xl font-bold">{staffUsers?.filter((u) => u.roles.includes("stock_manager")).length ?? 0}</p>
+                <p className="text-sm text-muted-foreground">Stock Managers</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
               <UserPlus className="h-8 w-8 text-muted-foreground" />
               <div>
-                <p className="text-2xl font-bold">{staffUsers?.filter((u) => u.roles.includes("staff") && !u.roles.includes("admin")).length ?? 0}</p>
+                <p className="text-2xl font-bold">{staffUsers?.filter((u) => u.roles.includes("staff") && !u.roles.includes("admin") && !u.roles.includes("stock_manager")).length ?? 0}</p>
                 <p className="text-sm text-muted-foreground">Staff Only</p>
               </div>
             </div>
@@ -227,31 +243,48 @@ export default function Staff() {
                     <TableCell className="font-medium">{staff.full_name}</TableCell>
                     <TableCell>{staff.phone || "—"}</TableCell>
                     <TableCell>
-                      <div className="flex gap-1">
+                      <div className="flex gap-1 flex-wrap">
                         {staff.roles.map((role) => (
-                          <Badge key={role} variant={roleBadgeVariant(role)}>{role}</Badge>
+                          <Badge key={role} variant={roleBadgeVariant(role)}>{roleLabel(role)}</Badge>
                         ))}
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        {staff.roles.includes("staff") && !staff.roles.includes("admin") && (
-                          <Button size="sm" variant="outline" onClick={() => updateRole.mutate({ userId: staff.user_id, oldRole: "staff", newRole: "admin" })}>
-                            Promote to Admin
-                          </Button>
-                        )}
-                        {staff.roles.includes("admin") && (
-                          <Button size="sm" variant="outline" onClick={() => updateRole.mutate({ userId: staff.user_id, oldRole: "admin", newRole: "staff" })}>
-                            Demote to Staff
-                          </Button>
-                        )}
-                        {staff.roles.map((role) => (
-                          role !== "customer" && (
-                            <Button key={role} size="sm" variant="ghost" className="text-destructive" onClick={() => removeStaff.mutate({ userId: staff.user_id, role: role as AppRole })}>
-                              Remove {role}
+                      <div className="flex justify-end gap-2 flex-wrap">
+                        {(["staff", "stock_manager", "admin"] as AppRole[]).map((role) =>
+                          !staff.roles.includes(role) ? (
+                            <Button
+                              key={`add-${role}`}
+                              size="sm"
+                              variant="outline"
+                              onClick={async () => {
+                                const { error } = await supabase
+                                  .from("user_roles")
+                                  .insert({ user_id: staff.user_id, role });
+                                if (error) toast.error(error.message);
+                                else {
+                                  toast.success(`${roleLabel(role)} granted`);
+                                  queryClient.invalidateQueries({ queryKey: ["staff-users"] });
+                                }
+                              }}
+                            >
+                              + {roleLabel(role)}
                             </Button>
-                          )
-                        ))}
+                          ) : null
+                        )}
+                        {staff.roles.map((role) =>
+                          role !== "customer" ? (
+                            <Button
+                              key={`rm-${role}`}
+                              size="sm"
+                              variant="ghost"
+                              className="text-destructive"
+                              onClick={() => removeStaff.mutate({ userId: staff.user_id, role: role as AppRole })}
+                            >
+                              Remove {roleLabel(role)}
+                            </Button>
+                          ) : null
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

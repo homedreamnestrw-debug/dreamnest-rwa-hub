@@ -106,8 +106,9 @@ const App = () => (
               {/* Admin-only */}
               <Route path="dashboard" element={<ProtectedRoute requiredRole="admin"><Dashboard /></ProtectedRoute>} />
               <Route path="analytics" element={<ProtectedRoute requiredRole="admin"><Analytics /></ProtectedRoute>} />
-              <Route path="suppliers" element={<ProtectedRoute requiredRole="admin"><Suppliers /></ProtectedRoute>} />
-              <Route path="purchase-orders" element={<ProtectedRoute requiredRole="admin"><PurchaseOrders /></ProtectedRoute>} />
+              <Route path="suppliers" element={<ProtectedRoute requiredRole="stock_or_admin"><Suppliers /></ProtectedRoute>} />
+              <Route path="purchase-orders" element={<ProtectedRoute requiredRole="stock_or_admin"><PurchaseOrders /></ProtectedRoute>} />
+
               <Route path="expenses" element={<ProtectedRoute requiredRole="admin"><Expenses /></ProtectedRoute>} />
               <Route path="settings" element={<ProtectedRoute requiredRole="admin"><Settings /></ProtectedRoute>} />
               <Route path="staff" element={<ProtectedRoute requiredRole="admin"><Staff /></ProtectedRoute>} />
