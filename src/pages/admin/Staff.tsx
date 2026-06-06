@@ -28,7 +28,7 @@ export default function Staff() {
       const { data: roles } = await supabase
         .from("user_roles")
         .select("id, user_id, role, created_at")
-        .in("role", ["admin", "staff"])
+        .in("role", ["admin", "staff", "stock_manager"])
         .order("created_at", { ascending: true });
 
       if (!roles || roles.length === 0) return [];
