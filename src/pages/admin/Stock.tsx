@@ -22,7 +22,7 @@ const TABS = ["inventory", "products", "categories", "locations"] as const;
 type TabKey = (typeof TABS)[number];
 
 export default function Stock() {
-  const { isAdmin } = useAuth();
+  const { canManageStock } = useAuth();
   const [params, setParams] = useSearchParams();
   const initial = (params.get("tab") as TabKey) || "inventory";
   const [tab, setTab] = useState<TabKey>(TABS.includes(initial) ? initial : "inventory");
