@@ -176,14 +176,14 @@ export default function Staff() {
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <Users className="h-8 w-8 text-primary" />
               <div>
                 <p className="text-2xl font-bold">{staffUsers?.length ?? 0}</p>
-                <p className="text-sm text-muted-foreground">Total Staff</p>
+                <p className="text-sm text-muted-foreground">Total Team</p>
               </div>
             </div>
           </CardContent>
@@ -202,9 +202,20 @@ export default function Staff() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
+              <Shield className="h-8 w-8 text-primary" />
+              <div>
+                <p className="text-2xl font-bold">{staffUsers?.filter((u) => u.roles.includes("stock_manager")).length ?? 0}</p>
+                <p className="text-sm text-muted-foreground">Stock Managers</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
               <UserPlus className="h-8 w-8 text-muted-foreground" />
               <div>
-                <p className="text-2xl font-bold">{staffUsers?.filter((u) => u.roles.includes("staff") && !u.roles.includes("admin")).length ?? 0}</p>
+                <p className="text-2xl font-bold">{staffUsers?.filter((u) => u.roles.includes("staff") && !u.roles.includes("admin") && !u.roles.includes("stock_manager")).length ?? 0}</p>
                 <p className="text-sm text-muted-foreground">Staff Only</p>
               </div>
             </div>
