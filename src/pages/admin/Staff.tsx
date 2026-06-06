@@ -122,9 +122,13 @@ export default function Staff() {
 
   const roleBadgeVariant = (role: string) => {
     if (role === "admin") return "destructive" as const;
-    if (role === "staff") return "default" as const;
+    if (role === "stock_manager") return "default" as const;
+    if (role === "staff") return "outline" as const;
     return "secondary" as const;
   };
+
+  const roleLabel = (role: string) =>
+    role === "stock_manager" ? "Stock Manager" : role.charAt(0).toUpperCase() + role.slice(1);
 
   return (
     <div className="space-y-6">
