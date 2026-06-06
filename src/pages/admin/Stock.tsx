@@ -546,7 +546,7 @@ export default function Stock() {
           <TabsTrigger value="inventory">Inventory</TabsTrigger>
           <TabsTrigger value="products">Products</TabsTrigger>
           <TabsTrigger value="categories">Categories</TabsTrigger>
-          {isAdmin && <TabsTrigger value="locations">Locations</TabsTrigger>}
+          {canManageStock && <TabsTrigger value="locations">Locations</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="inventory" className="space-y-4">
