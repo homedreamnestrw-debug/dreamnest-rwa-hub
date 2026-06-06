@@ -243,31 +243,51 @@ export default function Staff() {
                     <TableCell className="font-medium">{staff.full_name}</TableCell>
                     <TableCell>{staff.phone || "—"}</TableCell>
                     <TableCell>
-                      <div className="flex gap-1">
+                      <div className="flex gap-1 flex-wrap">
                         {staff.roles.map((role) => (
-                          <Badge key={role} variant={roleBadgeVariant(role)}>{role}</Badge>
+                          <Badge key={role} variant={roleBadgeVariant(role)}>{roleLabel(role)}</Badge>
                         ))}
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        {staff.roles.includes("staff") && !staff.roles.includes("admin") && (
-                          <Button size="sm" variant="outline" onClick={() => updateRole.mutate({ userId: staff.user_id, oldRole: "staff", newRole: "admin" })}>
-                            Promote to Admin
-                          </Button>
-                        )}
-                        {staff.roles.includes("admin") && (
-                          <Button size="sm" variant="outline" onClick={() => updateRole.mutate({ userId: staff.user_id, oldRole: "admin", newRole: "staff" })}>
-                            Demote to Staff
-                          </Button>
-                        )}
-                        {staff.roles.map((role) => (
-                          role !== "customer" && (
-                            <Button key={role} size="sm" variant="ghost" className="text-destructive" onClick={() => removeStaff.mutate({ userId: staff.user_id, role: role as AppRole })}>
-                              Remove {role}
+                      <div className="flex justify-end gap-2 flex-wrap">
+                        {(["staff", "stock_manager", "admin"] as AppRole[]).map((role) =>
+                          !staff.roles.includes(role) ? (
+                            <Button
+                              key={`add-${role}`}
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                addStaff.mutate ? undefined : undefined
+                              }
+                              onClickCapture={async () => {
+                                const { error } = await supabase
+                                  .from("user_roles")
+                                  .insert({ user_id: staff.user_id, role });
+                                if (error) toast.error(error.message);
+                                else {
+                                  toast.success(`${roleLabel(role)} granted`);
+                                  queryClient.invalidateQueries({ queryKey: ["staff-users"] });
+                                }
+                              }}
+                            >
+                              + {roleLabel(role)}
                             </Button>
-                          )
-                        ))}
+                          ) : null
+                        )}
+                        {staff.roles.map((role) =>
+                          role !== "customer" ? (
+                            <Button
+                              key={`rm-${role}`}
+                              size="sm"
+                              variant="ghost"
+                              className="text-destructive"
+                              onClick={() => removeStaff.mutate({ userId: staff.user_id, role: role as AppRole })}
+                            >
+                              Remove {roleLabel(role)}
+                            </Button>
+                          ) : null
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
