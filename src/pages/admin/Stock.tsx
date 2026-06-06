@@ -564,7 +564,7 @@ export default function Stock() {
           <div key={`cat-${reloadKey}`}><Categories /></div>
         </TabsContent>
 
-        {isAdmin && (
+        {canManageStock && (
           <TabsContent value="locations" className="space-y-4">
             {locationsBar}
             <div key={`loc-${reloadKey}`}><Locations /></div>
