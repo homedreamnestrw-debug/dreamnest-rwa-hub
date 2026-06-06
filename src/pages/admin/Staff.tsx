@@ -257,10 +257,7 @@ export default function Staff() {
                               key={`add-${role}`}
                               size="sm"
                               variant="outline"
-                              onClick={() =>
-                                addStaff.mutate ? undefined : undefined
-                              }
-                              onClickCapture={async () => {
+                              onClick={async () => {
                                 const { error } = await supabase
                                   .from("user_roles")
                                   .insert({ user_id: staff.user_id, role });
