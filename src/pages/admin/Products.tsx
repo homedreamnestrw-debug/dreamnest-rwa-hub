@@ -359,9 +359,11 @@ export default function Products() {
       <div className="flex items-center justify-between">
         <h1 className="font-serif text-2xl font-semibold">Products</h1>
         <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
-          <DialogTrigger asChild>
-            <Button><Plus className="h-4 w-4 mr-2" /> Add Product</Button>
-          </DialogTrigger>
+          {canManageStock && (
+            <DialogTrigger asChild>
+              <Button><Plus className="h-4 w-4 mr-2" /> Add Product</Button>
+            </DialogTrigger>
+          )}
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editing ? "Edit Product" : "New Product"}</DialogTitle>
