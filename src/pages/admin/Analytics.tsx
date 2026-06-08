@@ -314,16 +314,14 @@ export default function Analytics() {
                 <div className="grid" style={{ gridTemplateColumns: "auto repeat(24, 1fr)", gap: 2 }}>
                   <div />
                   {Array.from({ length: 24 }).map((_, h) => <div key={h} className="text-[10px] text-center text-muted-foreground">{h}</div>)}
-                  {days.map((day, di) => (
-                    <>
-                      <div key={`d${di}`} className="text-[10px] pr-2 text-muted-foreground">{day}</div>
-                      {Array.from({ length: 24 }).map((_, h) => {
-                        const v = heatmap.g[di][h];
-                        const intensity = v / heatmap.max;
-                        return <div key={`${di}-${h}`} title={`${day} ${h}:00 — ${formatRWF(v)}`} className="h-5 rounded-sm" style={{ backgroundColor: `hsl(25, 35%, ${100 - intensity * 60}%)` }} />;
-                      })}
-                    </>
-                  ))}
+                  {days.flatMap((day, di) => [
+                    <div key={`d${di}`} className="text-[10px] pr-2 text-muted-foreground">{day}</div>,
+                    ...Array.from({ length: 24 }).map((_, h) => {
+                      const v = heatmap.g[di][h];
+                      const intensity = v / heatmap.max;
+                      return <div key={`${di}-${h}`} title={`${day} ${h}:00 — ${formatRWF(v)}`} className="h-5 rounded-sm" style={{ backgroundColor: `hsl(25, 35%, ${100 - intensity * 60}%)` }} />;
+                    }),
+                  ])}
                 </div>
               </div>
             </CardContent>
