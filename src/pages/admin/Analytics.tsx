@@ -26,11 +26,21 @@ type ItemRow = {
   orders: { created_at: string; status: string } | null;
 };
 
-type InventoryRow = {
-  id: string; name: string; price: number | null; cost_price: number | null;
-  stock_quantity: number | null; low_stock_threshold: number | null;
-  category_id: string | null; categories?: { name: string } | null;
+type StockRow = {
+  product_id: string;
+  location_id: string;
+  quantity: number;
+  location_name: string;
+  product_name: string;
+  price: number | null;
+  cost_price: number | null;
+  low_stock_threshold: number | null;
+  category_id: string | null;
+  category_name: string;
 };
+
+type LocationOpt = { id: string; name: string };
+type CategoryOpt = { id: string; name: string };
 
 const TERMINAL_BAD = new Set(["cancelled", "refunded"]);
 
@@ -40,10 +50,14 @@ export default function Analytics() {
   const [prevOrders, setPrevOrders] = useState<OrderRow[]>([]);
   const [items, setItems] = useState<ItemRow[]>([]);
   const [prevItems, setPrevItems] = useState<ItemRow[]>([]);
-  const [inventory, setInventory] = useState<InventoryRow[]>([]);
+  const [stockRows, setStockRows] = useState<StockRow[]>([]);
+  const [locations, setLocations] = useState<LocationOpt[]>([]);
+  const [categories, setCategories] = useState<CategoryOpt[]>([]);
   const [loading, setLoading] = useState(true);
   const [topMode, setTopMode] = useState<"revenue" | "qty">("revenue");
   const [invMetric, setInvMetric] = useState<"value" | "qty">("value");
+  const [invLocation, setInvLocation] = useState<string>("all");
+  const [invCategory, setInvCategory] = useState<string>("all");
   const reportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
