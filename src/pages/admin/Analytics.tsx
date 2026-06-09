@@ -75,6 +75,18 @@ export default function Analytics() {
     return () => { active = false; };
   }, [range.from, range.to, prevRange.from, prevRange.to, state.compare]);
 
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const { data } = await supabase.from("products")
+        .select("id, name, price, cost_price, stock_quantity, low_stock_threshold, category_id, categories(name)")
+        .eq("is_active", true)
+        .limit(5000);
+      if (active) setInventory((data as any) || []);
+    })();
+    return () => { active = false; };
+  }, []);
+
   const validOrders = useMemo(() => orders.filter((o) => !TERMINAL_BAD.has(o.status)), [orders]);
   const validPrev = useMemo(() => prevOrders.filter((o) => !TERMINAL_BAD.has(o.status)), [prevOrders]);
   const validItems = useMemo(() => items.filter((i) => i.orders && !TERMINAL_BAD.has(i.orders.status)), [items]);
