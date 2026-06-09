@@ -24,6 +24,12 @@ type ItemRow = {
   orders: { created_at: string; status: string } | null;
 };
 
+type InventoryRow = {
+  id: string; name: string; price: number | null; cost_price: number | null;
+  stock_quantity: number | null; low_stock_threshold: number | null;
+  category_id: string | null; categories?: { name: string } | null;
+};
+
 const TERMINAL_BAD = new Set(["cancelled", "refunded"]);
 
 export default function Analytics() {
@@ -32,8 +38,10 @@ export default function Analytics() {
   const [prevOrders, setPrevOrders] = useState<OrderRow[]>([]);
   const [items, setItems] = useState<ItemRow[]>([]);
   const [prevItems, setPrevItems] = useState<ItemRow[]>([]);
+  const [inventory, setInventory] = useState<InventoryRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [topMode, setTopMode] = useState<"revenue" | "qty">("revenue");
+  const [invMetric, setInvMetric] = useState<"value" | "qty">("value");
   const reportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -66,6 +74,18 @@ export default function Analytics() {
     })();
     return () => { active = false; };
   }, [range.from, range.to, prevRange.from, prevRange.to, state.compare]);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const { data } = await supabase.from("products")
+        .select("id, name, price, cost_price, stock_quantity, low_stock_threshold, category_id, categories(name)")
+        .eq("is_active", true)
+        .limit(5000);
+      if (active) setInventory((data as any) || []);
+    })();
+    return () => { active = false; };
+  }, []);
 
   const validOrders = useMemo(() => orders.filter((o) => !TERMINAL_BAD.has(o.status)), [orders]);
   const validPrev = useMemo(() => prevOrders.filter((o) => !TERMINAL_BAD.has(o.status)), [prevOrders]);
@@ -135,25 +155,91 @@ export default function Analytics() {
     return Object.entries(m).map(([name, value]) => ({ name, value }));
   }, [validOrders]);
 
+  const stockByProductId = useMemo(() => {
+    const m: Record<string, { qty: number; value: number; cost: number }> = {};
+    inventory.forEach((p) => {
+      const q = p.stock_quantity || 0;
+      m[p.id] = { qty: q, value: q * (p.price || 0), cost: q * (p.cost_price || 0) };
+    });
+    return m;
+  }, [inventory]);
+
+  const stockByProductName = useMemo(() => {
+    const m: Record<string, { qty: number; value: number }> = {};
+    inventory.forEach((p) => {
+      const q = p.stock_quantity || 0;
+      m[p.name] = { qty: q, value: q * (p.price || 0) };
+    });
+    return m;
+  }, [inventory]);
+
+  const stockByCategory = useMemo(() => {
+    const m: Record<string, { qty: number; value: number; cost: number }> = {};
+    inventory.forEach((p) => {
+      const name = p.categories?.name || "Uncategorized";
+      const q = p.stock_quantity || 0;
+      if (!m[name]) m[name] = { qty: 0, value: 0, cost: 0 };
+      m[name].qty += q;
+      m[name].value += q * (p.price || 0);
+      m[name].cost += q * (p.cost_price || 0);
+    });
+    return m;
+  }, [inventory]);
+
   const topProducts = useMemo(() => {
-    const m: Record<string, { name: string; revenue: number; qty: number }> = {};
+    const m: Record<string, { name: string; revenue: number; qty: number; stockQty: number; stockValue: number }> = {};
     validItems.forEach((i) => {
       const name = i.products?.name || "Unknown";
-      if (!m[name]) m[name] = { name, revenue: 0, qty: 0 };
+      if (!m[name]) m[name] = { name, revenue: 0, qty: 0, stockQty: 0, stockValue: 0 };
       m[name].revenue += i.total || 0;
       m[name].qty += i.quantity || 0;
     });
+    Object.values(m).forEach((p) => {
+      const s = stockByProductName[p.name];
+      if (s) { p.stockQty = s.qty; p.stockValue = s.value; }
+    });
     return Object.values(m).sort((a, b) => topMode === "revenue" ? b.revenue - a.revenue : b.qty - a.qty).slice(0, 10);
-  }, [validItems, topMode]);
+  }, [validItems, topMode, stockByProductName]);
 
   const topCategories = useMemo(() => {
-    const m: Record<string, number> = {};
+    const m: Record<string, { name: string; revenue: number; qty: number; stockQty: number; stockValue: number }> = {};
     validItems.forEach((i) => {
       const name = i.products?.categories?.name || "Uncategorized";
-      m[name] = (m[name] || 0) + (i.total || 0);
+      if (!m[name]) m[name] = { name, revenue: 0, qty: 0, stockQty: 0, stockValue: 0 };
+      m[name].revenue += i.total || 0;
+      m[name].qty += i.quantity || 0;
     });
-    return Object.entries(m).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 8);
-  }, [validItems]);
+    Object.entries(stockByCategory).forEach(([name, s]) => {
+      if (!m[name]) m[name] = { name, revenue: 0, qty: 0, stockQty: 0, stockValue: 0 };
+      m[name].stockQty = s.qty;
+      m[name].stockValue = s.value;
+    });
+    return Object.values(m).sort((a, b) => b.revenue - a.revenue).slice(0, 8);
+  }, [validItems, stockByCategory]);
+
+  const inventoryKpis = useMemo(() => {
+    const totalUnits = inventory.reduce((s, p) => s + (p.stock_quantity || 0), 0);
+    const retailValue = inventory.reduce((s, p) => s + (p.stock_quantity || 0) * (p.price || 0), 0);
+    const costValue = inventory.reduce((s, p) => s + (p.stock_quantity || 0) * (p.cost_price || 0), 0);
+    const skus = inventory.length;
+    const outOfStock = inventory.filter((p) => (p.stock_quantity || 0) <= 0).length;
+    const lowStock = inventory.filter((p) => {
+      const q = p.stock_quantity || 0;
+      const t = p.low_stock_threshold || 0;
+      return q > 0 && t > 0 && q <= t;
+    }).length;
+    const soldIds = new Set(validItems.map((i) => i.product_id).filter(Boolean) as string[]);
+    const deadStock = inventory.filter((p) => (p.stock_quantity || 0) > 0 && !soldIds.has(p.id)).length;
+    const potentialMargin = retailValue - costValue;
+    return { totalUnits, retailValue, costValue, skus, outOfStock, lowStock, deadStock, potentialMargin };
+  }, [inventory, validItems]);
+
+  const inventoryByCategory = useMemo(() => {
+    return Object.entries(stockByCategory)
+      .map(([name, s]) => ({ name, qty: s.qty, value: s.value, cost: s.cost }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10);
+  }, [stockByCategory]);
 
   const heatmap = useMemo(() => {
     // 7x24 grid
@@ -172,8 +258,9 @@ export default function Analytics() {
       ...channelData.map((r) => ({ section: "Channel", label: r.name, value: r.value })),
       ...statusData.map((r) => ({ section: "Status", label: r.name, value: r.value })),
       ...paymentData.map((r) => ({ section: "Payment", label: r.name, value: r.value })),
-      ...topProducts.map((p) => ({ section: "Top Product", label: p.name, revenue: p.revenue, qty: p.qty })),
-      ...topCategories.map((c) => ({ section: "Category", label: c.name, value: c.value })),
+      ...topProducts.map((p) => ({ section: "Top Product", label: p.name, revenue: p.revenue, qty: p.qty, stock_qty: p.stockQty, stock_value: p.stockValue })),
+      ...topCategories.map((c) => ({ section: "Category", label: c.name, revenue: c.revenue, qty: c.qty, stock_qty: c.stockQty, stock_value: c.stockValue })),
+      ...inventoryByCategory.map((c) => ({ section: "Inventory by Category", label: c.name, qty: c.qty, retail_value: c.value, cost_value: c.cost })),
     ];
     downloadCSV(`analytics-${new Date().toISOString().slice(0, 10)}.csv`, rows);
   };
@@ -257,20 +344,31 @@ export default function Analytics() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-base">Top Products</CardTitle>
+              <CardTitle className="text-base">Top Products — Sold vs Stock</CardTitle>
               <Tabs value={topMode} onValueChange={(v) => setTopMode(v as any)}>
-                <TabsList className="h-8"><TabsTrigger value="revenue" className="text-xs">Revenue</TabsTrigger><TabsTrigger value="qty" className="text-xs">Quantity</TabsTrigger></TabsList>
+                <TabsList className="h-8"><TabsTrigger value="revenue" className="text-xs">Revenue / Value</TabsTrigger><TabsTrigger value="qty" className="text-xs">Quantity</TabsTrigger></TabsList>
               </Tabs>
             </CardHeader>
             <CardContent>
               {topProducts.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={topProducts} layout="vertical">
+                <ResponsiveContainer width="100%" height={360}>
+                  <BarChart data={topProducts} layout="vertical" barCategoryGap={8}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis type="number" tickFormatter={(v) => topMode === "revenue" ? `${(v/1000).toFixed(0)}k` : String(v)} />
-                    <YAxis type="category" dataKey="name" width={120} />
-                    <Tooltip formatter={(v: number) => topMode === "revenue" ? formatRWF(v) : formatInt(v)} />
-                    <Bar dataKey={topMode === "revenue" ? "revenue" : "qty"} fill="hsl(40, 50%, 72%)" radius={[0,4,4,0]} />
+                    <YAxis type="category" dataKey="name" width={130} tick={{ fontSize: 11 }} />
+                    <Tooltip formatter={(v: number, n: string) => [topMode === "revenue" ? formatRWF(v) : formatInt(v), n]} />
+                    <Legend />
+                    {topMode === "revenue" ? (
+                      <>
+                        <Bar dataKey="revenue" name="Sold (revenue)" fill="hsl(40, 50%, 72%)" radius={[0,4,4,0]} />
+                        <Bar dataKey="stockValue" name="In stock (value)" fill="hsl(25, 35%, 28%)" radius={[0,4,4,0]} />
+                      </>
+                    ) : (
+                      <>
+                        <Bar dataKey="qty" name="Sold (qty)" fill="hsl(40, 50%, 72%)" radius={[0,4,4,0]} />
+                        <Bar dataKey="stockQty" name="In stock (qty)" fill="hsl(25, 35%, 28%)" radius={[0,4,4,0]} />
+                      </>
+                    )}
                   </BarChart>
                 </ResponsiveContainer>
               ) : <p className="text-center text-muted-foreground py-8">No data</p>}
@@ -291,16 +389,18 @@ export default function Analytics() {
           </Card>
 
           <Card>
-            <CardHeader><CardTitle className="text-base">Top Categories</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">Top Categories — Sales vs Stock Value</CardTitle></CardHeader>
             <CardContent>
               {topCategories.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={topCategories} layout="vertical">
+                <ResponsiveContainer width="100%" height={360}>
+                  <BarChart data={topCategories} layout="vertical" barCategoryGap={8}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis type="number" tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} />
-                    <YAxis type="category" dataKey="name" width={120} />
+                    <YAxis type="category" dataKey="name" width={130} tick={{ fontSize: 11 }} />
                     <Tooltip formatter={(v: number) => formatRWF(v)} />
-                    <Bar dataKey="value" fill="hsl(150, 50%, 40%)" radius={[0,4,4,0]} />
+                    <Legend />
+                    <Bar dataKey="revenue" name="Sold (revenue)" fill="hsl(150, 50%, 40%)" radius={[0,4,4,0]} />
+                    <Bar dataKey="stockValue" name="In stock (value)" fill="hsl(25, 35%, 28%)" radius={[0,4,4,0]} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : <p className="text-center text-muted-foreground py-8">No data</p>}
@@ -326,6 +426,116 @@ export default function Analytics() {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Inventory Analytics */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-2 pt-2">
+            <h2 className="font-serif text-xl font-semibold">Inventory Analytics</h2>
+            <Tabs value={invMetric} onValueChange={(v) => setInvMetric(v as any)}>
+              <TabsList className="h-8"><TabsTrigger value="value" className="text-xs">Value (RWF)</TabsTrigger><TabsTrigger value="qty" className="text-xs">Quantity</TabsTrigger></TabsList>
+            </Tabs>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <KpiCard label="SKUs" value={formatInt(inventoryKpis.skus)} />
+            <KpiCard label="Total Units in Stock" value={formatInt(inventoryKpis.totalUnits)} />
+            <KpiCard label="Stock Value (retail)" value={formatRWF(inventoryKpis.retailValue)} />
+            <KpiCard label="Stock Value (cost)" value={formatRWF(inventoryKpis.costValue)} sub={`Potential margin ${formatRWF(inventoryKpis.potentialMargin)}`} />
+            <KpiCard label="Out of Stock" value={formatInt(inventoryKpis.outOfStock)} invertDelta />
+            <KpiCard label="Low Stock" value={formatInt(inventoryKpis.lowStock)} invertDelta />
+            <KpiCard label="Dead Stock (no sales)" value={formatInt(inventoryKpis.deadStock)} sub="In selected period" invertDelta />
+            <KpiCard label="Sell-through" value={`${inventoryKpis.totalUnits ? ((kpis.itemsSold / (inventoryKpis.totalUnits + kpis.itemsSold)) * 100).toFixed(1) : "0.0"}%`} sub="Sold ÷ (sold + stock)" />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader><CardTitle className="text-base">Stock by Category</CardTitle></CardHeader>
+              <CardContent>
+                {inventoryByCategory.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={320}>
+                    <BarChart data={inventoryByCategory} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis type="number" tickFormatter={(v) => invMetric === "value" ? `${(v/1000).toFixed(0)}k` : String(v)} />
+                      <YAxis type="category" dataKey="name" width={130} tick={{ fontSize: 11 }} />
+                      <Tooltip formatter={(v: number) => invMetric === "value" ? formatRWF(v) : formatInt(v)} />
+                      <Legend />
+                      {invMetric === "value" ? (
+                        <>
+                          <Bar dataKey="value" name="Retail value" fill="hsl(40, 50%, 72%)" radius={[0,4,4,0]} />
+                          <Bar dataKey="cost" name="Cost value" fill="hsl(25, 35%, 28%)" radius={[0,4,4,0]} />
+                        </>
+                      ) : (
+                        <Bar dataKey="qty" name="Units" fill="hsl(150, 50%, 40%)" radius={[0,4,4,0]} />
+                      )}
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : <p className="text-center text-muted-foreground py-8">No inventory data</p>}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle className="text-base">Stock Health</CardTitle></CardHeader>
+              <CardContent>
+                {(() => {
+                  const inStock = inventoryKpis.skus - inventoryKpis.outOfStock - inventoryKpis.lowStock;
+                  const data = [
+                    { name: "Healthy", value: Math.max(0, inStock) },
+                    { name: "Low Stock", value: inventoryKpis.lowStock },
+                    { name: "Out of Stock", value: inventoryKpis.outOfStock },
+                    { name: "Dead Stock", value: inventoryKpis.deadStock },
+                  ].filter((d) => d.value > 0);
+                  const healthColors = ["hsl(150, 50%, 40%)", "hsl(40, 70%, 55%)", "hsl(0, 72%, 51%)", "hsl(280, 30%, 55%)"];
+                  return data.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={320}>
+                      <PieChart>
+                        <Pie data={data} cx="50%" cy="50%" outerRadius={100} dataKey="value" label={({ name, value }) => `${name}: ${value}`}>
+                          {data.map((_, i) => <Cell key={i} fill={healthColors[i % healthColors.length]} />)}
+                        </Pie>
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : <p className="text-center text-muted-foreground py-8">No data</p>;
+                })()}
+              </CardContent>
+            </Card>
+
+            <Card className="lg:col-span-2">
+              <CardHeader><CardTitle className="text-base">Top Stock Holdings (by value)</CardTitle></CardHeader>
+              <CardContent>
+                {inventory.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={360}>
+                    <BarChart
+                      data={[...inventory]
+                        .map((p) => ({
+                          name: p.name,
+                          qty: p.stock_quantity || 0,
+                          value: (p.stock_quantity || 0) * (p.price || 0),
+                          cost: (p.stock_quantity || 0) * (p.cost_price || 0),
+                        }))
+                        .sort((a, b) => (invMetric === "value" ? b.value - a.value : b.qty - a.qty))
+                        .slice(0, 12)}
+                      layout="vertical"
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis type="number" tickFormatter={(v) => invMetric === "value" ? `${(v/1000).toFixed(0)}k` : String(v)} />
+                      <YAxis type="category" dataKey="name" width={150} tick={{ fontSize: 11 }} />
+                      <Tooltip formatter={(v: number) => invMetric === "value" ? formatRWF(v) : formatInt(v)} />
+                      <Legend />
+                      {invMetric === "value" ? (
+                        <>
+                          <Bar dataKey="value" name="Retail value" fill="hsl(40, 50%, 72%)" radius={[0,4,4,0]} />
+                          <Bar dataKey="cost" name="Cost value" fill="hsl(25, 35%, 28%)" radius={[0,4,4,0]} />
+                        </>
+                      ) : (
+                        <Bar dataKey="qty" name="Units in stock" fill="hsl(150, 50%, 40%)" radius={[0,4,4,0]} />
+                      )}
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : <p className="text-center text-muted-foreground py-8">No inventory</p>}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>
