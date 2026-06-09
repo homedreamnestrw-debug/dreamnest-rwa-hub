@@ -155,25 +155,91 @@ export default function Analytics() {
     return Object.entries(m).map(([name, value]) => ({ name, value }));
   }, [validOrders]);
 
+  const stockByProductId = useMemo(() => {
+    const m: Record<string, { qty: number; value: number; cost: number }> = {};
+    inventory.forEach((p) => {
+      const q = p.stock_quantity || 0;
+      m[p.id] = { qty: q, value: q * (p.price || 0), cost: q * (p.cost_price || 0) };
+    });
+    return m;
+  }, [inventory]);
+
+  const stockByProductName = useMemo(() => {
+    const m: Record<string, { qty: number; value: number }> = {};
+    inventory.forEach((p) => {
+      const q = p.stock_quantity || 0;
+      m[p.name] = { qty: q, value: q * (p.price || 0) };
+    });
+    return m;
+  }, [inventory]);
+
+  const stockByCategory = useMemo(() => {
+    const m: Record<string, { qty: number; value: number; cost: number }> = {};
+    inventory.forEach((p) => {
+      const name = p.categories?.name || "Uncategorized";
+      const q = p.stock_quantity || 0;
+      if (!m[name]) m[name] = { qty: 0, value: 0, cost: 0 };
+      m[name].qty += q;
+      m[name].value += q * (p.price || 0);
+      m[name].cost += q * (p.cost_price || 0);
+    });
+    return m;
+  }, [inventory]);
+
   const topProducts = useMemo(() => {
-    const m: Record<string, { name: string; revenue: number; qty: number }> = {};
+    const m: Record<string, { name: string; revenue: number; qty: number; stockQty: number; stockValue: number }> = {};
     validItems.forEach((i) => {
       const name = i.products?.name || "Unknown";
-      if (!m[name]) m[name] = { name, revenue: 0, qty: 0 };
+      if (!m[name]) m[name] = { name, revenue: 0, qty: 0, stockQty: 0, stockValue: 0 };
       m[name].revenue += i.total || 0;
       m[name].qty += i.quantity || 0;
     });
+    Object.values(m).forEach((p) => {
+      const s = stockByProductName[p.name];
+      if (s) { p.stockQty = s.qty; p.stockValue = s.value; }
+    });
     return Object.values(m).sort((a, b) => topMode === "revenue" ? b.revenue - a.revenue : b.qty - a.qty).slice(0, 10);
-  }, [validItems, topMode]);
+  }, [validItems, topMode, stockByProductName]);
 
   const topCategories = useMemo(() => {
-    const m: Record<string, number> = {};
+    const m: Record<string, { name: string; revenue: number; qty: number; stockQty: number; stockValue: number }> = {};
     validItems.forEach((i) => {
       const name = i.products?.categories?.name || "Uncategorized";
-      m[name] = (m[name] || 0) + (i.total || 0);
+      if (!m[name]) m[name] = { name, revenue: 0, qty: 0, stockQty: 0, stockValue: 0 };
+      m[name].revenue += i.total || 0;
+      m[name].qty += i.quantity || 0;
     });
-    return Object.entries(m).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 8);
-  }, [validItems]);
+    Object.entries(stockByCategory).forEach(([name, s]) => {
+      if (!m[name]) m[name] = { name, revenue: 0, qty: 0, stockQty: 0, stockValue: 0 };
+      m[name].stockQty = s.qty;
+      m[name].stockValue = s.value;
+    });
+    return Object.values(m).sort((a, b) => b.revenue - a.revenue).slice(0, 8);
+  }, [validItems, stockByCategory]);
+
+  const inventoryKpis = useMemo(() => {
+    const totalUnits = inventory.reduce((s, p) => s + (p.stock_quantity || 0), 0);
+    const retailValue = inventory.reduce((s, p) => s + (p.stock_quantity || 0) * (p.price || 0), 0);
+    const costValue = inventory.reduce((s, p) => s + (p.stock_quantity || 0) * (p.cost_price || 0), 0);
+    const skus = inventory.length;
+    const outOfStock = inventory.filter((p) => (p.stock_quantity || 0) <= 0).length;
+    const lowStock = inventory.filter((p) => {
+      const q = p.stock_quantity || 0;
+      const t = p.low_stock_threshold || 0;
+      return q > 0 && t > 0 && q <= t;
+    }).length;
+    const soldIds = new Set(validItems.map((i) => i.product_id).filter(Boolean) as string[]);
+    const deadStock = inventory.filter((p) => (p.stock_quantity || 0) > 0 && !soldIds.has(p.id)).length;
+    const potentialMargin = retailValue - costValue;
+    return { totalUnits, retailValue, costValue, skus, outOfStock, lowStock, deadStock, potentialMargin };
+  }, [inventory, validItems]);
+
+  const inventoryByCategory = useMemo(() => {
+    return Object.entries(stockByCategory)
+      .map(([name, s]) => ({ name, qty: s.qty, value: s.value, cost: s.cost }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10);
+  }, [stockByCategory]);
 
   const heatmap = useMemo(() => {
     // 7x24 grid
