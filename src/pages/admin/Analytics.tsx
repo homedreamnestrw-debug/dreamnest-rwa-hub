@@ -427,6 +427,116 @@ export default function Analytics() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Inventory Analytics */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-2 pt-2">
+            <h2 className="font-serif text-xl font-semibold">Inventory Analytics</h2>
+            <Tabs value={invMetric} onValueChange={(v) => setInvMetric(v as any)}>
+              <TabsList className="h-8"><TabsTrigger value="value" className="text-xs">Value (RWF)</TabsTrigger><TabsTrigger value="qty" className="text-xs">Quantity</TabsTrigger></TabsList>
+            </Tabs>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <KpiCard label="SKUs" value={formatInt(inventoryKpis.skus)} />
+            <KpiCard label="Total Units in Stock" value={formatInt(inventoryKpis.totalUnits)} />
+            <KpiCard label="Stock Value (retail)" value={formatRWF(inventoryKpis.retailValue)} />
+            <KpiCard label="Stock Value (cost)" value={formatRWF(inventoryKpis.costValue)} sub={`Potential margin ${formatRWF(inventoryKpis.potentialMargin)}`} />
+            <KpiCard label="Out of Stock" value={formatInt(inventoryKpis.outOfStock)} invertDelta />
+            <KpiCard label="Low Stock" value={formatInt(inventoryKpis.lowStock)} invertDelta />
+            <KpiCard label="Dead Stock (no sales)" value={formatInt(inventoryKpis.deadStock)} sub="In selected period" invertDelta />
+            <KpiCard label="Sell-through" value={`${inventoryKpis.totalUnits ? ((kpis.itemsSold / (inventoryKpis.totalUnits + kpis.itemsSold)) * 100).toFixed(1) : "0.0"}%`} sub="Sold ÷ (sold + stock)" />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader><CardTitle className="text-base">Stock by Category</CardTitle></CardHeader>
+              <CardContent>
+                {inventoryByCategory.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={320}>
+                    <BarChart data={inventoryByCategory} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis type="number" tickFormatter={(v) => invMetric === "value" ? `${(v/1000).toFixed(0)}k` : String(v)} />
+                      <YAxis type="category" dataKey="name" width={130} tick={{ fontSize: 11 }} />
+                      <Tooltip formatter={(v: number) => invMetric === "value" ? formatRWF(v) : formatInt(v)} />
+                      <Legend />
+                      {invMetric === "value" ? (
+                        <>
+                          <Bar dataKey="value" name="Retail value" fill="hsl(40, 50%, 72%)" radius={[0,4,4,0]} />
+                          <Bar dataKey="cost" name="Cost value" fill="hsl(25, 35%, 28%)" radius={[0,4,4,0]} />
+                        </>
+                      ) : (
+                        <Bar dataKey="qty" name="Units" fill="hsl(150, 50%, 40%)" radius={[0,4,4,0]} />
+                      )}
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : <p className="text-center text-muted-foreground py-8">No inventory data</p>}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle className="text-base">Stock Health</CardTitle></CardHeader>
+              <CardContent>
+                {(() => {
+                  const inStock = inventoryKpis.skus - inventoryKpis.outOfStock - inventoryKpis.lowStock;
+                  const data = [
+                    { name: "Healthy", value: Math.max(0, inStock) },
+                    { name: "Low Stock", value: inventoryKpis.lowStock },
+                    { name: "Out of Stock", value: inventoryKpis.outOfStock },
+                    { name: "Dead Stock", value: inventoryKpis.deadStock },
+                  ].filter((d) => d.value > 0);
+                  const healthColors = ["hsl(150, 50%, 40%)", "hsl(40, 70%, 55%)", "hsl(0, 72%, 51%)", "hsl(280, 30%, 55%)"];
+                  return data.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={320}>
+                      <PieChart>
+                        <Pie data={data} cx="50%" cy="50%" outerRadius={100} dataKey="value" label={({ name, value }) => `${name}: ${value}`}>
+                          {data.map((_, i) => <Cell key={i} fill={healthColors[i % healthColors.length]} />)}
+                        </Pie>
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : <p className="text-center text-muted-foreground py-8">No data</p>;
+                })()}
+              </CardContent>
+            </Card>
+
+            <Card className="lg:col-span-2">
+              <CardHeader><CardTitle className="text-base">Top Stock Holdings (by value)</CardTitle></CardHeader>
+              <CardContent>
+                {inventory.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={360}>
+                    <BarChart
+                      data={[...inventory]
+                        .map((p) => ({
+                          name: p.name,
+                          qty: p.stock_quantity || 0,
+                          value: (p.stock_quantity || 0) * (p.price || 0),
+                          cost: (p.stock_quantity || 0) * (p.cost_price || 0),
+                        }))
+                        .sort((a, b) => (invMetric === "value" ? b.value - a.value : b.qty - a.qty))
+                        .slice(0, 12)}
+                      layout="vertical"
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis type="number" tickFormatter={(v) => invMetric === "value" ? `${(v/1000).toFixed(0)}k` : String(v)} />
+                      <YAxis type="category" dataKey="name" width={150} tick={{ fontSize: 11 }} />
+                      <Tooltip formatter={(v: number) => invMetric === "value" ? formatRWF(v) : formatInt(v)} />
+                      <Legend />
+                      {invMetric === "value" ? (
+                        <>
+                          <Bar dataKey="value" name="Retail value" fill="hsl(40, 50%, 72%)" radius={[0,4,4,0]} />
+                          <Bar dataKey="cost" name="Cost value" fill="hsl(25, 35%, 28%)" radius={[0,4,4,0]} />
+                        </>
+                      ) : (
+                        <Bar dataKey="qty" name="Units in stock" fill="hsl(150, 50%, 40%)" radius={[0,4,4,0]} />
+                      )}
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : <p className="text-center text-muted-foreground py-8">No inventory</p>}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
