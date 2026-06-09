@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, LineChart, Line,
@@ -24,11 +26,21 @@ type ItemRow = {
   orders: { created_at: string; status: string } | null;
 };
 
-type InventoryRow = {
-  id: string; name: string; price: number | null; cost_price: number | null;
-  stock_quantity: number | null; low_stock_threshold: number | null;
-  category_id: string | null; categories?: { name: string } | null;
+type StockRow = {
+  product_id: string;
+  location_id: string;
+  quantity: number;
+  location_name: string;
+  product_name: string;
+  price: number | null;
+  cost_price: number | null;
+  low_stock_threshold: number | null;
+  category_id: string | null;
+  category_name: string;
 };
+
+type LocationOpt = { id: string; name: string };
+type CategoryOpt = { id: string; name: string };
 
 const TERMINAL_BAD = new Set(["cancelled", "refunded"]);
 
@@ -38,10 +50,14 @@ export default function Analytics() {
   const [prevOrders, setPrevOrders] = useState<OrderRow[]>([]);
   const [items, setItems] = useState<ItemRow[]>([]);
   const [prevItems, setPrevItems] = useState<ItemRow[]>([]);
-  const [inventory, setInventory] = useState<InventoryRow[]>([]);
+  const [stockRows, setStockRows] = useState<StockRow[]>([]);
+  const [locations, setLocations] = useState<LocationOpt[]>([]);
+  const [categories, setCategories] = useState<CategoryOpt[]>([]);
   const [loading, setLoading] = useState(true);
   const [topMode, setTopMode] = useState<"revenue" | "qty">("revenue");
   const [invMetric, setInvMetric] = useState<"value" | "qty">("value");
+  const [invLocation, setInvLocation] = useState<string>("all");
+  const [invCategory, setInvCategory] = useState<string>("all");
   const reportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -78,14 +94,55 @@ export default function Analytics() {
   useEffect(() => {
     let active = true;
     (async () => {
-      const { data } = await supabase.from("products")
-        .select("id, name, price, cost_price, stock_quantity, low_stock_threshold, category_id, categories(name)")
-        .eq("is_active", true)
-        .limit(5000);
-      if (active) setInventory((data as any) || []);
+      const [stockRes, locRes, catRes] = await Promise.all([
+        supabase.from("product_stock")
+          .select("product_id, location_id, quantity, products!inner(name, price, cost_price, low_stock_threshold, category_id, is_active, categories(name)), stock_locations!inner(name, is_active)")
+          .limit(20000),
+        supabase.from("stock_locations").select("id, name").eq("is_active", true).order("name"),
+        supabase.from("categories").select("id, name").eq("is_active", true).order("name"),
+      ]);
+      if (!active) return;
+      const rows: StockRow[] = ((stockRes.data as any[]) || [])
+        .filter((r) => r.products?.is_active !== false && r.stock_locations?.is_active !== false)
+        .map((r) => ({
+          product_id: r.product_id,
+          location_id: r.location_id,
+          quantity: r.quantity || 0,
+          location_name: r.stock_locations?.name || "—",
+          product_name: r.products?.name || "Unknown",
+          price: r.products?.price ?? null,
+          cost_price: r.products?.cost_price ?? null,
+          low_stock_threshold: r.products?.low_stock_threshold ?? null,
+          category_id: r.products?.category_id ?? null,
+          category_name: r.products?.categories?.name || "Uncategorized",
+        }));
+      setStockRows(rows);
+      setLocations((locRes.data as any) || []);
+      setCategories((catRes.data as any) || []);
     })();
     return () => { active = false; };
   }, []);
+
+  const filteredStock = useMemo(() => stockRows.filter((r) =>
+    (invLocation === "all" || r.location_id === invLocation) &&
+    (invCategory === "all" || r.category_id === invCategory)
+  ), [stockRows, invLocation, invCategory]);
+
+  // Aggregate per-product (sum across filtered locations)
+  const inventory = useMemo(() => {
+    const m: Record<string, { id: string; name: string; price: number | null; cost_price: number | null; stock_quantity: number; low_stock_threshold: number | null; categories: { name: string }; category_id: string | null }> = {};
+    filteredStock.forEach((r) => {
+      if (!m[r.product_id]) {
+        m[r.product_id] = {
+          id: r.product_id, name: r.product_name, price: r.price, cost_price: r.cost_price,
+          stock_quantity: 0, low_stock_threshold: r.low_stock_threshold,
+          categories: { name: r.category_name }, category_id: r.category_id,
+        };
+      }
+      m[r.product_id].stock_quantity += r.quantity || 0;
+    });
+    return Object.values(m);
+  }, [filteredStock]);
 
   const validOrders = useMemo(() => orders.filter((o) => !TERMINAL_BAD.has(o.status)), [orders]);
   const validPrev = useMemo(() => prevOrders.filter((o) => !TERMINAL_BAD.has(o.status)), [prevOrders]);
@@ -437,6 +494,32 @@ export default function Analytics() {
             </Tabs>
           </div>
 
+          <div className="flex flex-wrap items-end gap-3 p-3 border rounded-md bg-card">
+            <div className="space-y-1">
+              <Label className="text-xs">Location / Warehouse</Label>
+              <Select value={invLocation} onValueChange={setInvLocation}>
+                <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All locations</SelectItem>
+                  {locations.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Category</Label>
+              <Select value={invCategory} onValueChange={setInvCategory}>
+                <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All categories</SelectItem>
+                  {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="ml-auto text-xs text-muted-foreground">
+              Showing {formatInt(inventory.length)} product{inventory.length === 1 ? "" : "s"} across {formatInt(new Set(filteredStock.map((r) => r.location_id)).size)} location{new Set(filteredStock.map((r) => r.location_id)).size === 1 ? "" : "s"}
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <KpiCard label="SKUs" value={formatInt(inventoryKpis.skus)} />
             <KpiCard label="Total Units in Stock" value={formatInt(inventoryKpis.totalUnits)} />
@@ -496,6 +579,41 @@ export default function Analytics() {
                       </PieChart>
                     </ResponsiveContainer>
                   ) : <p className="text-center text-muted-foreground py-8">No data</p>;
+                })()}
+              </CardContent>
+            </Card>
+
+            <Card className="lg:col-span-2">
+              <CardHeader><CardTitle className="text-base">Stock by Location / Warehouse</CardTitle></CardHeader>
+              <CardContent>
+                {(() => {
+                  const m: Record<string, { name: string; qty: number; value: number; cost: number }> = {};
+                  filteredStock.forEach((r) => {
+                    if (!m[r.location_id]) m[r.location_id] = { name: r.location_name, qty: 0, value: 0, cost: 0 };
+                    m[r.location_id].qty += r.quantity || 0;
+                    m[r.location_id].value += (r.quantity || 0) * (r.price || 0);
+                    m[r.location_id].cost += (r.quantity || 0) * (r.cost_price || 0);
+                  });
+                  const data = Object.values(m).sort((a, b) => invMetric === "value" ? b.value - a.value : b.qty - a.qty);
+                  return data.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={data}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis tickFormatter={(v) => invMetric === "value" ? `${(v/1000).toFixed(0)}k` : String(v)} />
+                        <Tooltip formatter={(v: number) => invMetric === "value" ? formatRWF(v) : formatInt(v)} />
+                        <Legend />
+                        {invMetric === "value" ? (
+                          <>
+                            <Bar dataKey="value" name="Retail value" fill="hsl(40, 50%, 72%)" radius={[4,4,0,0]} />
+                            <Bar dataKey="cost" name="Cost value" fill="hsl(25, 35%, 28%)" radius={[4,4,0,0]} />
+                          </>
+                        ) : (
+                          <Bar dataKey="qty" name="Units" fill="hsl(150, 50%, 40%)" radius={[4,4,0,0]} />
+                        )}
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : <p className="text-center text-muted-foreground py-8">No stock at any location for this filter</p>;
                 })()}
               </CardContent>
             </Card>
