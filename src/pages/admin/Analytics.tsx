@@ -584,6 +584,41 @@ export default function Analytics() {
             </Card>
 
             <Card className="lg:col-span-2">
+              <CardHeader><CardTitle className="text-base">Stock by Location / Warehouse</CardTitle></CardHeader>
+              <CardContent>
+                {(() => {
+                  const m: Record<string, { name: string; qty: number; value: number; cost: number }> = {};
+                  filteredStock.forEach((r) => {
+                    if (!m[r.location_id]) m[r.location_id] = { name: r.location_name, qty: 0, value: 0, cost: 0 };
+                    m[r.location_id].qty += r.quantity || 0;
+                    m[r.location_id].value += (r.quantity || 0) * (r.price || 0);
+                    m[r.location_id].cost += (r.quantity || 0) * (r.cost_price || 0);
+                  });
+                  const data = Object.values(m).sort((a, b) => invMetric === "value" ? b.value - a.value : b.qty - a.qty);
+                  return data.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={data}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis tickFormatter={(v) => invMetric === "value" ? `${(v/1000).toFixed(0)}k` : String(v)} />
+                        <Tooltip formatter={(v: number) => invMetric === "value" ? formatRWF(v) : formatInt(v)} />
+                        <Legend />
+                        {invMetric === "value" ? (
+                          <>
+                            <Bar dataKey="value" name="Retail value" fill="hsl(40, 50%, 72%)" radius={[4,4,0,0]} />
+                            <Bar dataKey="cost" name="Cost value" fill="hsl(25, 35%, 28%)" radius={[4,4,0,0]} />
+                          </>
+                        ) : (
+                          <Bar dataKey="qty" name="Units" fill="hsl(150, 50%, 40%)" radius={[4,4,0,0]} />
+                        )}
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : <p className="text-center text-muted-foreground py-8">No stock at any location for this filter</p>;
+                })()}
+              </CardContent>
+            </Card>
+
+            <Card className="lg:col-span-2">
               <CardHeader><CardTitle className="text-base">Top Stock Holdings (by value)</CardTitle></CardHeader>
               <CardContent>
                 {inventory.length > 0 ? (
