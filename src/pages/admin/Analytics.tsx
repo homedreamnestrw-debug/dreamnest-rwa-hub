@@ -494,6 +494,32 @@ export default function Analytics() {
             </Tabs>
           </div>
 
+          <div className="flex flex-wrap items-end gap-3 p-3 border rounded-md bg-card">
+            <div className="space-y-1">
+              <Label className="text-xs">Location / Warehouse</Label>
+              <Select value={invLocation} onValueChange={setInvLocation}>
+                <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All locations</SelectItem>
+                  {locations.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Category</Label>
+              <Select value={invCategory} onValueChange={setInvCategory}>
+                <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All categories</SelectItem>
+                  {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="ml-auto text-xs text-muted-foreground">
+              Showing {formatInt(inventory.length)} product{inventory.length === 1 ? "" : "s"} across {formatInt(new Set(filteredStock.map((r) => r.location_id)).size)} location{new Set(filteredStock.map((r) => r.location_id)).size === 1 ? "" : "s"}
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <KpiCard label="SKUs" value={formatInt(inventoryKpis.skus)} />
             <KpiCard label="Total Units in Stock" value={formatInt(inventoryKpis.totalUnits)} />
