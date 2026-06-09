@@ -258,8 +258,9 @@ export default function Analytics() {
       ...channelData.map((r) => ({ section: "Channel", label: r.name, value: r.value })),
       ...statusData.map((r) => ({ section: "Status", label: r.name, value: r.value })),
       ...paymentData.map((r) => ({ section: "Payment", label: r.name, value: r.value })),
-      ...topProducts.map((p) => ({ section: "Top Product", label: p.name, revenue: p.revenue, qty: p.qty })),
-      ...topCategories.map((c) => ({ section: "Category", label: c.name, value: c.value })),
+      ...topProducts.map((p) => ({ section: "Top Product", label: p.name, revenue: p.revenue, qty: p.qty, stock_qty: p.stockQty, stock_value: p.stockValue })),
+      ...topCategories.map((c) => ({ section: "Category", label: c.name, revenue: c.revenue, qty: c.qty, stock_qty: c.stockQty, stock_value: c.stockValue })),
+      ...inventoryByCategory.map((c) => ({ section: "Inventory by Category", label: c.name, qty: c.qty, retail_value: c.value, cost_value: c.cost })),
     ];
     downloadCSV(`analytics-${new Date().toISOString().slice(0, 10)}.csv`, rows);
   };
