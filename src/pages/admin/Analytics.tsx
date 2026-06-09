@@ -388,16 +388,18 @@ export default function Analytics() {
           </Card>
 
           <Card>
-            <CardHeader><CardTitle className="text-base">Top Categories</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">Top Categories — Sales vs Stock Value</CardTitle></CardHeader>
             <CardContent>
               {topCategories.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={topCategories} layout="vertical">
+                <ResponsiveContainer width="100%" height={360}>
+                  <BarChart data={topCategories} layout="vertical" barCategoryGap={8}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis type="number" tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} />
-                    <YAxis type="category" dataKey="name" width={120} />
+                    <YAxis type="category" dataKey="name" width={130} tick={{ fontSize: 11 }} />
                     <Tooltip formatter={(v: number) => formatRWF(v)} />
-                    <Bar dataKey="value" fill="hsl(150, 50%, 40%)" radius={[0,4,4,0]} />
+                    <Legend />
+                    <Bar dataKey="revenue" name="Sold (revenue)" fill="hsl(150, 50%, 40%)" radius={[0,4,4,0]} />
+                    <Bar dataKey="stockValue" name="In stock (value)" fill="hsl(25, 35%, 28%)" radius={[0,4,4,0]} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : <p className="text-center text-muted-foreground py-8">No data</p>}
