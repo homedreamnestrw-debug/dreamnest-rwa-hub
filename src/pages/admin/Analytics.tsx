@@ -343,20 +343,31 @@ export default function Analytics() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-base">Top Products</CardTitle>
+              <CardTitle className="text-base">Top Products — Sold vs Stock</CardTitle>
               <Tabs value={topMode} onValueChange={(v) => setTopMode(v as any)}>
-                <TabsList className="h-8"><TabsTrigger value="revenue" className="text-xs">Revenue</TabsTrigger><TabsTrigger value="qty" className="text-xs">Quantity</TabsTrigger></TabsList>
+                <TabsList className="h-8"><TabsTrigger value="revenue" className="text-xs">Revenue / Value</TabsTrigger><TabsTrigger value="qty" className="text-xs">Quantity</TabsTrigger></TabsList>
               </Tabs>
             </CardHeader>
             <CardContent>
               {topProducts.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={topProducts} layout="vertical">
+                <ResponsiveContainer width="100%" height={360}>
+                  <BarChart data={topProducts} layout="vertical" barCategoryGap={8}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis type="number" tickFormatter={(v) => topMode === "revenue" ? `${(v/1000).toFixed(0)}k` : String(v)} />
-                    <YAxis type="category" dataKey="name" width={120} />
-                    <Tooltip formatter={(v: number) => topMode === "revenue" ? formatRWF(v) : formatInt(v)} />
-                    <Bar dataKey={topMode === "revenue" ? "revenue" : "qty"} fill="hsl(40, 50%, 72%)" radius={[0,4,4,0]} />
+                    <YAxis type="category" dataKey="name" width={130} tick={{ fontSize: 11 }} />
+                    <Tooltip formatter={(v: number, n: string) => [topMode === "revenue" ? formatRWF(v) : formatInt(v), n]} />
+                    <Legend />
+                    {topMode === "revenue" ? (
+                      <>
+                        <Bar dataKey="revenue" name="Sold (revenue)" fill="hsl(40, 50%, 72%)" radius={[0,4,4,0]} />
+                        <Bar dataKey="stockValue" name="In stock (value)" fill="hsl(25, 35%, 28%)" radius={[0,4,4,0]} />
+                      </>
+                    ) : (
+                      <>
+                        <Bar dataKey="qty" name="Sold (qty)" fill="hsl(40, 50%, 72%)" radius={[0,4,4,0]} />
+                        <Bar dataKey="stockQty" name="In stock (qty)" fill="hsl(25, 35%, 28%)" radius={[0,4,4,0]} />
+                      </>
+                    )}
                   </BarChart>
                 </ResponsiveContainer>
               ) : <p className="text-center text-muted-foreground py-8">No data</p>}
