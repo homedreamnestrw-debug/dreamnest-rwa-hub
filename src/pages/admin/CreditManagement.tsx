@@ -196,7 +196,6 @@ export default function CreditManagement() {
     fetch();
   };
 
-  const ageDays = (d: string) => Math.floor((Date.now() - new Date(d).getTime()) / (24 * 60 * 60 * 1000));
 
   return (
     <div className="space-y-6">
