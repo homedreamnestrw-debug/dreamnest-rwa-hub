@@ -49,6 +49,9 @@ export default function CreditManagement() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "outstanding" | "settled">("outstanding");
+  const [ageBucket, setAgeBucket] = useState<"all" | "current" | "30" | "60" | "over90">("all");
+  const [view, setView] = useState<"orders" | "customers">("orders");
+  const [sortBy, setSortBy] = useState<"date_desc" | "date_asc" | "balance_desc" | "age_desc">("date_desc");
   const [detailOrderId, setDetailOrderId] = useState<string | null>(null);
   const [historyRow, setHistoryRow] = useState<Row | null>(null);
   const [payRow, setPayRow] = useState<Row | null>(null);
@@ -59,14 +62,12 @@ export default function CreditManagement() {
 
   const fetch = async () => {
     setLoading(true);
-    // All credit payments (these reveal which orders had credit)
     const { data: allPayments } = await supabase
       .from("credit_payments")
       .select("*")
       .order("created_at", { ascending: false });
     const paidOrderIds = new Set((allPayments || []).map((p: any) => p.order_id));
 
-    // Orders currently unpaid/partial OR previously had credit payments
     const { data: orders } = await supabase
       .from("orders")
       .select("id, order_number, total, payment_status, payment_method, channel, guest_name, guest_phone, guest_email, customer_id, created_at, status")
@@ -88,27 +89,75 @@ export default function CreditManagement() {
 
   useEffect(() => { fetch(); }, []);
 
+  const ageDays = (d: string) => Math.floor((Date.now() - new Date(d).getTime()) / (24 * 60 * 60 * 1000));
+  const bucketOf = (days: number): "current" | "30" | "60" | "over90" =>
+    days <= 30 ? "current" : days <= 60 ? "30" : days <= 90 ? "60" : "over90";
+
+  const aging = (() => {
+    const out = rows.filter(r => r.balance > 0);
+    const buckets: Record<string, number> = { current: 0, "30": 0, "60": 0, over90: 0 };
+    out.forEach(r => { buckets[bucketOf(ageDays(r.created_at))] += r.balance; });
+    return buckets;
+  })();
+
+  const customerRows = (() => {
+    const byKey: Record<string, {
+      key: string; name: string; phone: string | null; email: string | null;
+      total: number; paid: number; balance: number; orders: number;
+      oldestDays: number; lastOrder: string;
+    }> = {};
+    rows.forEach((r) => {
+      const key = r.customer_id || r.guest_phone || r.guest_email || r.guest_name || r.id;
+      const age = ageDays(r.created_at);
+      if (!byKey[key]) {
+        byKey[key] = {
+          key, name: r.guest_name || "Walk-in", phone: r.guest_phone, email: r.guest_email,
+          total: 0, paid: 0, balance: 0, orders: 0, oldestDays: 0, lastOrder: r.created_at,
+        };
+      }
+      const c = byKey[key];
+      c.total += r.total; c.paid += r.paid; c.balance += r.balance; c.orders += 1;
+      if (r.balance > 0 && age > c.oldestDays) c.oldestDays = age;
+      if (new Date(r.created_at) > new Date(c.lastOrder)) c.lastOrder = r.created_at;
+    });
+    return Object.values(byKey);
+  })();
+
   const totals = {
     outstanding: rows.filter(r => r.balance > 0).reduce((s, r) => s + r.balance, 0),
     collected: rows.reduce((s, r) => s + r.paid, 0),
-    overdue: rows.filter(r => r.balance > 0 && (Date.now() - new Date(r.created_at).getTime()) > 30 * 24 * 60 * 60 * 1000).length,
-    customers: new Set(rows.filter(r => r.balance > 0).map(r => r.guest_phone || r.guest_name || r.id)).size,
+    overdue: rows.filter(r => r.balance > 0 && ageDays(r.created_at) > 30).length,
+    customers: new Set(rows.filter(r => r.balance > 0).map(r => r.customer_id || r.guest_phone || r.guest_email || r.guest_name || r.id)).size,
   };
 
-  const filtered = rows.filter((r) => {
-    if (filter === "outstanding" && r.balance <= 0) return false;
-    if (filter === "settled" && r.balance > 0) return false;
-    if (search) {
-      const s = search.toLowerCase();
-      if (
-        !String(r.order_number).includes(search) &&
-        !(r.guest_name || "").toLowerCase().includes(s) &&
-        !(r.guest_phone || "").includes(search) &&
-        !(r.guest_email || "").toLowerCase().includes(s)
-      ) return false;
-    }
-    return true;
-  });
+  const filtered = rows
+    .filter((r) => {
+      if (filter === "outstanding" && r.balance <= 0) return false;
+      if (filter === "settled" && r.balance > 0) return false;
+      if (ageBucket !== "all" && r.balance > 0 && bucketOf(ageDays(r.created_at)) !== ageBucket) return false;
+      if (search) {
+        const s = search.toLowerCase();
+        if (
+          !String(r.order_number).includes(search) &&
+          !(r.guest_name || "").toLowerCase().includes(s) &&
+          !(r.guest_phone || "").includes(search) &&
+          !(r.guest_email || "").toLowerCase().includes(s)
+        ) return false;
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortBy === "date_asc") return +new Date(a.created_at) - +new Date(b.created_at);
+      if (sortBy === "balance_desc") return b.balance - a.balance;
+      if (sortBy === "age_desc") return ageDays(b.created_at) - ageDays(a.created_at);
+      return +new Date(b.created_at) - +new Date(a.created_at);
+    });
+
+  const filteredCustomers = customerRows
+    .filter(c => filter === "settled" ? c.balance <= 0 : filter === "all" ? true : c.balance > 0)
+    .filter(c => !search || (c.name || "").toLowerCase().includes(search.toLowerCase()) || (c.phone || "").includes(search) || (c.email || "").toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => sortBy === "age_desc" ? b.oldestDays - a.oldestDays : b.balance - a.balance);
+
 
   const openPay = (r: Row) => {
     setPayRow(r);
