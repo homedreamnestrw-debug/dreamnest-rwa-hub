@@ -94,17 +94,33 @@ export default function Analytics() {
   useEffect(() => {
     let active = true;
     (async () => {
-      const [stockRes, locRes, catRes] = await Promise.all([
+      const [stockRes, variantStockRes, variantsRes, locRes, catRes] = await Promise.all([
         supabase.from("product_stock")
           .select("product_id, location_id, quantity, products!inner(name, price, cost_price, low_stock_threshold, category_id, is_active, categories(name)), stock_locations!inner(name, is_active)")
           .limit(20000),
+        supabase.from("variant_stock")
+          .select("variant_id, location_id, quantity, product_variants!inner(id, product_id, variant_name, price_override, is_active, products!inner(name, price, cost_price, low_stock_threshold, category_id, is_active, categories(name))), stock_locations!inner(name, is_active)")
+          .limit(20000),
+        supabase.from("product_variants").select("product_id").eq("is_active", true).limit(20000),
         supabase.from("stock_locations").select("id, name").eq("is_active", true).order("name"),
         supabase.from("categories").select("id, name").eq("is_active", true).order("name"),
       ]);
       if (!active) return;
-      const rows: StockRow[] = ((stockRes.data as any[]) || [])
-        .filter((r) => r.products?.is_active !== false && r.stock_locations?.is_active !== false)
-        .map((r) => ({
+
+      // Products that have active variants — for these, skip product_stock rows
+      // (stock lives on variant_stock and product_stock rows are placeholder zeros).
+      const productsWithVariants = new Set<string>(
+        ((variantsRes.data as any[]) || []).map((v) => v.product_id)
+      );
+
+      const rows: StockRow[] = [];
+
+      // Non-variant products → from product_stock
+      ((stockRes.data as any[]) || []).forEach((r) => {
+        if (!r.products || r.products.is_active === false) return;
+        if (!r.stock_locations || r.stock_locations.is_active === false) return;
+        if (productsWithVariants.has(r.product_id)) return;
+        rows.push({
           product_id: r.product_id,
           location_id: r.location_id,
           quantity: r.quantity || 0,
@@ -115,7 +131,30 @@ export default function Analytics() {
           low_stock_threshold: r.products?.low_stock_threshold ?? null,
           category_id: r.products?.category_id ?? null,
           category_name: r.products?.categories?.name || "Uncategorized",
-        }));
+        });
+      });
+
+      // Variant products → from variant_stock (price falls back to parent product price)
+      ((variantStockRes.data as any[]) || []).forEach((r) => {
+        const v = r.product_variants;
+        if (!v || v.is_active === false) return;
+        const p = v.products;
+        if (!p || p.is_active === false) return;
+        if (!r.stock_locations || r.stock_locations.is_active === false) return;
+        rows.push({
+          product_id: v.product_id,
+          location_id: r.location_id,
+          quantity: r.quantity || 0,
+          location_name: r.stock_locations?.name || "—",
+          product_name: p.name || "Unknown",
+          price: v.price_override ?? p.price ?? null,
+          cost_price: p.cost_price ?? null,
+          low_stock_threshold: p.low_stock_threshold ?? null,
+          category_id: p.category_id ?? null,
+          category_name: p.categories?.name || "Uncategorized",
+        });
+      });
+
       setStockRows(rows);
       setLocations((locRes.data as any) || []);
       setCategories((catRes.data as any) || []);
@@ -618,8 +657,8 @@ export default function Analytics() {
               </CardContent>
             </Card>
 
-            <Card className="lg:col-span-2">
-              <CardHeader><CardTitle className="text-base">Top Stock Holdings (by value)</CardTitle></CardHeader>
+            <Card>
+              <CardHeader><CardTitle className="text-base">Top Stock Holdings {invMetric === "value" ? "(by value)" : "(by qty)"}</CardTitle></CardHeader>
               <CardContent>
                 {inventory.length > 0 ? (
                   <ResponsiveContainer width="100%" height={360}>
@@ -651,6 +690,46 @@ export default function Analytics() {
                     </BarChart>
                   </ResponsiveContainer>
                 ) : <p className="text-center text-muted-foreground py-8">No inventory</p>}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Lowest Stock Holdings {invMetric === "value" ? "(by value)" : "(by qty)"}</CardTitle>
+                <p className="text-xs text-muted-foreground">Smallest on-hand {invMetric === "value" ? "stock value" : "quantity"} — restock or clearance candidates (excludes out-of-stock).</p>
+              </CardHeader>
+              <CardContent>
+                {(() => {
+                  const data = [...inventory]
+                    .map((p) => ({
+                      name: p.name,
+                      qty: p.stock_quantity || 0,
+                      value: (p.stock_quantity || 0) * (p.price || 0),
+                      cost: (p.stock_quantity || 0) * (p.cost_price || 0),
+                    }))
+                    .filter((d) => d.qty > 0)
+                    .sort((a, b) => (invMetric === "value" ? a.value - b.value : a.qty - b.qty))
+                    .slice(0, 12);
+                  return data.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={360}>
+                      <BarChart data={data} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis type="number" tickFormatter={(v) => invMetric === "value" ? `${(v/1000).toFixed(0)}k` : String(v)} />
+                        <YAxis type="category" dataKey="name" width={150} tick={{ fontSize: 11 }} />
+                        <Tooltip formatter={(v: number) => invMetric === "value" ? formatRWF(v) : formatInt(v)} />
+                        <Legend />
+                        {invMetric === "value" ? (
+                          <>
+                            <Bar dataKey="value" name="Retail value" fill="hsl(0, 60%, 60%)" radius={[0,4,4,0]} />
+                            <Bar dataKey="cost" name="Cost value" fill="hsl(25, 35%, 28%)" radius={[0,4,4,0]} />
+                          </>
+                        ) : (
+                          <Bar dataKey="qty" name="Units in stock" fill="hsl(0, 60%, 60%)" radius={[0,4,4,0]} />
+                        )}
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : <p className="text-center text-muted-foreground py-8">No items in stock</p>;
+                })()}
               </CardContent>
             </Card>
           </div>
