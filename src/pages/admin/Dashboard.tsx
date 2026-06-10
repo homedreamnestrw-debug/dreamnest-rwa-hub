@@ -29,12 +29,13 @@ export default function Dashboard() {
   const [orders, setOrders] = useState<OrderLite[]>([]);
   const [items, setItems] = useState<ItemLite[]>([]);
   const [expenses, setExpenses] = useState<{ amount: number; expense_date: string }[]>([]);
+  const [creditPayments, setCreditPayments] = useState<{ order_id: string; amount: number }[]>([]);
   const [counts, setCounts] = useState({ products: 0, customers: 0, lowStock: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
-      const [ordersRes, productsRes, customersRes, lowStockRes, expensesRes] = await Promise.all([
+      const [ordersRes, productsRes, customersRes, lowStockRes, expensesRes, creditRes] = await Promise.all([
         supabase.from("orders")
           .select("id, total, created_at, status, payment_status, payment_approved, channel, order_number")
           .order("created_at", { ascending: false })
@@ -43,6 +44,7 @@ export default function Dashboard() {
         supabase.from("profiles").select("id", { count: "exact", head: true }),
         supabase.from("products").select("id", { count: "exact", head: true }).lt("stock_quantity", 5),
         supabase.from("expenses").select("amount, expense_date").limit(2000),
+        supabase.from("credit_payments").select("order_id, amount").limit(5000),
       ]);
 
       const ords = (ordersRes.data as OrderLite[]) || [];
@@ -59,6 +61,7 @@ export default function Dashboard() {
       setOrders(ords);
       setItems(its);
       setExpenses((expensesRes.data as any) || []);
+      setCreditPayments((creditRes.data as any) || []);
       setCounts({
         products: productsRes.count || 0,
         customers: customersRes.count || 0,
@@ -68,15 +71,29 @@ export default function Dashboard() {
     })();
   }, []);
 
+
   const m = useMemo(() => {
     const valid = orders.filter((o) => !TERMINAL_BAD.has(o.status));
     const cancelledRefunded = orders.filter((o) => TERMINAL_BAD.has(o.status));
 
+    // Credit payments collected per order
+    const paidByOrder: Record<string, number> = {};
+    creditPayments.forEach((p) => {
+      paidByOrder[p.order_id] = (paidByOrder[p.order_id] || 0) + Number(p.amount || 0);
+    });
+
     const totalRevenue = valid.reduce((s, o) => s + (o.total || 0), 0);
-    const paid = valid.filter((o) => o.payment_status === "paid" || o.payment_approved === true);
-    const unpaid = valid.filter((o) => !(o.payment_status === "paid" || o.payment_approved === true));
-    const paidRevenue = paid.reduce((s, o) => s + (o.total || 0), 0);
-    const unpaidRevenue = unpaid.reduce((s, o) => s + (o.total || 0), 0);
+
+    // Per-order paid amount: paid -> full; partial -> credit payments sum; unpaid -> 0
+    const orderPaid = (o: OrderLite) => {
+      if (o.payment_status === "paid") return o.total || 0;
+      if (o.payment_status === "partial") return Math.min(paidByOrder[o.id] || 0, o.total || 0);
+      return 0; // unpaid (regardless of payment_approved, which is stock-deduction flag)
+    };
+    const paidRevenue = valid.reduce((s, o) => s + orderPaid(o), 0);
+    const unpaidRevenue = Math.max(totalRevenue - paidRevenue, 0);
+    const paidCount = valid.filter((o) => o.payment_status === "paid").length;
+    const unpaidCount = valid.filter((o) => o.payment_status !== "paid").length;
 
     const delivered = valid.filter((o) => ["delivered", "completed"].includes(o.status));
     const pending = valid.filter((o) => !["delivered", "completed"].includes(o.status));
@@ -108,9 +125,9 @@ export default function Dashboard() {
       const d = new Date(o.created_at);
       const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       if (k in idx) {
-        const isPaid = o.payment_status === "paid" || o.payment_approved === true;
-        if (isPaid) months[idx[k]].paid += o.total || 0;
-        else months[idx[k]].unpaid += o.total || 0;
+        const p = orderPaid(o);
+        months[idx[k]].paid += p;
+        months[idx[k]].unpaid += Math.max((o.total || 0) - p, 0);
       }
     });
     expenses.forEach((e) => {
@@ -121,7 +138,7 @@ export default function Dashboard() {
 
     return {
       totalRevenue, paidRevenue, unpaidRevenue,
-      paidCount: paid.length, unpaidCount: unpaid.length,
+      paidCount, unpaidCount,
       orderCount: valid.length,
       deliveredCount: delivered.length, pendingCount: pending.length,
       onlineCount: online.length, onlineRevenue: online.reduce((s, o) => s + (o.total || 0), 0),
@@ -131,7 +148,8 @@ export default function Dashboard() {
       cogs, grossProfit, margin, totalExpenses, netProfit,
       months,
     };
-  }, [orders, items, expenses]);
+  }, [orders, items, expenses, creditPayments]);
+
 
   const channelPie = useMemo(() => ([
     { name: "Online", value: m.onlineRevenue },
