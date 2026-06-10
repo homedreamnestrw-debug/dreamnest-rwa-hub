@@ -657,8 +657,8 @@ export default function Analytics() {
               </CardContent>
             </Card>
 
-            <Card className="lg:col-span-2">
-              <CardHeader><CardTitle className="text-base">Top Stock Holdings (by value)</CardTitle></CardHeader>
+            <Card>
+              <CardHeader><CardTitle className="text-base">Top Stock Holdings {invMetric === "value" ? "(by value)" : "(by qty)"}</CardTitle></CardHeader>
               <CardContent>
                 {inventory.length > 0 ? (
                   <ResponsiveContainer width="100%" height={360}>
@@ -690,6 +690,46 @@ export default function Analytics() {
                     </BarChart>
                   </ResponsiveContainer>
                 ) : <p className="text-center text-muted-foreground py-8">No inventory</p>}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Lowest Stock Holdings {invMetric === "value" ? "(by value)" : "(by qty)"}</CardTitle>
+                <p className="text-xs text-muted-foreground">Smallest on-hand {invMetric === "value" ? "stock value" : "quantity"} — restock or clearance candidates (excludes out-of-stock).</p>
+              </CardHeader>
+              <CardContent>
+                {(() => {
+                  const data = [...inventory]
+                    .map((p) => ({
+                      name: p.name,
+                      qty: p.stock_quantity || 0,
+                      value: (p.stock_quantity || 0) * (p.price || 0),
+                      cost: (p.stock_quantity || 0) * (p.cost_price || 0),
+                    }))
+                    .filter((d) => d.qty > 0)
+                    .sort((a, b) => (invMetric === "value" ? a.value - b.value : a.qty - b.qty))
+                    .slice(0, 12);
+                  return data.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={360}>
+                      <BarChart data={data} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis type="number" tickFormatter={(v) => invMetric === "value" ? `${(v/1000).toFixed(0)}k` : String(v)} />
+                        <YAxis type="category" dataKey="name" width={150} tick={{ fontSize: 11 }} />
+                        <Tooltip formatter={(v: number) => invMetric === "value" ? formatRWF(v) : formatInt(v)} />
+                        <Legend />
+                        {invMetric === "value" ? (
+                          <>
+                            <Bar dataKey="value" name="Retail value" fill="hsl(0, 60%, 60%)" radius={[0,4,4,0]} />
+                            <Bar dataKey="cost" name="Cost value" fill="hsl(25, 35%, 28%)" radius={[0,4,4,0]} />
+                          </>
+                        ) : (
+                          <Bar dataKey="qty" name="Units in stock" fill="hsl(0, 60%, 60%)" radius={[0,4,4,0]} />
+                        )}
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : <p className="text-center text-muted-foreground py-8">No items in stock</p>;
+                })()}
               </CardContent>
             </Card>
           </div>
