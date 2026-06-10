@@ -29,12 +29,13 @@ export default function Dashboard() {
   const [orders, setOrders] = useState<OrderLite[]>([]);
   const [items, setItems] = useState<ItemLite[]>([]);
   const [expenses, setExpenses] = useState<{ amount: number; expense_date: string }[]>([]);
+  const [creditPayments, setCreditPayments] = useState<{ order_id: string; amount: number }[]>([]);
   const [counts, setCounts] = useState({ products: 0, customers: 0, lowStock: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
-      const [ordersRes, productsRes, customersRes, lowStockRes, expensesRes] = await Promise.all([
+      const [ordersRes, productsRes, customersRes, lowStockRes, expensesRes, creditRes] = await Promise.all([
         supabase.from("orders")
           .select("id, total, created_at, status, payment_status, payment_approved, channel, order_number")
           .order("created_at", { ascending: false })
@@ -43,6 +44,7 @@ export default function Dashboard() {
         supabase.from("profiles").select("id", { count: "exact", head: true }),
         supabase.from("products").select("id", { count: "exact", head: true }).lt("stock_quantity", 5),
         supabase.from("expenses").select("amount, expense_date").limit(2000),
+        supabase.from("credit_payments").select("order_id, amount").limit(5000),
       ]);
 
       const ords = (ordersRes.data as OrderLite[]) || [];
@@ -59,6 +61,7 @@ export default function Dashboard() {
       setOrders(ords);
       setItems(its);
       setExpenses((expensesRes.data as any) || []);
+      setCreditPayments((creditRes.data as any) || []);
       setCounts({
         products: productsRes.count || 0,
         customers: customersRes.count || 0,
@@ -67,6 +70,7 @@ export default function Dashboard() {
       setLoading(false);
     })();
   }, []);
+
 
   const m = useMemo(() => {
     const valid = orders.filter((o) => !TERMINAL_BAD.has(o.status));
