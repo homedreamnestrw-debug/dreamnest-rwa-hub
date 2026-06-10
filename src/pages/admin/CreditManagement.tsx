@@ -229,7 +229,33 @@ export default function CreditManagement() {
         </div>
       </div>
 
+      {/* Aging buckets */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {([
+          { k: "current", label: "Current (0–30d)", val: aging.current, tone: "text-emerald-700" },
+          { k: "30", label: "31–60 days", val: aging["30"], tone: "text-amber-700" },
+          { k: "60", label: "61–90 days", val: aging["60"], tone: "text-orange-700" },
+          { k: "over90", label: "Over 90 days", val: aging.over90, tone: "text-destructive" },
+        ] as const).map(b => (
+          <button
+            key={b.k}
+            onClick={() => { setAgeBucket(ageBucket === b.k ? "all" : b.k); setView("orders"); setFilter("outstanding"); }}
+            className={`text-left rounded-lg border bg-card p-3 transition ${ageBucket === b.k ? "ring-2 ring-primary" : "hover:bg-muted/50"}`}
+          >
+            <div className="text-xs text-muted-foreground">{b.label}</div>
+            <div className={`text-lg font-semibold mt-0.5 ${b.tone}`}>{formatRWF(b.val)}</div>
+          </button>
+        ))}
+      </div>
+
       <div className="flex flex-wrap gap-2 items-center">
+        <div className="inline-flex rounded-md border overflow-hidden">
+          {(["orders", "customers"] as const).map(v => (
+            <button key={v} onClick={() => setView(v)} className={`px-3 py-1.5 text-sm capitalize ${view === v ? "bg-primary text-primary-foreground" : "bg-background hover:bg-muted"}`}>
+              By {v}
+            </button>
+          ))}
+        </div>
         <div className="inline-flex rounded-md border overflow-hidden">
           {(["outstanding", "all", "settled"] as const).map((k) => (
             <button
@@ -241,81 +267,148 @@ export default function CreditManagement() {
             </button>
           ))}
         </div>
+        {ageBucket !== "all" && (
+          <button onClick={() => setAgeBucket("all")} className="px-2 py-1 text-xs rounded border bg-muted hover:bg-muted/70">
+            Clear age filter
+          </button>
+        )}
+        <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
+          <SelectTrigger className="w-44 h-9"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="date_desc">Newest first</SelectItem>
+            <SelectItem value="date_asc">Oldest first</SelectItem>
+            <SelectItem value="balance_desc">Highest balance</SelectItem>
+            <SelectItem value="age_desc">Most overdue</SelectItem>
+          </SelectContent>
+        </Select>
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search by order, name, phone..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
         </div>
       </div>
 
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Order #</TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead className="text-right">Total</TableHead>
-              <TableHead className="text-right">Paid</TableHead>
-              <TableHead className="text-right">Balance</TableHead>
-              <TableHead>Age</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
-            ) : filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="text-center py-12 text-muted-foreground">No credit sales</TableCell></TableRow>
-            ) : filtered.map((r) => {
-              const age = ageDays(r.created_at);
-              const overdue = r.balance > 0 && age > 30;
-              return (
-                <TableRow key={r.id}>
-                  <TableCell className="font-medium">#{r.order_number}</TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      <div>{r.guest_name || "Walk-in"}</div>
-                      {r.guest_phone && <div className="text-xs text-muted-foreground">{r.guest_phone}</div>}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">{formatRWF(r.total)}</TableCell>
-                  <TableCell className="text-right text-green-700">{formatRWF(r.paid)}</TableCell>
-                  <TableCell className={`text-right font-semibold ${r.balance > 0 ? "text-amber-700" : "text-muted-foreground"}`}>
-                    {formatRWF(r.balance)}
-                  </TableCell>
-                  <TableCell className={`text-sm ${overdue ? "text-destructive font-medium" : "text-muted-foreground"}`}>
-                    {age}d
-                  </TableCell>
-                  <TableCell>
-                    {r.balance <= 0 ? (
-                      <Badge variant="default" className="bg-green-600 hover:bg-green-700">Settled</Badge>
-                    ) : r.paid > 0 ? (
-                      <Badge variant="secondary">Partial</Badge>
-                    ) : (
-                      <Badge variant="outline">Unpaid</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDetailOrderId(r.id)} title="View order">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setHistoryRow(r)} title="Payment history">
-                        <History className="h-4 w-4" />
-                      </Button>
-                      {r.balance > 0 && (
-                        <Button size="sm" className="h-8" onClick={() => openPay(r)}>
-                          Record Payment
-                        </Button>
+      {view === "orders" ? (
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Order #</TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead className="text-right">Total</TableHead>
+                <TableHead className="text-right">Paid</TableHead>
+                <TableHead className="text-right">Balance</TableHead>
+                <TableHead>Age</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
+              ) : filtered.length === 0 ? (
+                <TableRow><TableCell colSpan={8} className="text-center py-12 text-muted-foreground">No credit sales</TableCell></TableRow>
+              ) : filtered.map((r) => {
+                const age = ageDays(r.created_at);
+                const overdue = r.balance > 0 && age > 30;
+                const bk = bucketOf(age);
+                const bucketLabel = bk === "current" ? "0–30d" : bk === "30" ? "31–60d" : bk === "60" ? "61–90d" : "90d+";
+                return (
+                  <TableRow key={r.id}>
+                    <TableCell className="font-medium">#{r.order_number}</TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        <div>{r.guest_name || "Walk-in"}</div>
+                        {r.guest_phone && <div className="text-xs text-muted-foreground">{r.guest_phone}</div>}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">{formatRWF(r.total)}</TableCell>
+                    <TableCell className="text-right text-green-700">{formatRWF(r.paid)}</TableCell>
+                    <TableCell className={`text-right font-semibold ${r.balance > 0 ? "text-amber-700" : "text-muted-foreground"}`}>
+                      {formatRWF(r.balance)}
+                    </TableCell>
+                    <TableCell className={`text-sm ${overdue ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                      {age}d <span className="text-xs opacity-70">({bucketLabel})</span>
+                    </TableCell>
+                    <TableCell>
+                      {r.balance <= 0 ? (
+                        <Badge variant="default" className="bg-green-600 hover:bg-green-700">Settled</Badge>
+                      ) : r.paid > 0 ? (
+                        <Badge variant="secondary">Partial</Badge>
+                      ) : (
+                        <Badge variant="outline">Unpaid</Badge>
                       )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDetailOrderId(r.id)} title="View order">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setHistoryRow(r)} title="Payment history">
+                          <History className="h-4 w-4" />
+                        </Button>
+                        {r.balance > 0 && (
+                          <Button size="sm" className="h-8" onClick={() => openPay(r)}>
+                            Record Payment
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      ) : (
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Customer</TableHead>
+                <TableHead className="text-right">Orders</TableHead>
+                <TableHead className="text-right">Total</TableHead>
+                <TableHead className="text-right">Paid</TableHead>
+                <TableHead className="text-right">Outstanding</TableHead>
+                <TableHead>Oldest Balance</TableHead>
+                <TableHead>Last Order</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
+              ) : filteredCustomers.length === 0 ? (
+                <TableRow><TableCell colSpan={7} className="text-center py-12 text-muted-foreground">No customers</TableCell></TableRow>
+              ) : filteredCustomers.map((c) => {
+                const overdue = c.oldestDays > 30;
+                return (
+                  <TableRow key={c.key}>
+                    <TableCell>
+                      <div className="text-sm">
+                        <div className="font-medium">{c.name}</div>
+                        {c.phone && <div className="text-xs text-muted-foreground">{c.phone}</div>}
+                        {c.email && <div className="text-xs text-muted-foreground">{c.email}</div>}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">{c.orders}</TableCell>
+                    <TableCell className="text-right">{formatRWF(c.total)}</TableCell>
+                    <TableCell className="text-right text-green-700">{formatRWF(c.paid)}</TableCell>
+                    <TableCell className={`text-right font-semibold ${c.balance > 0 ? "text-amber-700" : "text-muted-foreground"}`}>
+                      {formatRWF(c.balance)}
+                    </TableCell>
+                    <TableCell className={`text-sm ${overdue ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                      {c.balance > 0 ? `${c.oldestDays}d` : "—"}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {format(new Date(c.lastOrder), "MMM d, yyyy")}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
 
       {/* Record payment */}
       <Dialog open={!!payRow} onOpenChange={(o) => !o && setPayRow(null)}>
