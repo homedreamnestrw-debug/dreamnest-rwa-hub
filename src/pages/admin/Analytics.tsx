@@ -94,17 +94,33 @@ export default function Analytics() {
   useEffect(() => {
     let active = true;
     (async () => {
-      const [stockRes, locRes, catRes] = await Promise.all([
+      const [stockRes, variantStockRes, variantsRes, locRes, catRes] = await Promise.all([
         supabase.from("product_stock")
           .select("product_id, location_id, quantity, products!inner(name, price, cost_price, low_stock_threshold, category_id, is_active, categories(name)), stock_locations!inner(name, is_active)")
           .limit(20000),
+        supabase.from("variant_stock")
+          .select("variant_id, location_id, quantity, product_variants!inner(id, product_id, variant_name, price_override, is_active, products!inner(name, price, cost_price, low_stock_threshold, category_id, is_active, categories(name))), stock_locations!inner(name, is_active)")
+          .limit(20000),
+        supabase.from("product_variants").select("product_id").eq("is_active", true).limit(20000),
         supabase.from("stock_locations").select("id, name").eq("is_active", true).order("name"),
         supabase.from("categories").select("id, name").eq("is_active", true).order("name"),
       ]);
       if (!active) return;
-      const rows: StockRow[] = ((stockRes.data as any[]) || [])
-        .filter((r) => r.products?.is_active !== false && r.stock_locations?.is_active !== false)
-        .map((r) => ({
+
+      // Products that have active variants — for these, skip product_stock rows
+      // (stock lives on variant_stock and product_stock rows are placeholder zeros).
+      const productsWithVariants = new Set<string>(
+        ((variantsRes.data as any[]) || []).map((v) => v.product_id)
+      );
+
+      const rows: StockRow[] = [];
+
+      // Non-variant products → from product_stock
+      ((stockRes.data as any[]) || []).forEach((r) => {
+        if (!r.products || r.products.is_active === false) return;
+        if (!r.stock_locations || r.stock_locations.is_active === false) return;
+        if (productsWithVariants.has(r.product_id)) return;
+        rows.push({
           product_id: r.product_id,
           location_id: r.location_id,
           quantity: r.quantity || 0,
@@ -115,7 +131,30 @@ export default function Analytics() {
           low_stock_threshold: r.products?.low_stock_threshold ?? null,
           category_id: r.products?.category_id ?? null,
           category_name: r.products?.categories?.name || "Uncategorized",
-        }));
+        });
+      });
+
+      // Variant products → from variant_stock (price falls back to parent product price)
+      ((variantStockRes.data as any[]) || []).forEach((r) => {
+        const v = r.product_variants;
+        if (!v || v.is_active === false) return;
+        const p = v.products;
+        if (!p || p.is_active === false) return;
+        if (!r.stock_locations || r.stock_locations.is_active === false) return;
+        rows.push({
+          product_id: v.product_id,
+          location_id: r.location_id,
+          quantity: r.quantity || 0,
+          location_name: r.stock_locations?.name || "—",
+          product_name: p.name || "Unknown",
+          price: v.price_override ?? p.price ?? null,
+          cost_price: p.cost_price ?? null,
+          low_stock_threshold: p.low_stock_threshold ?? null,
+          category_id: p.category_id ?? null,
+          category_name: p.categories?.name || "Uncategorized",
+        });
+      });
+
       setStockRows(rows);
       setLocations((locRes.data as any) || []);
       setCategories((catRes.data as any) || []);
