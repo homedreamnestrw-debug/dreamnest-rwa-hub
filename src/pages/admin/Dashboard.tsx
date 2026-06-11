@@ -25,6 +25,8 @@ type ItemLite = {
   products: { cost_price: number | null } | null;
 };
 
+type Period = "day" | "week" | "month" | "quarter" | "year";
+
 export default function Dashboard() {
   const [orders, setOrders] = useState<OrderLite[]>([]);
   const [items, setItems] = useState<ItemLite[]>([]);
@@ -32,6 +34,7 @@ export default function Dashboard() {
   const [creditPayments, setCreditPayments] = useState<{ order_id: string; amount: number }[]>([]);
   const [counts, setCounts] = useState({ products: 0, customers: 0, lowStock: 0 });
   const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState<Period>("month");
 
   useEffect(() => {
     (async () => {
