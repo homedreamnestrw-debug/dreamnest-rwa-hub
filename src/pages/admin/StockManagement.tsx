@@ -72,12 +72,20 @@ export default function StockManagement() {
     setVariants(vars);
     setVariantStock(vStockRes.data || []);
 
+    const userIds = Array.from(new Set((movRes.data || []).map((m: any) => m.performed_by).filter(Boolean)));
+    let profileMap = new Map<string, string>();
+    if (userIds.length > 0) {
+      const { data: profs } = await supabase.from("profiles").select("id, full_name").in("id", userIds);
+      profileMap = new Map((profs || []).map((p: any) => [p.id, p.full_name || "Staff"]));
+    }
+
     const varMap = new Map(vars.map((v) => [v.id, v]));
     const movs = (movRes.data || []).map((m) => ({
       ...m,
       product_name: prods.find((p) => p.id === m.product_id)?.name || "Unknown",
       variant_name: m.variant_id ? varMap.get(m.variant_id)?.variant_name ?? "—" : undefined,
       location_name: locs.find((l) => l.id === m.location_id)?.name || "—",
+      performed_by_name: m.performed_by ? (profileMap.get(m.performed_by) || "Staff") : "System",
     }));
     setMovements(movs);
     setLoading(false);
@@ -476,12 +484,13 @@ export default function StockManagement() {
                   <TableHead>Qty</TableHead>
                   <TableHead>Before → After</TableHead>
                   <TableHead>Location</TableHead>
+                  <TableHead>By</TableHead>
                   <TableHead>Reason</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {movements.length === 0 ? (
-                  <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No movements recorded</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No movements recorded</TableCell></TableRow>
                 ) : movements.map((m) => (
                   <TableRow key={m.id}>
                     <TableCell className="text-sm text-muted-foreground">{new Date(m.created_at).toLocaleString()}</TableCell>
@@ -493,6 +502,7 @@ export default function StockManagement() {
                     </TableCell>
                     <TableCell className="text-sm">{m.previous_stock} → {m.new_stock}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{m.location_name}</TableCell>
+                    <TableCell className="text-sm">{(m as any).performed_by_name || "—"}</TableCell>
                     <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{m.reason || "—"}</TableCell>
                   </TableRow>
                 ))}
