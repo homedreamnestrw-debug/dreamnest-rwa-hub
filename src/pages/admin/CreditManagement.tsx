@@ -195,10 +195,15 @@ export default function CreditManagement() {
       setProcessing(false);
       return;
     }
-    // If fully paid, update order payment_status
+    // If fully paid, update order payment_status and auto-mark related invoice/receipt as paid
     const newPaid = payRow.paid + payAmount;
     if (newPaid >= payRow.total) {
       await supabase.from("orders").update({ payment_status: "paid" } as any).eq("id", payRow.id);
+      await supabase
+        .from("invoices")
+        .update({ status: "paid", paid_at: new Date().toISOString() } as any)
+        .eq("order_id", payRow.id)
+        .in("document_type", ["receipt", "invoice"] as any);
     } else {
       await supabase.from("orders").update({ payment_status: "partial" } as any).eq("id", payRow.id);
     }
