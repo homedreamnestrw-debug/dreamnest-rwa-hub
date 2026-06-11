@@ -475,12 +475,21 @@ export default function CreditManagement() {
               ) : (
                 <div className="space-y-2">
                   {historyRow.payments.map((p) => (
-                    <div key={p.id} className="flex items-center justify-between rounded-md border p-3 text-sm">
-                      <div>
-                        <div className="font-medium">{formatRWF(p.amount)}</div>
-                        <div className="text-xs text-muted-foreground capitalize">{p.payment_method.replace("_", " ")} · {format(new Date(p.created_at), "MMM d, yyyy HH:mm")}</div>
-                        {p.note && <div className="text-xs mt-0.5">{p.note}</div>}
+                    <div key={p.id} className="rounded-md border p-3 text-sm space-y-1">
+                      <div className="flex items-center justify-between">
+                        <div className="font-semibold">{formatRWF(p.amount)}</div>
+                        <div className="text-xs text-muted-foreground capitalize">
+                          {p.payment_method.replace("_", " ")} · {format(new Date(p.created_at), "MMM d, yyyy HH:mm")}
+                        </div>
                       </div>
+                      <div className="text-xs text-muted-foreground">
+                        Received by: <span className="text-foreground font-medium">{p.received_by ? (receiverNames[p.received_by] || "Staff") : "—"}</span>
+                      </div>
+                      {p.note && (
+                        <div className="text-xs rounded bg-muted/60 p-2 mt-1">
+                          <span className="text-muted-foreground">Note:</span> {p.note}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
