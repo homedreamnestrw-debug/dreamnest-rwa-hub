@@ -36,6 +36,7 @@ type CreditPayment = {
   payment_method: string;
   note: string | null;
   created_at: string;
+  received_by: string | null;
 };
 
 type Row = Order & { paid: number; balance: number; payments: CreditPayment[] };
@@ -59,6 +60,7 @@ export default function CreditManagement() {
   const [payMethod, setPayMethod] = useState<string>("cash");
   const [payNote, setPayNote] = useState("");
   const [processing, setProcessing] = useState(false);
+  const [receiverNames, setReceiverNames] = useState<Record<string, string>>({});
 
   const fetch = async () => {
     setLoading(true);
@@ -67,6 +69,16 @@ export default function CreditManagement() {
       .select("*")
       .order("created_at", { ascending: false });
     const paidOrderIds = new Set((allPayments || []).map((p: any) => p.order_id));
+
+    const receiverIds = Array.from(new Set(((allPayments as any[]) || []).map(p => p.received_by).filter(Boolean)));
+    if (receiverIds.length) {
+      const { data: profs } = await supabase.from("profiles").select("user_id, full_name").in("user_id", receiverIds);
+      const map: Record<string, string> = {};
+      (profs || []).forEach((p: any) => { map[p.user_id] = p.full_name || "Staff"; });
+      setReceiverNames(map);
+    } else {
+      setReceiverNames({});
+    }
 
     const { data: orders } = await supabase
       .from("orders")
@@ -463,12 +475,21 @@ export default function CreditManagement() {
               ) : (
                 <div className="space-y-2">
                   {historyRow.payments.map((p) => (
-                    <div key={p.id} className="flex items-center justify-between rounded-md border p-3 text-sm">
-                      <div>
-                        <div className="font-medium">{formatRWF(p.amount)}</div>
-                        <div className="text-xs text-muted-foreground capitalize">{p.payment_method.replace("_", " ")} · {format(new Date(p.created_at), "MMM d, yyyy HH:mm")}</div>
-                        {p.note && <div className="text-xs mt-0.5">{p.note}</div>}
+                    <div key={p.id} className="rounded-md border p-3 text-sm space-y-1">
+                      <div className="flex items-center justify-between">
+                        <div className="font-semibold">{formatRWF(p.amount)}</div>
+                        <div className="text-xs text-muted-foreground capitalize">
+                          {p.payment_method.replace("_", " ")} · {format(new Date(p.created_at), "MMM d, yyyy HH:mm")}
+                        </div>
                       </div>
+                      <div className="text-xs text-muted-foreground">
+                        Received by: <span className="text-foreground font-medium">{p.received_by ? (receiverNames[p.received_by] || "Staff") : "—"}</span>
+                      </div>
+                      {p.note && (
+                        <div className="text-xs rounded bg-muted/60 p-2 mt-1">
+                          <span className="text-muted-foreground">Note:</span> {p.note}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
