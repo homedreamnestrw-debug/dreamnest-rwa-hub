@@ -36,6 +36,7 @@ type CreditPayment = {
   payment_method: string;
   note: string | null;
   created_at: string;
+  received_by: string | null;
 };
 
 type Row = Order & { paid: number; balance: number; payments: CreditPayment[] };
