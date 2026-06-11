@@ -286,7 +286,7 @@ export default function Dashboard() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <TrendingUp className="h-4 w-4" /> Revenue & Expenses — Last 12 Months
+            <TrendingUp className="h-4 w-4" /> Revenue & Expenses — {periodLabel[period]}
           </CardTitle>
         </CardHeader>
         <CardContent>
