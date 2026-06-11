@@ -59,6 +59,7 @@ export default function CreditManagement() {
   const [payMethod, setPayMethod] = useState<string>("cash");
   const [payNote, setPayNote] = useState("");
   const [processing, setProcessing] = useState(false);
+  const [receiverNames, setReceiverNames] = useState<Record<string, string>>({});
 
   const fetch = async () => {
     setLoading(true);
@@ -67,6 +68,16 @@ export default function CreditManagement() {
       .select("*")
       .order("created_at", { ascending: false });
     const paidOrderIds = new Set((allPayments || []).map((p: any) => p.order_id));
+
+    const receiverIds = Array.from(new Set(((allPayments as any[]) || []).map(p => p.received_by).filter(Boolean)));
+    if (receiverIds.length) {
+      const { data: profs } = await supabase.from("profiles").select("user_id, full_name").in("user_id", receiverIds);
+      const map: Record<string, string> = {};
+      (profs || []).forEach((p: any) => { map[p.user_id] = p.full_name || "Staff"; });
+      setReceiverNames(map);
+    } else {
+      setReceiverNames({});
+    }
 
     const { data: orders } = await supabase
       .from("orders")
