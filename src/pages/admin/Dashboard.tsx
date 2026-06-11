@@ -226,11 +226,27 @@ export default function Dashboard() {
     return <div className="flex items-center justify-center h-64 text-muted-foreground">Loading dashboard...</div>;
   }
 
+  const periodLabel: Record<Period, string> = {
+    day: "Today", week: "This Week", month: "This Month", quarter: "This Quarter", year: "This Year",
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-serif text-2xl font-semibold text-foreground">Dashboard</h1>
+        <div className="inline-flex rounded-md border overflow-hidden">
+          {(["day","week","month","quarter","year"] as Period[]).map(p => (
+            <button
+              key={p}
+              onClick={() => setPeriod(p)}
+              className={`px-3 py-1.5 text-sm capitalize transition ${period === p ? "bg-primary text-primary-foreground" : "bg-background hover:bg-muted"}`}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
       </div>
+      <p className="text-xs text-muted-foreground -mt-3">Showing data for: <span className="font-medium text-foreground">{periodLabel[period]}</span></p>
 
       {/* Headline KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
