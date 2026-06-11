@@ -76,10 +76,26 @@ export default function Dashboard() {
 
 
   const m = useMemo(() => {
-    const valid = orders.filter((o) => !TERMINAL_BAD.has(o.status));
-    const cancelledRefunded = orders.filter((o) => TERMINAL_BAD.has(o.status));
+    // Determine period start
+    const now = new Date();
+    const startOf = (() => {
+      const d = new Date(now);
+      if (period === "day") { d.setHours(0,0,0,0); return d; }
+      if (period === "week") { const day = (d.getDay()+6)%7; d.setDate(d.getDate()-day); d.setHours(0,0,0,0); return d; }
+      if (period === "month") return new Date(now.getFullYear(), now.getMonth(), 1);
+      if (period === "quarter") { const q = Math.floor(now.getMonth()/3); return new Date(now.getFullYear(), q*3, 1); }
+      return new Date(now.getFullYear(), 0, 1);
+    })();
+    const inPeriod = (iso: string) => new Date(iso) >= startOf;
 
-    // Credit payments collected per order
+    const ordersAll = orders.filter(o => inPeriod(o.created_at));
+    const expensesAll = expenses.filter(e => inPeriod(e.expense_date));
+    const ordersAllIds = new Set(ordersAll.map(o => o.id));
+    const itemsAll = items.filter(i => ordersAllIds.has(i.order_id));
+
+    const valid = ordersAll.filter((o) => !TERMINAL_BAD.has(o.status));
+    const cancelledRefunded = ordersAll.filter((o) => TERMINAL_BAD.has(o.status));
+
     const paidByOrder: Record<string, number> = {};
     creditPayments.forEach((p) => {
       paidByOrder[p.order_id] = (paidByOrder[p.order_id] || 0) + Number(p.amount || 0);
@@ -87,11 +103,10 @@ export default function Dashboard() {
 
     const totalRevenue = valid.reduce((s, o) => s + (o.total || 0), 0);
 
-    // Per-order paid amount: paid -> full; partial -> credit payments sum; unpaid -> 0
     const orderPaid = (o: OrderLite) => {
       if (o.payment_status === "paid") return o.total || 0;
       if (o.payment_status === "partial") return Math.min(paidByOrder[o.id] || 0, o.total || 0);
-      return 0; // unpaid (regardless of payment_approved, which is stock-deduction flag)
+      return 0;
     };
     const paidRevenue = valid.reduce((s, o) => s + orderPaid(o), 0);
     const unpaidRevenue = Math.max(totalRevenue - paidRevenue, 0);
@@ -104,39 +119,80 @@ export default function Dashboard() {
     const online = valid.filter((o) => o.channel === "online");
     const instore = valid.filter((o) => o.channel === "in_store");
 
-    const cogs = items.reduce((s, i) => s + (i.products?.cost_price || 0) * (i.quantity || 0), 0);
+    const cogs = itemsAll.reduce((s, i) => s + (i.products?.cost_price || 0) * (i.quantity || 0), 0);
     const grossProfit = totalRevenue - cogs;
     const margin = totalRevenue ? (grossProfit / totalRevenue) * 100 : 0;
 
-    const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+    const totalExpenses = expensesAll.reduce((s, e) => s + Number(e.amount || 0), 0);
     const netProfit = grossProfit - totalExpenses;
 
-    // monthly revenue (last 12 months) split paid/unpaid
-    const months: { key: string; label: string; paid: number; unpaid: number; expense: number }[] = [];
-    const now = new Date();
-    for (let i = 11; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      months.push({
-        key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
-        label: d.toLocaleString("default", { month: "short" }),
-        paid: 0, unpaid: 0, expense: 0,
-      });
-    }
+    // Build trend buckets adapted to period
+    type Bucket = { key: string; label: string; paid: number; unpaid: number; expense: number };
+    const buckets: Bucket[] = [];
     const idx: Record<string, number> = {};
-    months.forEach((mm, i) => (idx[mm.key] = i));
+    const keyOf = (d: Date): { key: string; label: string } => {
+      if (period === "day") {
+        // hours of today
+        return { key: `${d.getHours()}`, label: `${String(d.getHours()).padStart(2,"0")}h` };
+      }
+      if (period === "week") {
+        return { key: `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`, label: d.toLocaleDateString("default", { weekday: "short" }) };
+      }
+      if (period === "month") {
+        return { key: `${d.getMonth()}-${d.getDate()}`, label: `${d.getDate()}` };
+      }
+      if (period === "quarter") {
+        return { key: `${d.getFullYear()}-${d.getMonth()}`, label: d.toLocaleString("default", { month: "short" }) };
+      }
+      return { key: `${d.getFullYear()}-${d.getMonth()}`, label: d.toLocaleString("default", { month: "short" }) };
+    };
+
+    if (period === "day") {
+      for (let h = 0; h < 24; h++) {
+        buckets.push({ key: `${h}`, label: `${String(h).padStart(2,"0")}h`, paid: 0, unpaid: 0, expense: 0 });
+      }
+    } else if (period === "week") {
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(startOf); d.setDate(d.getDate() + i);
+        const k = keyOf(d);
+        buckets.push({ key: k.key, label: k.label, paid: 0, unpaid: 0, expense: 0 });
+      }
+    } else if (period === "month") {
+      const days = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      for (let i = 1; i <= days; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth(), i);
+        const k = keyOf(d);
+        buckets.push({ key: k.key, label: k.label, paid: 0, unpaid: 0, expense: 0 });
+      }
+    } else if (period === "quarter") {
+      const qStartMonth = Math.floor(now.getMonth() / 3) * 3;
+      for (let i = 0; i < 3; i++) {
+        const d = new Date(now.getFullYear(), qStartMonth + i, 1);
+        const k = keyOf(d);
+        buckets.push({ key: k.key, label: k.label, paid: 0, unpaid: 0, expense: 0 });
+      }
+    } else {
+      for (let i = 0; i < 12; i++) {
+        const d = new Date(now.getFullYear(), i, 1);
+        const k = keyOf(d);
+        buckets.push({ key: k.key, label: k.label, paid: 0, unpaid: 0, expense: 0 });
+      }
+    }
+    buckets.forEach((b, i) => (idx[b.key] = i));
+
     valid.forEach((o) => {
       const d = new Date(o.created_at);
-      const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const k = keyOf(d).key;
       if (k in idx) {
         const p = orderPaid(o);
-        months[idx[k]].paid += p;
-        months[idx[k]].unpaid += Math.max((o.total || 0) - p, 0);
+        buckets[idx[k]].paid += p;
+        buckets[idx[k]].unpaid += Math.max((o.total || 0) - p, 0);
       }
     });
-    expenses.forEach((e) => {
+    expensesAll.forEach((e) => {
       const d = new Date(e.expense_date);
-      const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      if (k in idx) months[idx[k]].expense += Number(e.amount || 0);
+      const k = keyOf(d).key;
+      if (k in idx) buckets[idx[k]].expense += Number(e.amount || 0);
     });
 
     return {
@@ -149,9 +205,9 @@ export default function Dashboard() {
       cancelledCount: cancelledRefunded.length,
       cancelledRevenue: cancelledRefunded.reduce((s, o) => s + (o.total || 0), 0),
       cogs, grossProfit, margin, totalExpenses, netProfit,
-      months,
+      months: buckets,
     };
-  }, [orders, items, expenses, creditPayments]);
+  }, [orders, items, expenses, creditPayments, period]);
 
 
   const channelPie = useMemo(() => ([
