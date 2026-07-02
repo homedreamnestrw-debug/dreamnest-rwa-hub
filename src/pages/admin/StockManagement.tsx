@@ -462,7 +462,21 @@ export default function StockManagement() {
                 <TableBody>
                   {lowStockProducts.map((p) => (
                     <TableRow key={p.id}>
-                      <TableCell className="font-medium">{p.name}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-3">
+                          {(() => {
+                            const imgs = visibleImages(p);
+                            return imgs[0] ? (
+                              <img src={imgs[0]} alt={p.name} className="h-9 w-9 rounded-md object-cover border bg-muted shrink-0" />
+                            ) : (
+                              <div className="h-9 w-9 rounded-md border bg-muted flex items-center justify-center shrink-0">
+                                <Package className="h-4 w-4 text-muted-foreground" />
+                              </div>
+                            );
+                          })()}
+                          <span>{p.name}</span>
+                        </div>
+                      </TableCell>
                       <TableCell className="text-muted-foreground">{p.sku || "—"}</TableCell>
                       <TableCell className="text-destructive font-semibold">{p.stock_quantity}</TableCell>
                       <TableCell>{p.low_stock_threshold}</TableCell>
