@@ -940,6 +940,19 @@ export default function POS() {
                     autoFocus
                   />
                 </div>
+                <Select value={sortMode} onValueChange={(v: any) => setSortMode(v)}>
+                  <SelectTrigger className="w-40 h-11">
+                    <ArrowUpDown className="h-4 w-4 mr-1 text-muted-foreground" />
+                    <SelectValue placeholder="Sort" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="default">Default</SelectItem>
+                    <SelectItem value="az">Name A-Z</SelectItem>
+                    <SelectItem value="za">Name Z-A</SelectItem>
+                    <SelectItem value="price_asc">Price: Low to High</SelectItem>
+                    <SelectItem value="price_desc">Price: High to Low</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <ScrollArea className="flex-1">
