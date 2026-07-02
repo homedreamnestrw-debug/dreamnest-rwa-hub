@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { visibleImages } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Search, Sparkles, Loader2, Languages, Wand2, Scissors, Type, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Sparkles, Loader2, Languages, Wand2, Scissors, Type, X, Package } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { ProductImageUpload } from "@/components/admin/ProductImageUpload";
@@ -609,11 +610,23 @@ export default function Products() {
             ) : filtered.map((p) => (
               <TableRow key={p.id}>
                 <TableCell className="font-medium">
-                  <div className="flex items-center gap-2">
-                    <span>{p.name}</span>
-                    {(p as any).variant_attributes && Object.keys((p as any).variant_attributes).length > 0 && (
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0">Variants</Badge>
-                    )}
+                  <div className="flex items-center gap-3">
+                    {(() => {
+                      const imgs = visibleImages(p);
+                      return imgs[0] ? (
+                        <img src={imgs[0]} alt={p.name} className="h-9 w-9 rounded-md object-cover border bg-muted shrink-0" />
+                      ) : (
+                        <div className="h-9 w-9 rounded-md border bg-muted flex items-center justify-center shrink-0">
+                          <Package className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      );
+                    })()}
+                    <div className="flex items-center gap-2">
+                      <span>{p.name}</span>
+                      {(p as any).variant_attributes && Object.keys((p as any).variant_attributes).length > 0 && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">Variants</Badge>
+                      )}
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell className="text-muted-foreground">{p.sku || "—"}</TableCell>
