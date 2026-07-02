@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import {
   Search, Plus, Minus, Trash2, CreditCard, Smartphone, Banknote,
   Loader2, Receipt, X, Printer, Download, MapPin, Clock, Percent, Gift, Edit2,
+  ArrowUpDown,
 } from "lucide-react";
 import { format } from "date-fns";
 import { buildOrderInvoicePdfFromData } from "@/lib/receiptUtils";
@@ -66,6 +67,7 @@ interface CompletedOrder {
 export default function POS() {
   const { user } = useAuth();
   const [search, setSearch] = useState("");
+  const [sortMode, setSortMode] = useState<"default" | "az" | "za" | "price_asc" | "price_desc">("default");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [submitting, setSubmitting] = useState(false);
@@ -263,6 +265,33 @@ export default function POS() {
       )
     );
   }) ?? [];
+
+  const sortedProducts = useMemo(() => {
+    const list = [...filtered];
+    const getStock = (p: any) => {
+      const variants = variantsByProduct.get(p.id) ?? [];
+      return variants.length > 0
+        ? variants.reduce((sum, v) => sum + Number(v.stock_quantity ?? 0), 0)
+        : Number(p.stock_quantity ?? 0);
+    };
+    switch (sortMode) {
+      case "az":
+        return list.sort((a, b) => a.name.localeCompare(b.name));
+      case "za":
+        return list.sort((a, b) => b.name.localeCompare(a.name));
+      case "price_asc":
+        return list.sort((a, b) => Number(a.price ?? 0) - Number(b.price ?? 0));
+      case "price_desc":
+        return list.sort((a, b) => Number(b.price ?? 0) - Number(a.price ?? 0));
+      default:
+        return list.sort((a, b) => {
+          const stockA = getStock(a);
+          const stockB = getStock(b);
+          if ((stockA > 0) !== (stockB > 0)) return stockB > 0 ? 1 : -1;
+          return a.name.localeCompare(b.name);
+        });
+    }
+  }, [filtered, sortMode, variantsByProduct]);
 
   const cartKey = (productId: string, variantId: string | null) => `${productId}::${variantId ?? ""}`;
 
@@ -911,11 +940,24 @@ export default function POS() {
                     autoFocus
                   />
                 </div>
+                <Select value={sortMode} onValueChange={(v: any) => setSortMode(v)}>
+                  <SelectTrigger className="w-40 h-11">
+                    <ArrowUpDown className="h-4 w-4 mr-1 text-muted-foreground" />
+                    <SelectValue placeholder="Sort" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="default">Default</SelectItem>
+                    <SelectItem value="az">Name A-Z</SelectItem>
+                    <SelectItem value="za">Name Z-A</SelectItem>
+                    <SelectItem value="price_asc">Price: Low to High</SelectItem>
+                    <SelectItem value="price_desc">Price: High to Low</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <ScrollArea className="flex-1">
                 <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
-                  {filtered.map((product: any) => {
+                  {sortedProducts.map((product: any) => {
                     const hasVar = productHasVariants(product);
                     const availableStock = getProductAvailableStock(product);
                     return (
@@ -946,7 +988,7 @@ export default function POS() {
                       </button>
                     );
                   })}
-                  {filtered.length === 0 && (
+                  {sortedProducts.length === 0 && (
                     <div className="col-span-full text-center py-12 text-muted-foreground">
                       {search ? "No products found" : "No products available"}
                     </div>
