@@ -266,6 +266,27 @@ export default function POS() {
     );
   }) ?? [];
 
+  const sortedProducts = useMemo(() => {
+    const list = [...filtered];
+    switch (sortMode) {
+      case "az":
+        return list.sort((a, b) => a.name.localeCompare(b.name));
+      case "za":
+        return list.sort((a, b) => b.name.localeCompare(a.name));
+      case "price_asc":
+        return list.sort((a, b) => Number(a.price ?? 0) - Number(b.price ?? 0));
+      case "price_desc":
+        return list.sort((a, b) => Number(b.price ?? 0) - Number(a.price ?? 0));
+      default:
+        return list.sort((a, b) => {
+          const stockA = getProductAvailableStock(a);
+          const stockB = getProductAvailableStock(b);
+          if ((stockA > 0) !== (stockB > 0)) return stockB > 0 ? 1 : -1;
+          return a.name.localeCompare(b.name);
+        });
+    }
+  }, [filtered, sortMode, getProductAvailableStock]);
+
   const cartKey = (productId: string, variantId: string | null) => `${productId}::${variantId ?? ""}`;
 
   const addToCart = useCallback((product: any, qty: number = 1, variant: VariantOption | null = null) => {
