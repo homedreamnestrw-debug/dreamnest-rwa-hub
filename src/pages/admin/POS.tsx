@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import {
   Search, Plus, Minus, Trash2, CreditCard, Smartphone, Banknote,
   Loader2, Receipt, X, Printer, Download, MapPin, Clock, Percent, Gift, Edit2,
+  ArrowUpDown,
 } from "lucide-react";
 import { format } from "date-fns";
 import { buildOrderInvoicePdfFromData } from "@/lib/receiptUtils";
