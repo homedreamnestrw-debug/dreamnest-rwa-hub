@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, Fragment } from "react";
+import { visibleImages } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
