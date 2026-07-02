@@ -385,9 +385,21 @@ export default function StockManagement() {
                           ) : null}
                         </TableCell>
                         <TableCell className="font-medium">
-                          <div className="flex items-center gap-2">
-                            <span>{p.name}</span>
-                            {hasVar && <Badge variant="outline" className="text-[10px] px-1.5 py-0">{variantsForProduct(p.id).length} variants</Badge>}
+                          <div className="flex items-center gap-3">
+                            {(() => {
+                              const imgs = visibleImages(p);
+                              return imgs[0] ? (
+                                <img src={imgs[0]} alt={p.name} className="h-9 w-9 rounded-md object-cover border bg-muted shrink-0" />
+                              ) : (
+                                <div className="h-9 w-9 rounded-md border bg-muted flex items-center justify-center shrink-0">
+                                  <Package className="h-4 w-4 text-muted-foreground" />
+                                </div>
+                              );
+                            })()}
+                            <div className="flex items-center gap-2">
+                              <span>{p.name}</span>
+                              {hasVar && <Badge variant="outline" className="text-[10px] px-1.5 py-0">{variantsForProduct(p.id).length} variants</Badge>}
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell className="text-muted-foreground">{p.sku || "—"}</TableCell>
