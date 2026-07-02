@@ -268,6 +268,12 @@ export default function POS() {
 
   const sortedProducts = useMemo(() => {
     const list = [...filtered];
+    const getStock = (p: any) => {
+      const variants = variantsByProduct.get(p.id) ?? [];
+      return variants.length > 0
+        ? variants.reduce((sum, v) => sum + Number(v.stock_quantity ?? 0), 0)
+        : Number(p.stock_quantity ?? 0);
+    };
     switch (sortMode) {
       case "az":
         return list.sort((a, b) => a.name.localeCompare(b.name));
@@ -279,13 +285,13 @@ export default function POS() {
         return list.sort((a, b) => Number(b.price ?? 0) - Number(a.price ?? 0));
       default:
         return list.sort((a, b) => {
-          const stockA = getProductAvailableStock(a);
-          const stockB = getProductAvailableStock(b);
+          const stockA = getStock(a);
+          const stockB = getStock(b);
           if ((stockA > 0) !== (stockB > 0)) return stockB > 0 ? 1 : -1;
           return a.name.localeCompare(b.name);
         });
     }
-  }, [filtered, sortMode, getProductAvailableStock]);
+  }, [filtered, sortMode, variantsByProduct]);
 
   const cartKey = (productId: string, variantId: string | null) => `${productId}::${variantId ?? ""}`;
 
