@@ -957,7 +957,7 @@ export default function POS() {
 
               <ScrollArea className="flex-1">
                 <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
-                  {filtered.map((product: any) => {
+                  {sortedProducts.map((product: any) => {
                     const hasVar = productHasVariants(product);
                     const availableStock = getProductAvailableStock(product);
                     return (
@@ -988,7 +988,7 @@ export default function POS() {
                       </button>
                     );
                   })}
-                  {filtered.length === 0 && (
+                  {sortedProducts.length === 0 && (
                     <div className="col-span-full text-center py-12 text-muted-foreground">
                       {search ? "No products found" : "No products available"}
                     </div>
