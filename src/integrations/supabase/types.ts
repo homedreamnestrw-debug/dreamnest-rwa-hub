@@ -14,6 +14,93 @@ export type Database = {
   }
   public: {
     Tables: {
+      active_sessions: {
+        Row: {
+          browser: string | null
+          created_at: string
+          device: string | null
+          id: string
+          ip_address: string | null
+          last_active_at: string
+          location: string | null
+          session_token: string
+          terminated_at: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          browser?: string | null
+          created_at?: string
+          device?: string | null
+          id?: string
+          ip_address?: string | null
+          last_active_at?: string
+          location?: string | null
+          session_token: string
+          terminated_at?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          browser?: string | null
+          created_at?: string
+          device?: string | null
+          id?: string
+          ip_address?: string | null
+          last_active_at?: string
+          location?: string | null
+          session_token?: string
+          terminated_at?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      auth_logs: {
+        Row: {
+          action: string
+          browser: string | null
+          created_at: string
+          device: string | null
+          email: string | null
+          id: string
+          ip_address: string | null
+          location: string | null
+          metadata: Json | null
+          session_id: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          browser?: string | null
+          created_at?: string
+          device?: string | null
+          email?: string | null
+          id?: string
+          ip_address?: string | null
+          location?: string | null
+          metadata?: Json | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          browser?: string | null
+          created_at?: string
+          device?: string | null
+          email?: string | null
+          id?: string
+          ip_address?: string | null
+          location?: string | null
+          metadata?: Json | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       business_settings: {
         Row: {
           address: string | null
@@ -865,6 +952,27 @@ export type Database = {
           },
         ]
       }
+      password_history: {
+        Row: {
+          created_at: string
+          id: string
+          password_hash: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          password_hash: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          password_hash?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       product_stock: {
         Row: {
           created_at: string
@@ -1059,33 +1167,51 @@ export type Database = {
       }
       profiles: {
         Row: {
+          backup_codes_hash: string[] | null
           city: string | null
           created_at: string
+          failed_login_attempts: number
           full_name: string | null
           id: string
+          last_activity_at: string | null
+          last_password_change: string | null
+          locked_until: string | null
           loyalty_points: number
+          mfa_enrolled: boolean
           phone: string | null
           shipping_address: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          backup_codes_hash?: string[] | null
           city?: string | null
           created_at?: string
+          failed_login_attempts?: number
           full_name?: string | null
           id?: string
+          last_activity_at?: string | null
+          last_password_change?: string | null
+          locked_until?: string | null
           loyalty_points?: number
+          mfa_enrolled?: boolean
           phone?: string | null
           shipping_address?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          backup_codes_hash?: string[] | null
           city?: string | null
           created_at?: string
+          failed_login_attempts?: number
           full_name?: string | null
           id?: string
+          last_activity_at?: string | null
+          last_password_change?: string | null
+          locked_until?: string | null
           loyalty_points?: number
+          mfa_enrolled?: boolean
           phone?: string | null
           shipping_address?: string | null
           updated_at?: string
