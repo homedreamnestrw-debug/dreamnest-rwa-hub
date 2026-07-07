@@ -1,26 +1,82 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import loginBedroom from "@/assets/login-bedroom.jpg";
 
+const LOCK_KEY = "dn_login_lock";
+const ATTEMPTS_KEY = "dn_login_attempts";
+const MAX_ATTEMPTS = 5;
+const LOCK_MS = 15 * 60 * 1000;
+
 export default function Login() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [lockedUntil, setLockedUntil] = useState<number | null>(null);
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const stored = localStorage.getItem(LOCK_KEY);
+    if (stored) {
+      const until = parseInt(stored, 10);
+      if (until > Date.now()) setLockedUntil(until);
+      else {
+        localStorage.removeItem(LOCK_KEY);
+        localStorage.removeItem(ATTEMPTS_KEY);
+      }
+    }
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const inactivityMsg = params.get("reason") === "inactivity";
+  const isLocked = lockedUntil !== null && lockedUntil > now;
+  const remainingMs = isLocked ? lockedUntil! - now : 0;
+  const remMin = Math.floor(remainingMs / 60000);
+  const remSec = Math.floor((remainingMs % 60000) / 1000);
+
+  const logAuth = async (action: string, userId?: string | null) => {
+    try {
+      await supabase.from("auth_logs").insert({
+        user_id: userId ?? null,
+        email,
+        action,
+        user_agent: navigator.userAgent,
+      });
+    } catch {}
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLocked) return;
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
-      toast.error(error.message);
+      const attempts = parseInt(localStorage.getItem(ATTEMPTS_KEY) || "0", 10) + 1;
+      localStorage.setItem(ATTEMPTS_KEY, String(attempts));
+      await logAuth("failed_login");
+      if (attempts >= MAX_ATTEMPTS) {
+        const until = Date.now() + LOCK_MS;
+        localStorage.setItem(LOCK_KEY, String(until));
+        setLockedUntil(until);
+        await logAuth("locked");
+        toast.error("Account locked for 15 minutes due to too many failed attempts");
+      } else {
+        toast.error(`${error.message} (${MAX_ATTEMPTS - attempts} attempts left)`);
+      }
     } else {
+      localStorage.removeItem(ATTEMPTS_KEY);
+      localStorage.removeItem(LOCK_KEY);
+      await logAuth("login", data.user?.id);
       toast.success("Welcome back!");
       navigate("/");
     }
@@ -65,6 +121,17 @@ export default function Login() {
             <p className="mt-2 text-muted-foreground">Sign in to your account</p>
           </div>
 
+          {inactivityMsg && (
+            <div className="rounded-md border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-900 dark:text-yellow-200">
+              You were logged out due to inactivity.
+            </div>
+          )}
+          {isLocked && (
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              Too many attempts. Try again in {remMin}:{remSec.toString().padStart(2, "0")}
+            </div>
+          )}
+
           <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -75,6 +142,7 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                disabled={isLocked}
               />
             </div>
             <div className="space-y-2">
@@ -91,9 +159,14 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                disabled={isLocked}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+              <Checkbox checked={remember} onCheckedChange={(v) => setRemember(!!v)} />
+              Remember me for 30 days (customers only)
+            </label>
+            <Button type="submit" className="w-full" disabled={loading || isLocked}>
               {loading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
