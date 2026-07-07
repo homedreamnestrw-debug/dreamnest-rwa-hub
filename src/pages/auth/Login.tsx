@@ -121,6 +121,17 @@ export default function Login() {
             <p className="mt-2 text-muted-foreground">Sign in to your account</p>
           </div>
 
+          {inactivityMsg && (
+            <div className="rounded-md border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-900 dark:text-yellow-200">
+              You were logged out due to inactivity.
+            </div>
+          )}
+          {isLocked && (
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              Too many attempts. Try again in {remMin}:{remSec.toString().padStart(2, "0")}
+            </div>
+          )}
+
           <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -131,6 +142,7 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                disabled={isLocked}
               />
             </div>
             <div className="space-y-2">
@@ -147,9 +159,14 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                disabled={isLocked}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+              <Checkbox checked={remember} onCheckedChange={(v) => setRemember(!!v)} />
+              Remember me for 30 days (customers only)
+            </label>
+            <Button type="submit" className="w-full" disabled={loading || isLocked}>
               {loading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
