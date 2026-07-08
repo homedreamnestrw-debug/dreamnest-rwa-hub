@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { PasswordStrengthMeter, checkPassword } from "@/components/PasswordStrengthMeter";
 
 export default function Signup() {
   const [fullName, setFullName] = useState("");
@@ -15,6 +16,11 @@ export default function Signup() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    const pw = checkPassword(password);
+    if (!pw.valid) {
+      toast.error("Password too weak: " + pw.errors.join(", "));
+      return;
+    }
     setLoading(true);
     const { error } = await supabase.auth.signUp({
       email,
@@ -79,7 +85,8 @@ export default function Signup() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
+              <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} />
+              <PasswordStrengthMeter password={password} />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Creating account..." : "Create Account"}
