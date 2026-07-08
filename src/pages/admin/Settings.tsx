@@ -7,8 +7,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { Save, Building2, CreditCard, Mail, Heart, FileText, Upload, Loader2, Globe, Database } from "lucide-react";
+import { Save, Building2, CreditCard, Mail, Heart, FileText, Upload, Loader2, Globe, Database, Shield } from "lucide-react";
 import { DataBackup } from "@/components/admin/DataBackup";
+import { ActiveSessions } from "@/components/ActiveSessions";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
@@ -180,6 +181,7 @@ export default function Settings() {
           <TabsTrigger value="receipt"><FileText className="h-4 w-4 mr-1" /> Receipt</TabsTrigger>
           <TabsTrigger value="website"><Globe className="h-4 w-4 mr-1" /> Website</TabsTrigger>
           <TabsTrigger value="backup"><Database className="h-4 w-4 mr-1" /> Backup</TabsTrigger>
+          <TabsTrigger value="security"><Shield className="h-4 w-4 mr-1" /> Security</TabsTrigger>
         </TabsList>
 
         <TabsContent value="business" className="space-y-4 mt-4">
