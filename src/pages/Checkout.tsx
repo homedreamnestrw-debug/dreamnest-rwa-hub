@@ -167,10 +167,13 @@ export default function Checkout() {
       }
 
       const effectivePaymentMethod = isFullyPaidByVoucher ? "voucher" : form.payment_method;
+      // SECURITY: payment_status and payment_approved are ALWAYS 'unpaid'/false at insert.
+      // Only the admin `approve_order_payment` RPC (which also validates & deducts stock)
+      // may flip these fields. Voucher-fully-paid orders still need admin approval.
       const orderPayload: any = {
         channel: "online" as const,
         status: "pending" as const,
-        payment_status: isFullyPaidByVoucher ? ("paid" as const) : ("unpaid" as const),
+        payment_status: "unpaid" as const,
         payment_method: effectivePaymentMethod,
         subtotal,
         tax_amount: taxAmount,
@@ -182,7 +185,7 @@ export default function Checkout() {
         delivery_method: form.delivery_method,
         marketing_opt_in: form.marketing_opt_in,
         save_info: form.save_info,
-        payment_approved: isFullyPaidByVoucher ? true : false,
+        payment_approved: false,
       };
 
       let order: { id: string; order_number: number };

@@ -2,6 +2,8 @@
 // Uploads a remote image URL to Cloudinary and returns its public_id + secure_url.
 // The frontend then builds transformation URLs (e_background_removal, e_improve, etc.)
 
+import { createClient } from "npm:@supabase/supabase-js@2";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -22,6 +24,39 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // SECURITY: require authenticated admin/staff caller
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const userId = claimsData.claims.sub as string;
+    const [{ data: isAdmin }, { data: isStaff }] = await Promise.all([
+      supabase.rpc("has_role", { _user_id: userId, _role: "admin" }),
+      supabase.rpc("has_role", { _user_id: userId, _role: "staff" }),
+    ]);
+    if (!isAdmin && !isStaff) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const cloudName = Deno.env.get("CLOUDINARY_CLOUD_NAME") ?? "ddhy9zqh2";
     const apiKey = Deno.env.get("CLOUDINARY_API_KEY");
     const apiSecret = Deno.env.get("CLOUDINARY_API_SECRET");
