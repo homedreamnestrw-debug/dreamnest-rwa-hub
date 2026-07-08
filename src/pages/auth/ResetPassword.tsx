@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { PasswordStrengthMeter, checkPassword } from "@/components/PasswordStrengthMeter";
 
 export default function ResetPassword() {
   const navigate = useNavigate();
@@ -21,11 +22,28 @@ export default function ResetPassword() {
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
+    const pw = checkPassword(password);
+    if (!pw.valid) {
+      toast.error("Password too weak: " + pw.errors.join(", "));
+      return;
+    }
     setLoading(true);
+    const { data: userData } = await supabase.auth.getUser();
     const { error } = await supabase.auth.updateUser({ password });
     if (error) {
       toast.error(error.message);
     } else {
+      if (userData.user) {
+        await supabase.from("profiles")
+          .update({ last_password_change: new Date().toISOString() })
+          .eq("user_id", userData.user.id);
+        await supabase.from("auth_logs").insert({
+          user_id: userData.user.id,
+          email: userData.user.email,
+          action: "password_reset",
+          user_agent: navigator.userAgent,
+        });
+      }
       toast.success("Password updated successfully!");
       navigate("/");
     }
@@ -54,7 +72,8 @@ export default function ResetPassword() {
         <form onSubmit={handleUpdate} className="space-y-5">
           <div className="space-y-2">
             <Label htmlFor="password">New Password</Label>
-            <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
+            <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} />
+            <PasswordStrengthMeter password={password} />
           </div>
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "Updating..." : "Update Password"}
