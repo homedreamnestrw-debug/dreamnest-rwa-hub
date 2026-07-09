@@ -6,10 +6,18 @@ export function useShopEnabled() {
     queryKey: ["shop-enabled"],
     queryFn: async () => {
       const { data } = await supabase.rpc("get_public_business_settings");
-      return data?.[0]?.shop_enabled ?? true;
+      const row: any = data?.[0] ?? {};
+      return {
+        shopEnabled: row.shop_enabled ?? true,
+        vouchersEnabled: row.vouchers_enabled ?? true,
+      };
     },
     staleTime: 60_000,
   });
 
-  return { shopEnabled: data ?? true, isLoading };
+  return {
+    shopEnabled: data?.shopEnabled ?? true,
+    vouchersEnabled: data?.vouchersEnabled ?? true,
+    isLoading,
+  };
 }
