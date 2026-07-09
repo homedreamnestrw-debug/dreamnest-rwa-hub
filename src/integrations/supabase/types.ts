@@ -126,6 +126,7 @@ export type Database = {
           tagline: string | null
           updated_at: string
           vat_percentage: number
+          vouchers_enabled: boolean
           whatsapp_number: string | null
         }
         Insert: {
@@ -152,6 +153,7 @@ export type Database = {
           tagline?: string | null
           updated_at?: string
           vat_percentage?: number
+          vouchers_enabled?: boolean
           whatsapp_number?: string | null
         }
         Update: {
@@ -178,6 +180,7 @@ export type Database = {
           tagline?: string | null
           updated_at?: string
           vat_percentage?: number
+          vouchers_enabled?: boolean
           whatsapp_number?: string | null
         }
         Relationships: []
@@ -1815,6 +1818,7 @@ export type Database = {
           tagline: string
           updated_at: string
           vat_percentage: number
+          vouchers_enabled: boolean
           whatsapp_number: string
         }[]
       }
