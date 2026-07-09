@@ -39,7 +39,7 @@ export default function GiftVouchers() {
     marketing_opt_in: true,
   });
 
-  if (!shopLoading && !shopEnabled) return <ComingSoon />;
+  if (!shopLoading && (!shopEnabled || !vouchersEnabled)) return <ComingSoon />;
 
   const amount = isCustom ? parseInt(customAmount) || 0 : (selectedPreset ?? 0);
 
