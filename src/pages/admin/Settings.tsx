@@ -121,6 +121,7 @@ export default function Settings() {
       receipt_footer: form.receipt_footer || null,
       receipt_logo_url: form.receipt_logo_url || null,
       shop_enabled: form.shop_enabled,
+      vouchers_enabled: form.vouchers_enabled,
     } as any).eq("id", settings.id);
 
     setSaving(false);
