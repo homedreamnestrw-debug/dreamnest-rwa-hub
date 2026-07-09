@@ -14,7 +14,7 @@ export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const { shopEnabled } = useShopEnabled();
+  const { shopEnabled, vouchersEnabled } = useShopEnabled();
   const navigate = useNavigate();
 
   const handleSearch = (e: React.FormEvent) => {
@@ -39,7 +39,7 @@ export function Header() {
             {shopEnabled && <Link to="/shop" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">Shop</Link>}
             <Link to="/about" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">About</Link>
             <Link to="/contact" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">Contact</Link>
-            {shopEnabled && <Link to="/gift-vouchers" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">Gift Vouchers</Link>}
+            {shopEnabled && vouchersEnabled && <Link to="/gift-vouchers" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">Gift Vouchers</Link>}
           </nav>
 
           <div className="flex items-center gap-2">
@@ -105,7 +105,7 @@ export function Header() {
             {shopEnabled && <Link to="/shop" className="block py-2 text-sm font-medium" onClick={() => setMobileOpen(false)}>Shop</Link>}
             <Link to="/about" className="block py-2 text-sm font-medium" onClick={() => setMobileOpen(false)}>About</Link>
             <Link to="/contact" className="block py-2 text-sm font-medium" onClick={() => setMobileOpen(false)}>Contact</Link>
-            {shopEnabled && <Link to="/gift-vouchers" className="block py-2 text-sm font-medium" onClick={() => setMobileOpen(false)}>Gift Vouchers</Link>}
+            {shopEnabled && vouchersEnabled && <Link to="/gift-vouchers" className="block py-2 text-sm font-medium" onClick={() => setMobileOpen(false)}>Gift Vouchers</Link>}
             {user ? (
               <>
                 <Link to="/account" className="block py-2 text-sm font-medium" onClick={() => setMobileOpen(false)}>My Account</Link>

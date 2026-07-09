@@ -47,6 +47,7 @@ export default function Settings() {
     receipt_footer: "",
     receipt_logo_url: "",
     shop_enabled: true,
+    vouchers_enabled: true,
   });
 
   const fetchSettings = async () => {
@@ -74,6 +75,7 @@ export default function Settings() {
         receipt_footer: (data as any).receipt_footer || "",
         receipt_logo_url: (data as any).receipt_logo_url || "",
         shop_enabled: (data as any).shop_enabled ?? true,
+        vouchers_enabled: (data as any).vouchers_enabled ?? true,
       });
     }
     setLoading(false);
@@ -119,6 +121,7 @@ export default function Settings() {
       receipt_footer: form.receipt_footer || null,
       receipt_logo_url: form.receipt_logo_url || null,
       shop_enabled: form.shop_enabled,
+      vouchers_enabled: form.vouchers_enabled,
     } as any).eq("id", settings.id);
 
     setSaving(false);
@@ -215,6 +218,13 @@ export default function Settings() {
                   <p className="text-sm text-muted-foreground">Turn off to show a Coming Soon page to visitors</p>
                 </div>
                 <Switch checked={form.shop_enabled} onCheckedChange={(v) => setForm({ ...form, shop_enabled: v })} />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Enable Gift Vouchers Page</Label>
+                  <p className="text-sm text-muted-foreground">Turn off to hide the Gift Vouchers page and nav link</p>
+                </div>
+                <Switch checked={form.vouchers_enabled} onCheckedChange={(v) => setForm({ ...form, vouchers_enabled: v })} />
               </div>
             </CardContent>
           </Card>

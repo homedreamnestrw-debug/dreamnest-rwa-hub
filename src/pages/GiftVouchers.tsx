@@ -22,7 +22,7 @@ const formatPrice = (price: number) =>
 
 export default function GiftVouchers() {
   const navigate = useNavigate();
-  const { shopEnabled, isLoading: shopLoading } = useShopEnabled();
+  const { shopEnabled, vouchersEnabled, isLoading: shopLoading } = useShopEnabled();
   const [submitting, setSubmitting] = useState(false);
   const [selectedPreset, setSelectedPreset] = useState<number | null>(100000);
   const [customAmount, setCustomAmount] = useState("");
@@ -39,7 +39,7 @@ export default function GiftVouchers() {
     marketing_opt_in: true,
   });
 
-  if (!shopLoading && !shopEnabled) return <ComingSoon />;
+  if (!shopLoading && (!shopEnabled || !vouchersEnabled)) return <ComingSoon />;
 
   const amount = isCustom ? parseInt(customAmount) || 0 : (selectedPreset ?? 0);
 
