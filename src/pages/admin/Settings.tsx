@@ -219,6 +219,13 @@ export default function Settings() {
                 </div>
                 <Switch checked={form.shop_enabled} onCheckedChange={(v) => setForm({ ...form, shop_enabled: v })} />
               </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Enable Gift Vouchers Page</Label>
+                  <p className="text-sm text-muted-foreground">Turn off to hide the Gift Vouchers page and nav link</p>
+                </div>
+                <Switch checked={form.vouchers_enabled} onCheckedChange={(v) => setForm({ ...form, vouchers_enabled: v })} />
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
