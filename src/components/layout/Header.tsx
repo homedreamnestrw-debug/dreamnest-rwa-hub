@@ -105,7 +105,7 @@ export function Header() {
             {shopEnabled && <Link to="/shop" className="block py-2 text-sm font-medium" onClick={() => setMobileOpen(false)}>Shop</Link>}
             <Link to="/about" className="block py-2 text-sm font-medium" onClick={() => setMobileOpen(false)}>About</Link>
             <Link to="/contact" className="block py-2 text-sm font-medium" onClick={() => setMobileOpen(false)}>Contact</Link>
-            {shopEnabled && vouchersEnabled && <Link to="/gift-vouchers" className="block py-2 text-sm font-medium" onClick={() => setMobileOpen(false)}>Gift Vouchers</Link>}
+            {vouchersEnabled && <Link to="/gift-vouchers" className="block py-2 text-sm font-medium" onClick={() => setMobileOpen(false)}>Gift Vouchers</Link>}
             {user ? (
               <>
                 <Link to="/account" className="block py-2 text-sm font-medium" onClick={() => setMobileOpen(false)}>My Account</Link>
