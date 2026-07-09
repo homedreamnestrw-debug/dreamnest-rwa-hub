@@ -47,6 +47,7 @@ export default function Settings() {
     receipt_footer: "",
     receipt_logo_url: "",
     shop_enabled: true,
+    vouchers_enabled: true,
   });
 
   const fetchSettings = async () => {
