@@ -75,6 +75,7 @@ export default function Settings() {
         receipt_footer: (data as any).receipt_footer || "",
         receipt_logo_url: (data as any).receipt_logo_url || "",
         shop_enabled: (data as any).shop_enabled ?? true,
+        vouchers_enabled: (data as any).vouchers_enabled ?? true,
       });
     }
     setLoading(false);
