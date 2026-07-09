@@ -14,7 +14,7 @@ export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const { shopEnabled } = useShopEnabled();
+  const { shopEnabled, vouchersEnabled } = useShopEnabled();
   const navigate = useNavigate();
 
   const handleSearch = (e: React.FormEvent) => {
