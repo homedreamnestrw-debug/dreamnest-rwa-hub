@@ -39,7 +39,7 @@ export function Header() {
             {shopEnabled && <Link to="/shop" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">Shop</Link>}
             <Link to="/about" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">About</Link>
             <Link to="/contact" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">Contact</Link>
-            {shopEnabled && vouchersEnabled && <Link to="/gift-vouchers" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">Gift Vouchers</Link>}
+            {vouchersEnabled && <Link to="/gift-vouchers" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">Gift Vouchers</Link>}
           </nav>
 
           <div className="flex items-center gap-2">
