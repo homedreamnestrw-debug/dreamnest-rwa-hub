@@ -1033,7 +1033,7 @@ export default function POS() {
                             const key = cartKey(item.product_id, item.variant_id);
                             return (
                             <div key={key} className="rounded-md bg-muted/50 p-2 space-y-1">
-                              <div className="flex min-w-0 items-center gap-2">
+                              <div className="flex min-w-0 flex-wrap items-center gap-2">
                                 <div className="min-w-0 flex-1 overflow-hidden">
                                   <p className="truncate text-sm font-medium">{item.name}</p>
                                   {item.variant_label && (
@@ -1049,7 +1049,7 @@ export default function POS() {
                                 <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-destructive" onClick={() => removeFromCart(key)}><Trash2 className="h-3.5 w-3.5" /></Button>
                               </div>
                               {/* Price edit row */}
-                              <div className="flex items-center gap-2 text-xs">
+                              <div className="flex flex-wrap items-center gap-2 text-xs">
                                 {editingPriceId === key ? (
                                   <div className="flex items-center gap-1">
                                     <Input
@@ -1066,7 +1066,7 @@ export default function POS() {
                                   </div>
                                 ) : (
                                   <button
-                                    className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
+                                    className="flex flex-wrap items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
                                     onClick={() => startEditPrice(item)}
                                   >
                                     <Edit2 className="h-3 w-3" />
