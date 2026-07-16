@@ -514,18 +514,31 @@ export default function Invoices() {
     if (id) fetchAuditLog(id);
   };
 
-  const filtered = invoices.filter((inv) => {
-    if (filterType !== "all" && inv.document_type !== filterType) return false;
-    if (filterStatus !== "all" && inv.status !== filterStatus) return false;
-    if (filterSource !== "all") {
-      const channel = inv._order_channel;
-      if (filterSource === "online" && channel !== "online") return false;
-      if (filterSource === "pos" && channel !== "in_store") return false;
-      if (filterSource === "manual" && (channel === "online" || channel === "in_store" || inv.order_id)) return false;
-    }
-    if (search && !inv.document_number.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  });
+  const range = useMemo(
+    () => rangeFromPreset(timeline, { from: customFrom, to: customTo }),
+    [timeline, customFrom, customTo]
+  );
+
+  const filtered = useMemo(() => {
+    const list = invoices.filter((inv) => {
+      if (filterType !== "all" && inv.document_type !== filterType) return false;
+      if (filterStatus !== "all" && inv.status !== filterStatus) return false;
+      if (filterSource !== "all") {
+        const channel = inv._order_channel;
+        if (filterSource === "online" && channel !== "online") return false;
+        if (filterSource === "pos" && channel !== "in_store") return false;
+        if (filterSource === "manual" && (channel === "online" || channel === "in_store" || inv.order_id)) return false;
+      }
+      if (search && !inv.document_number.toLowerCase().includes(search.toLowerCase())) return false;
+      if (timeline !== "all" && !inRange(inv.created_at, range)) return false;
+      return true;
+    });
+    list.sort((a, b) => {
+      const t = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      return sortDir === "desc" ? -t : t;
+    });
+    return list;
+  }, [invoices, filterType, filterStatus, filterSource, search, timeline, range, sortDir]);
 
   const counts = {
     online: invoices.filter(i => i._order_channel === "online").length,
