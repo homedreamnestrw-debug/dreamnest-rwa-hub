@@ -718,6 +718,7 @@ export default function Invoices() {
             <SelectItem value="all">All Statuses</SelectItem>
             {docStatuses.map((s) => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
           </SelectContent>
+        </Select>
         <Select value={timeline} onValueChange={(v) => setTimeline(v as TimelinePreset)}>
           <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
           <SelectContent>
