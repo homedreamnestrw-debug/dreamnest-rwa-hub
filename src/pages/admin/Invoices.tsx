@@ -718,8 +718,35 @@ export default function Invoices() {
             <SelectItem value="all">All Statuses</SelectItem>
             {docStatuses.map((s) => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
           </SelectContent>
+        <Select value={timeline} onValueChange={(v) => setTimeline(v as TimelinePreset)}>
+          <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {TIMELINE_ORDER.map((p) => (
+              <SelectItem key={p} value={p}>{TIMELINE_LABELS[p]}</SelectItem>
+            ))}
+          </SelectContent>
         </Select>
+        {timeline === "custom" && (
+          <>
+            <Input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="w-40" />
+            <Input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="w-40" />
+          </>
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setSortDir(sortDir === "desc" ? "asc" : "desc")}
+          title={sortDir === "desc" ? "Newest first" : "Oldest first"}
+        >
+          {sortDir === "desc" ? <ArrowDownAZ className="h-4 w-4 mr-1" /> : <ArrowUpAZ className="h-4 w-4 mr-1" />}
+          {sortDir === "desc" ? "Newest" : "Oldest"}
+        </Button>
       </div>
+
+      <p className="text-xs text-muted-foreground">
+        Showing {filtered.length} of {invoices.length} · {TIMELINE_LABELS[timeline]}
+      </p>
+
 
       <div className="rounded-md border">
         <Table>
