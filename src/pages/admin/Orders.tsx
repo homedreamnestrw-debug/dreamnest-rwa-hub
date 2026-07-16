@@ -63,16 +63,29 @@ export default function Orders() {
     return "—";
   };
 
-  const filtered = orders.filter((o) => {
+  const range = useMemo(
+    () => rangeFromPreset(timeline, { from: customFrom, to: customTo }),
+    [timeline, customFrom, customTo]
+  );
+
+  const filtered = useMemo(() => {
     const searchLower = search.toLowerCase();
-    const matchSearch =
-      o.order_number?.toString().includes(search) ||
-      (o.guest_name || "").toLowerCase().includes(searchLower) ||
-      (o.guest_phone || "").includes(search) ||
-      (o.guest_email || "").toLowerCase().includes(searchLower);
-    const matchStatus = statusFilter === "all" || o.status === statusFilter;
-    return matchSearch && matchStatus;
-  });
+    const list = orders.filter((o) => {
+      const matchSearch =
+        o.order_number?.toString().includes(search) ||
+        (o.guest_name || "").toLowerCase().includes(searchLower) ||
+        (o.guest_phone || "").includes(search) ||
+        (o.guest_email || "").toLowerCase().includes(searchLower);
+      const matchStatus = statusFilter === "all" || o.status === statusFilter;
+      const matchDate = timeline === "all" ? true : inRange(o.created_at, range);
+      return matchSearch && matchStatus && matchDate;
+    });
+    list.sort((a, b) => {
+      const t = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      return sortDir === "desc" ? -t : t;
+    });
+    return list;
+  }, [orders, search, statusFilter, timeline, range, sortDir]);
 
   return (
     <div className="space-y-6">
