@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Search, Eye, Pencil, History, Download, Share2, FileText, Store, Globe, X, Package } from "lucide-react";
+import { Plus, Search, Eye, Pencil, History, Download, Share2, FileText, Store, Globe, X, Package, ArrowDownAZ, ArrowUpAZ } from "lucide-react";
+import { TIMELINE_LABELS, TIMELINE_ORDER, TimelinePreset, rangeFromPreset, inRange } from "@/lib/timelineFilter";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { downloadInvoicePdf, shareInvoiceOnWhatsApp } from "@/lib/receiptUtils";
@@ -55,6 +56,10 @@ export default function Invoices() {
   const [filterType, setFilterType] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterSource, setFilterSource] = useState<string>("all");
+  const [timeline, setTimeline] = useState<TimelinePreset>("this_month");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
+  const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewing, setViewing] = useState<InvoiceRow | null>(null);
@@ -509,18 +514,31 @@ export default function Invoices() {
     if (id) fetchAuditLog(id);
   };
 
-  const filtered = invoices.filter((inv) => {
-    if (filterType !== "all" && inv.document_type !== filterType) return false;
-    if (filterStatus !== "all" && inv.status !== filterStatus) return false;
-    if (filterSource !== "all") {
-      const channel = inv._order_channel;
-      if (filterSource === "online" && channel !== "online") return false;
-      if (filterSource === "pos" && channel !== "in_store") return false;
-      if (filterSource === "manual" && (channel === "online" || channel === "in_store" || inv.order_id)) return false;
-    }
-    if (search && !inv.document_number.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  });
+  const range = useMemo(
+    () => rangeFromPreset(timeline, { from: customFrom, to: customTo }),
+    [timeline, customFrom, customTo]
+  );
+
+  const filtered = useMemo(() => {
+    const list = invoices.filter((inv) => {
+      if (filterType !== "all" && inv.document_type !== filterType) return false;
+      if (filterStatus !== "all" && inv.status !== filterStatus) return false;
+      if (filterSource !== "all") {
+        const channel = inv._order_channel;
+        if (filterSource === "online" && channel !== "online") return false;
+        if (filterSource === "pos" && channel !== "in_store") return false;
+        if (filterSource === "manual" && (channel === "online" || channel === "in_store" || inv.order_id)) return false;
+      }
+      if (search && !inv.document_number.toLowerCase().includes(search.toLowerCase())) return false;
+      if (timeline !== "all" && !inRange(inv.created_at, range)) return false;
+      return true;
+    });
+    list.sort((a, b) => {
+      const t = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      return sortDir === "desc" ? -t : t;
+    });
+    return list;
+  }, [invoices, filterType, filterStatus, filterSource, search, timeline, range, sortDir]);
 
   const counts = {
     online: invoices.filter(i => i._order_channel === "online").length,
@@ -701,7 +719,35 @@ export default function Invoices() {
             {docStatuses.map((s) => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Select value={timeline} onValueChange={(v) => setTimeline(v as TimelinePreset)}>
+          <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {TIMELINE_ORDER.map((p) => (
+              <SelectItem key={p} value={p}>{TIMELINE_LABELS[p]}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {timeline === "custom" && (
+          <>
+            <Input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="w-40" />
+            <Input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="w-40" />
+          </>
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setSortDir(sortDir === "desc" ? "asc" : "desc")}
+          title={sortDir === "desc" ? "Newest first" : "Oldest first"}
+        >
+          {sortDir === "desc" ? <ArrowDownAZ className="h-4 w-4 mr-1" /> : <ArrowUpAZ className="h-4 w-4 mr-1" />}
+          {sortDir === "desc" ? "Newest" : "Oldest"}
+        </Button>
       </div>
+
+      <p className="text-xs text-muted-foreground">
+        Showing {filtered.length} of {invoices.length} · {TIMELINE_LABELS[timeline]}
+      </p>
+
 
       <div className="rounded-md border">
         <Table>
