@@ -56,6 +56,10 @@ export default function Invoices() {
   const [filterType, setFilterType] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterSource, setFilterSource] = useState<string>("all");
+  const [timeline, setTimeline] = useState<TimelinePreset>("this_month");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
+  const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewing, setViewing] = useState<InvoiceRow | null>(null);
