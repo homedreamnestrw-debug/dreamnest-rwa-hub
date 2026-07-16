@@ -1,20 +1,28 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Eye } from "lucide-react";
+import { Search, Eye, ArrowDownAZ, ArrowUpAZ } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Constants } from "@/integrations/supabase/types";
 import { OrderDetailDialog } from "@/components/admin/OrderDetailDialog";
+import {
+  TIMELINE_LABELS, TIMELINE_ORDER, TimelinePreset,
+  rangeFromPreset, inRange,
+} from "@/lib/timelineFilter";
 
 export default function Orders() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [timeline, setTimeline] = useState<TimelinePreset>("this_month");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
+  const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
   const [detailOrderId, setDetailOrderId] = useState<string | null>(null);
 
   const fetchOrders = async () => {
