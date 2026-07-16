@@ -99,8 +99,8 @@ export default function Orders() {
         )}
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative max-w-sm flex-1">
+      <div className="flex flex-col sm:flex-row flex-wrap gap-3">
+        <div className="relative max-w-sm flex-1 min-w-[220px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search by order #, name, phone..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
         </div>
@@ -111,7 +111,35 @@ export default function Orders() {
             {Constants.public.Enums.order_status.map((s) => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Select value={timeline} onValueChange={(v) => setTimeline(v as TimelinePreset)}>
+          <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {TIMELINE_ORDER.map((p) => (
+              <SelectItem key={p} value={p}>{TIMELINE_LABELS[p]}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {timeline === "custom" && (
+          <>
+            <Input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="w-40" />
+            <Input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="w-40" />
+          </>
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setSortDir(sortDir === "desc" ? "asc" : "desc")}
+          title={sortDir === "desc" ? "Newest first" : "Oldest first"}
+        >
+          {sortDir === "desc" ? <ArrowDownAZ className="h-4 w-4 mr-1" /> : <ArrowUpAZ className="h-4 w-4 mr-1" />}
+          {sortDir === "desc" ? "Newest" : "Oldest"}
+        </Button>
       </div>
+
+      <p className="text-xs text-muted-foreground">
+        Showing {filtered.length} of {orders.length} · {TIMELINE_LABELS[timeline]}
+      </p>
+
 
       <div className="rounded-md border">
         <Table>
