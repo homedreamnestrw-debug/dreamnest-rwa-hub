@@ -59,6 +59,8 @@ const App = () => (
         <ScrollToTop />
         <AuthProvider>
           <SessionTimeoutWarning />
+          <InstallPrompt />
+
           <Routes>
             {/* Public */}
             <Route path="/" element={<Home />} />
