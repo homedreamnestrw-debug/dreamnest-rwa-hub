@@ -27,7 +27,7 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+    <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b safe-top safe-x">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-20 lg:h-24">
           <Link to="/" className="flex items-center">
