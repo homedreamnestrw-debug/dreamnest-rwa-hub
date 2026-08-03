@@ -15,7 +15,7 @@ export function WhatsAppButton() {
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Chat with us on WhatsApp"
-            className="fixed bottom-6 right-6 z-50 flex items-center justify-center h-14 w-14 rounded-full bg-[#25D366] text-white shadow-lg hover:bg-[#20bd5a] transition-all hover:scale-105"
+            className="fixed bottom-[calc(env(safe-area-inset-bottom)+1.5rem)] right-[calc(env(safe-area-inset-right)+1.5rem)] z-40 flex items-center justify-center h-14 w-14 rounded-full bg-[#25D366] text-white shadow-lg hover:bg-[#20bd5a] transition-all hover:scale-105"
           >
             {/* Official WhatsApp glyph */}
             <svg viewBox="0 0 32 32" className="h-8 w-8" fill="currentColor" aria-hidden="true">

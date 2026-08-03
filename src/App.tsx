@@ -8,6 +8,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import ScrollToTop from "@/components/ScrollToTop";
 import { SessionTimeoutWarning } from "@/components/SessionTimeoutWarning";
+import { InstallPrompt } from "@/components/InstallPrompt";
 
 import Home from "./pages/Home";
 import Shop from "./pages/Shop";
@@ -58,6 +59,8 @@ const App = () => (
         <ScrollToTop />
         <AuthProvider>
           <SessionTimeoutWarning />
+          <InstallPrompt />
+
           <Routes>
             {/* Public */}
             <Route path="/" element={<Home />} />
