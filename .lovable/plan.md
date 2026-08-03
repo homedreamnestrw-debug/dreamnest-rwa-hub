@@ -1,88 +1,62 @@
-# Analytics & Expenses — Reporting Upgrade
+# Plan: Installable App / Home Screen Icon for DreamNest
 
-Make both pages decision-grade: flexible time windows, period comparisons, richer KPIs, drilldowns, and clean PDF/CSV exports. Frontend-only — no schema changes.
+## Scope
 
-## 1. Shared report toolbar (new component)
+Only installability/home-screen support. Offline caching, service workers, and push notifications are explicitly excluded.
 
-A reusable `ReportToolbar` used on both pages.
+## What Will Be Built
 
-- **Date range presets:** Today, Yesterday, Last 7d, Last 30d, This Month, Last Month, This Quarter, Year to Date, Last Year, Custom range (date picker).
-- **Compare to previous period** toggle (auto-computes prior window of equal length).
-- **Granularity selector:** Day / Week / Month (auto-default by range length).
-- **Channel / Category / Payment / Staff filters** (multi-select where relevant).
-- **Export menu:** CSV (current view), PDF report (branded), Print.
+1. Web app manifest (`public/manifest.webmanifest`)
+   - App name: "DreamNest"
+   - Short name: "DreamNest"
+   - Description: "Premium Bedding & Home Decor in Kigali, Rwanda"
+   - Start URL: `/`
+   - Scope: `/`
+   - Display: `standalone`
+   - Theme color: `#5D4037` (matches warm-brown primary)
+   - Background color: `#FAF7F2` (matches cream background)
+   - Orientation: `portrait` (or `any`)
+   - Icons: 192x192, 512x512, and maskable PNGs
 
-Persists last-used range to localStorage.
+2. Icons under `public/icons/`
+   - Generate from the DreamNest brand identity (warm-brown + soft-gold, serif logomark or monogram).
+   - Formats: PNG at 192x192, 512x512, and a maskable 512x512 variant.
 
-## 2. Analytics page additions
+3. Head metadata in `index.html`
+   - `<link rel="manifest" href="/manifest.webmanifest" />`
+   - `<meta name="theme-color" content="#5D4037" />`
+   - `<link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />`
+   - Favicon references for 32x32 and 16x16 PNGs.
 
-Replace the current 4-chart layout with a structured report:
+## What Will NOT Be Built
 
-**A. KPI strip (with vs. previous period deltas)**
-- Revenue, Orders, Avg Order Value, Items Sold, Gross Profit (revenue − cost from `products.cost_price`), Margin %, Refunds/Cancelled value, New vs Returning customers.
+- `vite-plugin-pwa` or any service worker.
+- Offline caching or runtime caching strategies.
+- Push notifications or FCM integration.
+- `?sw=off` kill switch or any SW registration guard.
 
-**B. Trend section**
-- Revenue & Orders line chart over selected granularity.
-- Overlay previous-period line when compare is on.
+## Files to Edit / Create
 
-**C. Mix & performance**
-- Sales by Channel (existing, filtered).
-- Order status distribution (existing, filtered).
-- Revenue by Payment Method (existing, filtered).
-- Top 10 Products by Revenue + Top 10 by Quantity (toggle).
-- Top Categories by Revenue.
-- Top Customers (by spend, by orders).
-- Hour-of-day & Day-of-week heatmap (best selling times).
+| File | Action |
+|------|--------|
+| `public/manifest.webmanifest` | Create |
+| `public/icons/icon-192x192.png` | Create (generate image) |
+| `public/icons/icon-512x512.png` | Create (generate image) |
+| `public/icons/icon-maskable-512x512.png` | Create (generate image) |
+| `public/icons/apple-touch-icon.png` | Create (generate image) |
+| `public/icons/favicon-32x32.png` | Create (generate image) |
+| `public/icons/favicon-16x16.png` | Create (generate image) |
+| `index.html` | Edit (add manifest, theme-color, apple-touch-icon, favicon tags) |
 
-**D. Inventory signals (read-only)**
-- Low-stock count, Out-of-stock count, Dead stock (no sales in range).
+## Verification
 
-**E. Drilldown**
-- Click any chart segment → opens dialog with the underlying orders/items list (with link to Orders page).
+- Build the project and confirm no build errors.
+- Open the published site in Chrome/Lighthouse and verify the manifest is detected and install prompt is eligible.
+- Confirm `theme-color` applies in browser toolbar on mobile.
+- Confirm iOS Safari "Add to Home Screen" uses the apple-touch-icon.
 
-## 3. Expenses page additions
+## Notes
 
-**A. KPI strip**
-- This period total, Previous period total + % change, Daily average, Largest single expense, Count of expenses, Top category.
-
-**B. Charts**
-- Expenses over time (bar, by selected granularity).
-- Expenses by Category (donut + table with % share).
-- Category trend (stacked bar by month).
-- Optional: Expenses vs Revenue line (pulls orders.total for same range) → shows net.
-
-**C. Table improvements**
-- Multi-filter (category, date range, amount min/max, has-receipt).
-- Sortable columns, pagination, row totals footer.
-- Bulk select → bulk delete / bulk export.
-
-**D. Budgets (lightweight, localStorage only — no schema change)**
-- Per-category monthly budget input; progress bar + over-budget badge in category breakdown.
-- Clearly marked as local-only; mention we can persist to DB later if desired.
-
-## 4. Exports
-
-- **CSV:** export currently filtered rows (already partially there — extend with all new sections).
-- **PDF report:** branded DreamNest header, period label, KPI cards, charts (rendered as images via `html2canvas`) and tables. One file per page (Analytics report / Expense report). Uses existing brand tokens.
-- **Print stylesheet:** clean print view for the same report.
-
-## Technical notes
-
-- New files:
-  - `src/components/admin/reports/ReportToolbar.tsx`
-  - `src/components/admin/reports/KpiCard.tsx`
-  - `src/components/admin/reports/useDateRange.ts` (presets + compare logic with `date-fns`)
-  - `src/lib/reportPdf.ts` (html2canvas + jsPDF helper)
-  - `src/lib/reportAggregations.ts` (pure functions: group by day/week/month, KPI calc, deltas)
-- Edits: `src/pages/admin/Analytics.tsx`, `src/pages/admin/Expenses.tsx`.
-- Deps to add: `jspdf`, `html2canvas` (date-fns already in project).
-- Data access: continue using existing Supabase queries; fetch once per range then aggregate client-side. For large ranges, paginate orders fetch (>1000 row Supabase limit).
-- Permissions unchanged: Analytics remains admin-only; Expenses follows current gating.
-
-## Out of scope
-
-- New DB tables (budgets persistence, scheduled email reports).
-- Forecasting / ML.
-- Multi-currency.
-
-Confirm and I'll build it, or tell me which sections to drop/add.
+- No runtime behavior changes; this is purely app metadata and icons.
+- Manifest-only installability does not require cache-busting or service workers.
+- Lovable's hosting already serves HTML and control files with revalidation-friendly headers.
