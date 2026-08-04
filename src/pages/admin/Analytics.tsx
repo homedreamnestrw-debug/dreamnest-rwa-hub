@@ -534,7 +534,7 @@ export default function Analytics() {
           </div>
 
           <div className="toolbar-row items-end p-3 border rounded-md bg-card">
-            <div className="space-y-1">
+            <div className="space-y-1 min-w-[45%] flex-1 sm:flex-none">
               <Label className="text-xs">Location / Warehouse</Label>
               <Select value={invLocation} onValueChange={setInvLocation}>
                 <SelectTrigger className="w-full sm:w-[200px]"><SelectValue /></SelectTrigger>
@@ -544,7 +544,7 @@ export default function Analytics() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1 min-w-[45%] flex-1 sm:flex-none">
               <Label className="text-xs">Category</Label>
               <Select value={invCategory} onValueChange={setInvCategory}>
                 <SelectTrigger className="w-full sm:w-[200px]"><SelectValue /></SelectTrigger>
