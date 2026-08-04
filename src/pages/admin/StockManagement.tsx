@@ -442,7 +442,7 @@ export default function StockManagement() {
           {lowStockProducts.length === 0 ? (
             <Card><CardContent className="py-8 text-center text-muted-foreground">All products are well stocked!</CardContent></Card>
           ) : (
-            <div className="rounded-md border">
+            <div className="rounded-md border overflow-x-auto scroll-touch">
               <Table>
                 <TableHeader>
                   <TableRow>
