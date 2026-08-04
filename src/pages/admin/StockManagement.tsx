@@ -281,7 +281,7 @@ export default function StockManagement() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="toolbar-row justify-between">
         <h1 className="font-serif text-2xl font-semibold">Stock Management</h1>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setTransferOpen(true)}>
@@ -289,6 +289,7 @@ export default function StockManagement() {
           </Button>
         </div>
       </div>
+
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
