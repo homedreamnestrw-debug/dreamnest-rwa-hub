@@ -487,7 +487,7 @@ export default function StockManagement() {
 
         {/* Movement Log Tab */}
         <TabsContent value="movements" className="space-y-4">
-          <div className="rounded-md border">
+          <div className="rounded-md border overflow-x-auto scroll-touch">
             <Table>
               <TableHeader>
                 <TableRow>
