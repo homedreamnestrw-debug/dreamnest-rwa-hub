@@ -24,6 +24,8 @@ import {
 import { format } from "date-fns";
 import { buildOrderInvoicePdfFromData } from "@/lib/receiptUtils";
 import type { Database } from "@/integrations/supabase/types";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { ProductThumb } from "@/components/ui/product-thumb";
 
 type PaymentMethod = Database["public"]["Enums"]["payment_method"];
 
