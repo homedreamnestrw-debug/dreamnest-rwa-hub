@@ -962,8 +962,8 @@ export default function POS() {
               </div>
 
 
-              <ScrollArea className="flex-1">
-                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+              <ScrollArea className="flex-1 scroll-touch">
+                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
                   {sortedProducts.map((product: any) => {
                     const hasVar = productHasVariants(product);
                     const availableStock = getProductAvailableStock(product);
@@ -972,28 +972,29 @@ export default function POS() {
                         key={product.id}
                         onClick={() => openProduct(product)}
                         disabled={availableStock <= 0}
-                        className="text-left p-3 border rounded-lg hover:border-primary hover:bg-primary/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="min-w-0 text-left p-2 sm:p-3 border rounded-lg hover:border-primary hover:bg-primary/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <div className="aspect-square rounded-md overflow-hidden bg-muted mb-2 relative">
-                          {product.images?.[0] ? (
-                            <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">No image</div>
-                          )}
+                        <div className="relative mb-2">
+                          <ProductThumb
+                            src={product.images?.[0]}
+                            alt={product.name}
+                            className="aspect-square h-auto w-full"
+                          />
                           {hasVar && (
                             <Badge variant="secondary" className="absolute top-1 left-1 text-[9px] px-1 py-0">Variants</Badge>
                           )}
                         </div>
-                        <p className="font-medium text-sm truncate">{product.name}</p>
-                        <div className="flex items-center justify-between mt-1">
+                        <p className="font-medium text-sm leading-snug line-clamp-2 break-words">{product.name}</p>
+                        <div className="flex flex-wrap items-center justify-between gap-1 mt-1">
                           <span className="font-serif text-sm">{formatPrice(product.price)}</span>
                           <Badge variant={availableStock <= 0 ? "destructive" : availableStock <= 5 ? "secondary" : "outline"} className="text-xs">
                             {availableStock}
                           </Badge>
                         </div>
-                        {product.sku && <p className="text-xs text-muted-foreground mt-1">{product.sku}</p>}
+                        {product.sku && <p className="text-xs text-muted-foreground mt-1 truncate">{product.sku}</p>}
                       </button>
                     );
+
                   })}
                   {sortedProducts.length === 0 && (
                     <div className="col-span-full text-center py-12 text-muted-foreground">
