@@ -748,6 +748,58 @@ export default function Invoices() {
         Showing {filtered.length} of {invoices.length} · {TIMELINE_LABELS[timeline]}
       </p>
 
+      {/* Mobile card list */}
+      <div className="space-y-2 md:hidden">
+        {loading ? (
+          <p className="py-8 text-center text-muted-foreground">Loading...</p>
+        ) : filtered.length === 0 ? (
+          <p className="py-8 text-center text-muted-foreground">No documents found</p>
+        ) : filtered.map((inv) => {
+          const isVirtual = inv._virtual;
+          const sourceLabel = inv._order_channel === "online"
+            ? `Online #${inv._order_number ?? ""}`
+            : inv._order_channel === "in_store"
+            ? `POS #${inv._order_number ?? ""}`
+            : inv.order_id ? "Linked" : "Manual";
+          return (
+            <div key={inv.id} className={`rounded-lg border p-3 ${isVirtual ? "bg-muted/20" : "bg-card"}`}>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-mono font-medium break-all">{inv.document_number}</span>
+                <span>{formatRWF(inv.total)}</span>
+              </div>
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs">
+                <Badge variant={statusColors[inv.status] || "secondary"} className="capitalize">{inv.status}</Badge>
+                <span className="capitalize text-muted-foreground">{inv.document_type}</span>
+                <span className="text-muted-foreground">· {sourceLabel}</span>
+                {isVirtual && <span className="rounded bg-secondary px-1 py-0.5 text-[9px] uppercase tracking-wide text-secondary-foreground">Pending</span>}
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">{format(new Date(inv.created_at), "MMM d, yyyy HH:mm")}</p>
+              <div className="mt-2 flex flex-wrap items-center gap-1">
+                <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setViewing(inv)} title="View"><Eye className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => handleEdit(inv)} title="Edit"><Pencil className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => handleDownload(inv)} title="Download PDF"><Download className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => handleShare(inv)} title="Share via WhatsApp"><Share2 className="h-4 w-4" /></Button>
+                {!isVirtual && (
+                  <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => fetchAuditLog(inv.id)} title="Audit trail"><History className="h-4 w-4" /></Button>
+                )}
+                {isVirtual && inv._order_channel !== "online" && (
+                  <Button variant="outline" size="sm" className="h-9" onClick={() => generateFromOrder(inv)} disabled={generatingId === inv.id}>
+                    <FileText className="h-3.5 w-3.5 mr-1" />
+                    {generatingId === inv.id ? "..." : "Generate"}
+                  </Button>
+                )}
+                {inv.status === "draft" && (
+                  <Button variant="ghost" size="sm" className="h-9" onClick={() => handleMarkSent(inv)}>Send</Button>
+                )}
+                {(inv.status === "sent" || inv.status === "overdue") && (
+                  <Button variant="ghost" size="sm" className="h-9" onClick={() => handleMarkPaid(inv)}>Mark Paid</Button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
 
       <div className="hidden md:block rounded-md border overflow-x-auto scroll-touch">
         <Table>
