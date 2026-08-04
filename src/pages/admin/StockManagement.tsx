@@ -332,20 +332,20 @@ export default function StockManagement() {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-4">
-          <div className="flex flex-wrap gap-3 items-center">
-            <div className="relative max-w-sm flex-1">
+          <div className="toolbar-row">
+            <div className="relative min-w-0 flex-1 basis-48 sm:max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Search by name or SKU..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
             </div>
             <Select value={overviewLocation} onValueChange={setOverviewLocation}>
-              <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-56"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Locations (total)</SelectItem>
                 {locations.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-[180px]"><SelectValue placeholder="Sort by" /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Sort by" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="name_asc">Name (A → Z)</SelectItem>
                 <SelectItem value="name_desc">Name (Z → A)</SelectItem>
@@ -355,8 +355,9 @@ export default function StockManagement() {
               </SelectContent>
             </Select>
           </div>
-          <div className="rounded-md border">
+          <div className="rounded-md border overflow-x-auto scroll-touch">
             <Table>
+
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-8" />
