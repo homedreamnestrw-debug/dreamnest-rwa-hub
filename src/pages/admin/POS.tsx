@@ -66,6 +66,7 @@ interface CompletedOrder {
 
 export default function POS() {
   const { user } = useAuth();
+  const isMobileView = useIsMobile();
   const [search, setSearch] = useState("");
   const [sortMode, setSortMode] = useState<"default" | "az" | "za" | "price_asc" | "price_desc">("default");
   const [cart, setCart] = useState<CartItem[]>([]);
