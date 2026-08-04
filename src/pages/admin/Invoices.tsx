@@ -706,21 +706,21 @@ export default function Invoices() {
           <Input placeholder="Search by number..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
         </div>
         <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="w-[140px]"><SelectValue placeholder="Type" /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-[140px]"><SelectValue placeholder="Type" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Types</SelectItem>
             {docTypes.map((t) => <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-[140px]"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-[140px]"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
             {docStatuses.map((s) => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={timeline} onValueChange={(v) => setTimeline(v as TimelinePreset)}>
-          <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-44"><SelectValue /></SelectTrigger>
           <SelectContent>
             {TIMELINE_ORDER.map((p) => (
               <SelectItem key={p} value={p}>{TIMELINE_LABELS[p]}</SelectItem>
@@ -729,8 +729,8 @@ export default function Invoices() {
         </Select>
         {timeline === "custom" && (
           <>
-            <Input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="w-40" />
-            <Input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="w-40" />
+            <Input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="w-[47%] sm:w-40" />
+            <Input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="w-[47%] sm:w-40" />
           </>
         )}
         <Button
@@ -749,7 +749,7 @@ export default function Invoices() {
       </p>
 
 
-      <div className="rounded-md border">
+      <div className="hidden md:block rounded-md border overflow-x-auto scroll-touch">
         <Table>
           <TableHeader>
             <TableRow>
