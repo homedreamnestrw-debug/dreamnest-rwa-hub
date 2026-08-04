@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { ProductThumb } from "@/components/ui/product-thumb";
 import { Plus, Pencil, Trash2, Search, Sparkles, Loader2, Languages, Wand2, Scissors, Type, X, Package } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
@@ -570,13 +571,13 @@ export default function Products() {
         </Dialog>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative max-w-sm flex-1">
+      <div className="toolbar-row">
+        <div className="relative min-w-0 flex-1 basis-48 sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search products..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
         </div>
         <Select value={sortBy} onValueChange={setSortBy}>
-          <SelectTrigger className="w-[200px]"><SelectValue placeholder="Sort by" /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-[200px]"><SelectValue placeholder="Sort by" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="name_asc">Name (A → Z)</SelectItem>
             <SelectItem value="name_desc">Name (Z → A)</SelectItem>
@@ -590,7 +591,44 @@ export default function Products() {
         </Select>
       </div>
 
-      <div className="rounded-md border">
+      {/* Mobile card list */}
+      <div className="space-y-2 md:hidden">
+        {loading ? (
+          <p className="py-8 text-center text-muted-foreground">Loading...</p>
+        ) : filtered.length === 0 ? (
+          <p className="py-8 text-center text-muted-foreground">No products found</p>
+        ) : filtered.map((p) => (
+          <div key={p.id} className="rounded-lg border bg-card p-3">
+            <div className="flex items-start gap-3 min-w-0">
+              <ProductThumb src={visibleImages(p)[0]} alt={p.name} className="h-14 w-14" />
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="font-medium break-words">{p.name}</span>
+                  {(p as any).variant_attributes && Object.keys((p as any).variant_attributes).length > 0 && (
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">Variants</Badge>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground truncate">{p.sku || "—"}</p>
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
+                  <span className="font-serif">{formatRWF(p.price)}</span>
+                  <span className={p.stock_quantity <= p.low_stock_threshold ? "text-destructive font-medium" : "text-muted-foreground"}>
+                    Stock: {p.stock_quantity}
+                  </span>
+                  <Badge variant={p.is_active ? "default" : "secondary"}>{p.is_active ? "Active" : "Inactive"}</Badge>
+                </div>
+              </div>
+              {canManageStock && (
+                <div className="flex shrink-0 gap-1">
+                  <Button variant="ghost" size="icon" className="tap-target" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" className="tap-target" onClick={() => handleDelete(p.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="hidden md:block rounded-md border overflow-x-auto scroll-touch">
         <Table>
           <TableHeader>
             <TableRow>
@@ -610,19 +648,10 @@ export default function Products() {
             ) : filtered.map((p) => (
               <TableRow key={p.id}>
                 <TableCell className="font-medium">
-                  <div className="flex items-center gap-3">
-                    {(() => {
-                      const imgs = visibleImages(p);
-                      return imgs[0] ? (
-                        <img src={imgs[0]} alt={p.name} className="h-9 w-9 rounded-md object-cover border bg-muted shrink-0" />
-                      ) : (
-                        <div className="h-9 w-9 rounded-md border bg-muted flex items-center justify-center shrink-0">
-                          <Package className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                      );
-                    })()}
-                    <div className="flex items-center gap-2">
-                      <span>{p.name}</span>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <ProductThumb src={visibleImages(p)[0]} alt={p.name} className="h-9 w-9" />
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="truncate">{p.name}</span>
                       {(p as any).variant_attributes && Object.keys((p as any).variant_attributes).length > 0 && (
                         <Badge variant="outline" className="text-[10px] px-1.5 py-0">Variants</Badge>
                       )}
@@ -656,6 +685,7 @@ export default function Products() {
           </TableBody>
         </Table>
       </div>
+
     </div>
   );
 }

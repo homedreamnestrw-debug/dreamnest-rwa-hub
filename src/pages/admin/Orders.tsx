@@ -99,20 +99,20 @@ export default function Orders() {
         )}
       </div>
 
-      <div className="flex flex-col sm:flex-row flex-wrap gap-3">
-        <div className="relative max-w-sm flex-1 min-w-[220px]">
+      <div className="toolbar-row">
+        <div className="relative min-w-0 flex-1 basis-48 sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search by order #, name, phone..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
             {Constants.public.Enums.order_status.map((s) => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={timeline} onValueChange={(v) => setTimeline(v as TimelinePreset)}>
-          <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-44"><SelectValue /></SelectTrigger>
           <SelectContent>
             {TIMELINE_ORDER.map((p) => (
               <SelectItem key={p} value={p}>{TIMELINE_LABELS[p]}</SelectItem>
@@ -121,8 +121,8 @@ export default function Orders() {
         </Select>
         {timeline === "custom" && (
           <>
-            <Input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="w-40" />
-            <Input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="w-40" />
+            <Input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="w-[47%] sm:w-40" />
+            <Input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="w-[47%] sm:w-40" />
           </>
         )}
         <Button
@@ -140,9 +140,58 @@ export default function Orders() {
         Showing {filtered.length} of {orders.length} · {TIMELINE_LABELS[timeline]}
       </p>
 
+      {/* Mobile card list */}
+      <div className="space-y-2 md:hidden">
+        {loading ? (
+          <p className="py-8 text-center text-muted-foreground">Loading...</p>
+        ) : filtered.length === 0 ? (
+          <p className="py-8 text-center text-muted-foreground">No orders found</p>
+        ) : filtered.map((o) => (
+          <button
+            key={o.id}
+            onClick={() => setDetailOrderId(o.id)}
+            className="w-full rounded-lg border bg-card p-3 text-left"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="font-medium">#{o.order_number}</span>
+              <span className="font-serif">{formatRWF(o.total)}</span>
+            </div>
+            <p className="mt-0.5 text-sm text-muted-foreground break-words">
+              {getCustomerDisplay(o)}
+              {!o.customer_id && o.guest_name && (
+                <Badge variant="outline" className="ml-1.5 text-[10px] px-1 py-0">Guest</Badge>
+              )}
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <Badge variant="secondary" className="capitalize text-xs">{o.channel}</Badge>
+              <Badge variant="outline" className="capitalize">{o.payment_status}</Badge>
+              <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium capitalize ${statusColor[o.status] || ""}`}>
+                {o.status}
+              </span>
+              {!o.payment_approved && o.channel === "online" && o.status !== "cancelled" && (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-800">Booked</span>
+              )}
+            </div>
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs text-muted-foreground">
+                {new Date(o.created_at).toLocaleString(undefined, { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+              </span>
+              <div onClick={(e) => e.stopPropagation()}>
+                <Select value={o.status} onValueChange={(v) => updateStatus(o.id, v)}>
+                  <SelectTrigger className="h-9 w-36"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Constants.public.Enums.order_status.map((s) => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
 
-      <div className="rounded-md border">
+      <div className="hidden md:block rounded-md border overflow-x-auto scroll-touch">
         <Table>
+
           <TableHeader>
             <TableRow>
               <TableHead>Order #</TableHead>

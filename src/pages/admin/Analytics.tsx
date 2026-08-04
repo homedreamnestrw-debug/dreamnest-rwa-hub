@@ -533,21 +533,21 @@ export default function Analytics() {
             </Tabs>
           </div>
 
-          <div className="flex flex-wrap items-end gap-3 p-3 border rounded-md bg-card">
-            <div className="space-y-1">
+          <div className="toolbar-row items-end p-3 border rounded-md bg-card">
+            <div className="space-y-1 min-w-[45%] flex-1 sm:flex-none">
               <Label className="text-xs">Location / Warehouse</Label>
               <Select value={invLocation} onValueChange={setInvLocation}>
-                <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[200px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All locations</SelectItem>
                   {locations.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1 min-w-[45%] flex-1 sm:flex-none">
               <Label className="text-xs">Category</Label>
               <Select value={invCategory} onValueChange={setInvCategory}>
-                <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[200px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All categories</SelectItem>
                   {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}

@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { ProductThumb } from "@/components/ui/product-thumb";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -281,7 +282,7 @@ export default function StockManagement() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="toolbar-row justify-between">
         <h1 className="font-serif text-2xl font-semibold">Stock Management</h1>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setTransferOpen(true)}>
@@ -289,6 +290,7 @@ export default function StockManagement() {
           </Button>
         </div>
       </div>
+
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -331,20 +333,20 @@ export default function StockManagement() {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-4">
-          <div className="flex flex-wrap gap-3 items-center">
-            <div className="relative max-w-sm flex-1">
+          <div className="toolbar-row">
+            <div className="relative min-w-0 flex-1 basis-48 sm:max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Search by name or SKU..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
             </div>
             <Select value={overviewLocation} onValueChange={setOverviewLocation}>
-              <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-56"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Locations (total)</SelectItem>
                 {locations.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-[180px]"><SelectValue placeholder="Sort by" /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Sort by" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="name_asc">Name (A → Z)</SelectItem>
                 <SelectItem value="name_desc">Name (Z → A)</SelectItem>
@@ -354,8 +356,9 @@ export default function StockManagement() {
               </SelectContent>
             </Select>
           </div>
-          <div className="rounded-md border">
+          <div className="rounded-md border overflow-x-auto scroll-touch">
             <Table>
+
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-8" />
@@ -385,23 +388,15 @@ export default function StockManagement() {
                           ) : null}
                         </TableCell>
                         <TableCell className="font-medium">
-                          <div className="flex items-center gap-3">
-                            {(() => {
-                              const imgs = visibleImages(p);
-                              return imgs[0] ? (
-                                <img src={imgs[0]} alt={p.name} className="h-9 w-9 rounded-md object-cover border bg-muted shrink-0" />
-                              ) : (
-                                <div className="h-9 w-9 rounded-md border bg-muted flex items-center justify-center shrink-0">
-                                  <Package className="h-4 w-4 text-muted-foreground" />
-                                </div>
-                              );
-                            })()}
-                            <div className="flex items-center gap-2">
-                              <span>{p.name}</span>
-                              {hasVar && <Badge variant="outline" className="text-[10px] px-1.5 py-0">{variantsForProduct(p.id).length} variants</Badge>}
+                          <div className="flex items-center gap-3 min-w-0">
+                            <ProductThumb src={visibleImages(p)[0]} alt={p.name} className="h-9 w-9" />
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="truncate">{p.name}</span>
+                              {hasVar && <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">{variantsForProduct(p.id).length} variants</Badge>}
                             </div>
                           </div>
                         </TableCell>
+
                         <TableCell className="text-muted-foreground">{p.sku || "—"}</TableCell>
                         <TableCell className={qty <= p.low_stock_threshold ? "text-destructive font-semibold" : ""}>{qty}</TableCell>
                         <TableCell>{p.low_stock_threshold}</TableCell>
@@ -447,7 +442,7 @@ export default function StockManagement() {
           {lowStockProducts.length === 0 ? (
             <Card><CardContent className="py-8 text-center text-muted-foreground">All products are well stocked!</CardContent></Card>
           ) : (
-            <div className="rounded-md border">
+            <div className="rounded-md border overflow-x-auto scroll-touch">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -463,20 +458,12 @@ export default function StockManagement() {
                   {lowStockProducts.map((p) => (
                     <TableRow key={p.id}>
                       <TableCell className="font-medium">
-                        <div className="flex items-center gap-3">
-                          {(() => {
-                            const imgs = visibleImages(p);
-                            return imgs[0] ? (
-                              <img src={imgs[0]} alt={p.name} className="h-9 w-9 rounded-md object-cover border bg-muted shrink-0" />
-                            ) : (
-                              <div className="h-9 w-9 rounded-md border bg-muted flex items-center justify-center shrink-0">
-                                <Package className="h-4 w-4 text-muted-foreground" />
-                              </div>
-                            );
-                          })()}
-                          <span>{p.name}</span>
+                        <div className="flex items-center gap-3 min-w-0">
+                          <ProductThumb src={visibleImages(p)[0]} alt={p.name} className="h-9 w-9" />
+                          <span className="truncate">{p.name}</span>
                         </div>
                       </TableCell>
+
                       <TableCell className="text-muted-foreground">{p.sku || "—"}</TableCell>
                       <TableCell className="text-destructive font-semibold">{p.stock_quantity}</TableCell>
                       <TableCell>{p.low_stock_threshold}</TableCell>
@@ -500,7 +487,7 @@ export default function StockManagement() {
 
         {/* Movement Log Tab */}
         <TabsContent value="movements" className="space-y-4">
-          <div className="rounded-md border">
+          <div className="rounded-md border overflow-x-auto scroll-touch">
             <Table>
               <TableHeader>
                 <TableRow>

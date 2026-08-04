@@ -24,6 +24,8 @@ import {
 import { format } from "date-fns";
 import { buildOrderInvoicePdfFromData } from "@/lib/receiptUtils";
 import type { Database } from "@/integrations/supabase/types";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { ProductThumb } from "@/components/ui/product-thumb";
 
 type PaymentMethod = Database["public"]["Enums"]["payment_method"];
 
@@ -66,6 +68,7 @@ interface CompletedOrder {
 
 export default function POS() {
   const { user } = useAuth();
+  const isMobileView = useIsMobile();
   const [search, setSearch] = useState("");
   const [sortMode, setSortMode] = useState<"default" | "az" | "za" | "price_asc" | "price_desc">("default");
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -911,15 +914,18 @@ export default function POS() {
   return (
     <>
       <div className="print:hidden lg:h-[calc(100dvh-8rem)]">
-        <ResizablePanelGroup direction="horizontal" className="min-h-0 h-full">
+        <ResizablePanelGroup
+          direction={isMobileView ? "vertical" : "horizontal"}
+          className="min-h-0 h-full min-w-0"
+        >
           {/* Left: Product search + grid */}
-          <ResizablePanel defaultSize={60} minSize={35}>
-            <div className="flex min-h-0 flex-1 flex-col h-full p-1">
-              <div className="flex gap-3 mb-4">
+          <ResizablePanel defaultSize={60} minSize={isMobileView ? 40 : 35}>
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col h-full p-1">
+              <div className="toolbar-row mb-4">
                 {locations && locations.length > 0 && (
                   <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-                    <SelectTrigger className="w-48 h-11">
-                      <MapPin className="h-4 w-4 mr-1 text-muted-foreground" />
+                    <SelectTrigger className="w-full sm:w-48 h-11">
+                      <MapPin className="h-4 w-4 mr-1 shrink-0 text-muted-foreground" />
                       <SelectValue placeholder="Location" />
                     </SelectTrigger>
                     <SelectContent>
@@ -929,7 +935,7 @@ export default function POS() {
                     </SelectContent>
                   </Select>
                 )}
-                <div className="relative flex-1">
+                <div className="relative min-w-0 flex-1 basis-40">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     ref={searchRef}
@@ -941,8 +947,8 @@ export default function POS() {
                   />
                 </div>
                 <Select value={sortMode} onValueChange={(v: any) => setSortMode(v)}>
-                  <SelectTrigger className="w-40 h-11">
-                    <ArrowUpDown className="h-4 w-4 mr-1 text-muted-foreground" />
+                  <SelectTrigger className="w-full sm:w-40 h-11">
+                    <ArrowUpDown className="h-4 w-4 mr-1 shrink-0 text-muted-foreground" />
                     <SelectValue placeholder="Sort" />
                   </SelectTrigger>
                   <SelectContent>
@@ -955,8 +961,9 @@ export default function POS() {
                 </Select>
               </div>
 
-              <ScrollArea className="flex-1">
-                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+
+              <ScrollArea className="flex-1 scroll-touch">
+                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
                   {sortedProducts.map((product: any) => {
                     const hasVar = productHasVariants(product);
                     const availableStock = getProductAvailableStock(product);
@@ -965,28 +972,29 @@ export default function POS() {
                         key={product.id}
                         onClick={() => openProduct(product)}
                         disabled={availableStock <= 0}
-                        className="text-left p-3 border rounded-lg hover:border-primary hover:bg-primary/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="min-w-0 text-left p-2 sm:p-3 border rounded-lg hover:border-primary hover:bg-primary/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <div className="aspect-square rounded-md overflow-hidden bg-muted mb-2 relative">
-                          {product.images?.[0] ? (
-                            <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">No image</div>
-                          )}
+                        <div className="relative mb-2">
+                          <ProductThumb
+                            src={product.images?.[0]}
+                            alt={product.name}
+                            className="aspect-square h-auto w-full"
+                          />
                           {hasVar && (
                             <Badge variant="secondary" className="absolute top-1 left-1 text-[9px] px-1 py-0">Variants</Badge>
                           )}
                         </div>
-                        <p className="font-medium text-sm truncate">{product.name}</p>
-                        <div className="flex items-center justify-between mt-1">
+                        <p className="font-medium text-sm leading-snug line-clamp-2 break-words">{product.name}</p>
+                        <div className="flex flex-wrap items-center justify-between gap-1 mt-1">
                           <span className="font-serif text-sm">{formatPrice(product.price)}</span>
                           <Badge variant={availableStock <= 0 ? "destructive" : availableStock <= 5 ? "secondary" : "outline"} className="text-xs">
                             {availableStock}
                           </Badge>
                         </div>
-                        {product.sku && <p className="text-xs text-muted-foreground mt-1">{product.sku}</p>}
+                        {product.sku && <p className="text-xs text-muted-foreground mt-1 truncate">{product.sku}</p>}
                       </button>
                     );
+
                   })}
                   {sortedProducts.length === 0 && (
                     <div className="col-span-full text-center py-12 text-muted-foreground">

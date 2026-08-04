@@ -700,27 +700,27 @@ export default function Invoices() {
         </Button>
       </div>
 
-      <div className="flex flex-wrap gap-3">
-        <div className="relative max-w-xs">
+      <div className="toolbar-row">
+        <div className="relative min-w-0 flex-1 basis-48 sm:max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search by number..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
         </div>
         <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="w-[140px]"><SelectValue placeholder="Type" /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-[140px]"><SelectValue placeholder="Type" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Types</SelectItem>
             {docTypes.map((t) => <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-[140px]"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-[140px]"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
             {docStatuses.map((s) => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={timeline} onValueChange={(v) => setTimeline(v as TimelinePreset)}>
-          <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-44"><SelectValue /></SelectTrigger>
           <SelectContent>
             {TIMELINE_ORDER.map((p) => (
               <SelectItem key={p} value={p}>{TIMELINE_LABELS[p]}</SelectItem>
@@ -729,8 +729,8 @@ export default function Invoices() {
         </Select>
         {timeline === "custom" && (
           <>
-            <Input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="w-40" />
-            <Input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="w-40" />
+            <Input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="w-[47%] sm:w-40" />
+            <Input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="w-[47%] sm:w-40" />
           </>
         )}
         <Button
@@ -748,8 +748,60 @@ export default function Invoices() {
         Showing {filtered.length} of {invoices.length} · {TIMELINE_LABELS[timeline]}
       </p>
 
+      {/* Mobile card list */}
+      <div className="space-y-2 md:hidden">
+        {loading ? (
+          <p className="py-8 text-center text-muted-foreground">Loading...</p>
+        ) : filtered.length === 0 ? (
+          <p className="py-8 text-center text-muted-foreground">No documents found</p>
+        ) : filtered.map((inv) => {
+          const isVirtual = inv._virtual;
+          const sourceLabel = inv._order_channel === "online"
+            ? `Online #${inv._order_number ?? ""}`
+            : inv._order_channel === "in_store"
+            ? `POS #${inv._order_number ?? ""}`
+            : inv.order_id ? "Linked" : "Manual";
+          return (
+            <div key={inv.id} className={`rounded-lg border p-3 ${isVirtual ? "bg-muted/20" : "bg-card"}`}>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-mono font-medium break-all">{inv.document_number}</span>
+                <span>{formatRWF(inv.total)}</span>
+              </div>
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs">
+                <Badge variant={statusColors[inv.status] || "secondary"} className="capitalize">{inv.status}</Badge>
+                <span className="capitalize text-muted-foreground">{inv.document_type}</span>
+                <span className="text-muted-foreground">· {sourceLabel}</span>
+                {isVirtual && <span className="rounded bg-secondary px-1 py-0.5 text-[9px] uppercase tracking-wide text-secondary-foreground">Pending</span>}
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">{format(new Date(inv.created_at), "MMM d, yyyy HH:mm")}</p>
+              <div className="mt-2 flex flex-wrap items-center gap-1">
+                <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setViewing(inv)} title="View"><Eye className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => handleEdit(inv)} title="Edit"><Pencil className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => handleDownload(inv)} title="Download PDF"><Download className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => handleShare(inv)} title="Share via WhatsApp"><Share2 className="h-4 w-4" /></Button>
+                {!isVirtual && (
+                  <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => fetchAuditLog(inv.id)} title="Audit trail"><History className="h-4 w-4" /></Button>
+                )}
+                {isVirtual && inv._order_channel !== "online" && (
+                  <Button variant="outline" size="sm" className="h-9" onClick={() => generateFromOrder(inv)} disabled={generatingId === inv.id}>
+                    <FileText className="h-3.5 w-3.5 mr-1" />
+                    {generatingId === inv.id ? "..." : "Generate"}
+                  </Button>
+                )}
+                {inv.status === "draft" && (
+                  <Button variant="ghost" size="sm" className="h-9" onClick={() => handleMarkSent(inv)}>Send</Button>
+                )}
+                {(inv.status === "sent" || inv.status === "overdue") && (
+                  <Button variant="ghost" size="sm" className="h-9" onClick={() => handleMarkPaid(inv)}>Mark Paid</Button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
-      <div className="rounded-md border">
+
+      <div className="hidden md:block rounded-md border overflow-x-auto scroll-touch">
         <Table>
           <TableHeader>
             <TableRow>
