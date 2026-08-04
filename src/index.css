@@ -114,6 +114,7 @@
 
   body {
     overscroll-behavior-y: none;
+    overflow-x: hidden;
   }
 
   /* Prevent iOS auto-zoom on focus for small inputs */
@@ -137,4 +138,26 @@
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
   }
+
+  /* Comfortable touch target on phones without changing desktop density */
+  @media (max-width: 767px) {
+    .tap-target {
+      min-height: 44px;
+      min-width: 44px;
+    }
+  }
+
+  /* Toolbar rows that must never overflow horizontally on small screens */
+  .toolbar-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+  }
+
+  .scroll-touch {
+    -webkit-overflow-scrolling: touch;
+  }
 }
+
