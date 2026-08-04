@@ -911,15 +911,18 @@ export default function POS() {
   return (
     <>
       <div className="print:hidden lg:h-[calc(100dvh-8rem)]">
-        <ResizablePanelGroup direction="horizontal" className="min-h-0 h-full">
+        <ResizablePanelGroup
+          direction={isMobileView ? "vertical" : "horizontal"}
+          className="min-h-0 h-full min-w-0"
+        >
           {/* Left: Product search + grid */}
-          <ResizablePanel defaultSize={60} minSize={35}>
-            <div className="flex min-h-0 flex-1 flex-col h-full p-1">
-              <div className="flex gap-3 mb-4">
+          <ResizablePanel defaultSize={60} minSize={isMobileView ? 40 : 35}>
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col h-full p-1">
+              <div className="toolbar-row mb-4">
                 {locations && locations.length > 0 && (
                   <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-                    <SelectTrigger className="w-48 h-11">
-                      <MapPin className="h-4 w-4 mr-1 text-muted-foreground" />
+                    <SelectTrigger className="w-full sm:w-48 h-11">
+                      <MapPin className="h-4 w-4 mr-1 shrink-0 text-muted-foreground" />
                       <SelectValue placeholder="Location" />
                     </SelectTrigger>
                     <SelectContent>
@@ -929,7 +932,7 @@ export default function POS() {
                     </SelectContent>
                   </Select>
                 )}
-                <div className="relative flex-1">
+                <div className="relative min-w-0 flex-1 basis-40">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     ref={searchRef}
@@ -941,8 +944,8 @@ export default function POS() {
                   />
                 </div>
                 <Select value={sortMode} onValueChange={(v: any) => setSortMode(v)}>
-                  <SelectTrigger className="w-40 h-11">
-                    <ArrowUpDown className="h-4 w-4 mr-1 text-muted-foreground" />
+                  <SelectTrigger className="w-full sm:w-40 h-11">
+                    <ArrowUpDown className="h-4 w-4 mr-1 shrink-0 text-muted-foreground" />
                     <SelectValue placeholder="Sort" />
                   </SelectTrigger>
                   <SelectContent>
@@ -954,6 +957,7 @@ export default function POS() {
                   </SelectContent>
                 </Select>
               </div>
+
 
               <ScrollArea className="flex-1">
                 <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
