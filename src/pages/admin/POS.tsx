@@ -68,6 +68,17 @@ interface CompletedOrder {
   served_by_name?: string | null;
 }
 
+// Stable mobile layout primitives (declared at module scope so the POS subtree
+// is never remounted between renders — remounting steals input focus).
+const MobileGroup = ({ children }: any) => (
+  <div className="flex min-w-0 flex-col">{children}</div>
+);
+const MobilePanel = ({ children, className }: any) => (
+  <div className={cn("min-w-0", className)}>{children}</div>
+);
+const NoHandle = () => null;
+
+
 export default function POS() {
   const { user } = useAuth();
   const isMobileView = useIsMobile();
