@@ -77,6 +77,15 @@ const MobilePanel = ({ children, className }: any) => (
   <div className={cn("min-w-0", className)}>{children}</div>
 );
 const NoHandle = () => null;
+// On phones we let the page itself scroll instead of nesting scroll areas,
+// so the full product grid and the checkout button stay reachable.
+const Scroller = ({ mobile, className, children }: any) =>
+  mobile ? (
+    <div className={className}>{children}</div>
+  ) : (
+    <ScrollArea className={className}>{children}</ScrollArea>
+  );
+
 
 
 export default function POS() {
