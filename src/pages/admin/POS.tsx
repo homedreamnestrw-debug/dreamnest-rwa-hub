@@ -933,7 +933,7 @@ export default function POS() {
           {/* Left: Product search + grid */}
           <Panel defaultSize={60} minSize={35}>
 
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col h-full p-1">
+            <div className={cn("flex min-h-0 min-w-0 flex-col p-1", !isMobileView && "flex-1 h-full")}>
               <div className="toolbar-row mb-4">
                 {locations && locations.length > 0 && (
                   <Select value={selectedLocation} onValueChange={setSelectedLocation}>
