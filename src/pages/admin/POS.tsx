@@ -1294,8 +1294,9 @@ export default function POS() {
                 </ScrollArea>
               </CardContent>
             </Card>
-          </ResizablePanel>
-        </ResizablePanelGroup>
+          </Panel>
+        </Group>
+
       </div>
 
       {/* Variant Picker Dialog — multi-select */}
