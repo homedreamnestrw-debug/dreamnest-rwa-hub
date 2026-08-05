@@ -975,7 +975,7 @@ export default function POS() {
               </div>
 
 
-              <ScrollArea className="flex-1 scroll-touch">
+              <ScrollArea className={cn("scroll-touch", isMobileView ? "max-h-[60vh]" : "flex-1")}>
                 <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
                   {sortedProducts.map((product: any) => {
                     const hasVar = productHasVariants(product);
