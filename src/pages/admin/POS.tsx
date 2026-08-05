@@ -1015,12 +1015,13 @@ export default function POS() {
                 </div>
               </ScrollArea>
             </div>
-          </ResizablePanel>
+          </Panel>
 
-          <ResizableHandle withHandle />
+          <Handle withHandle />
 
           {/* Right: Cart + Checkout */}
-          <ResizablePanel defaultSize={40} minSize={28}>
+          <Panel defaultSize={40} minSize={28}>
+
             <Card className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden border-0 rounded-none">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
