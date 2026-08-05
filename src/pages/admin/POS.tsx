@@ -1024,7 +1024,7 @@ export default function POS() {
           {/* Right: Cart + Checkout */}
           <Panel defaultSize={40} minSize={28}>
 
-            <Card className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden border-0 rounded-none">
+            <Card className={cn("flex min-h-0 min-w-0 flex-col overflow-hidden border-0 rounded-none", !isMobileView && "h-full")}>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="font-serif text-lg">Current Sale</CardTitle>
