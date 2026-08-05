@@ -911,15 +911,26 @@ export default function POS() {
     </div>
   );
 
+  // On mobile the resizable panel group has no fixed height, which collapsed
+  // the product grid to zero height. Use plain stacked blocks instead.
+  const Group: any = isMobileView
+    ? ({ children }: any) => <div className="flex flex-col min-w-0">{children}</div>
+    : ResizablePanelGroup;
+  const Panel: any = isMobileView
+    ? ({ children, className }: any) => <div className={cn("min-w-0", className)}>{children}</div>
+    : ResizablePanel;
+  const Handle: any = isMobileView ? () => null : ResizableHandle;
+
   return (
     <>
       <div className="print:hidden lg:h-[calc(100dvh-8rem)]">
-        <ResizablePanelGroup
-          direction={isMobileView ? "vertical" : "horizontal"}
+        <Group
+          direction="horizontal"
           className="min-h-0 h-full min-w-0"
         >
           {/* Left: Product search + grid */}
-          <ResizablePanel defaultSize={60} minSize={isMobileView ? 40 : 35}>
+          <Panel defaultSize={60} minSize={35}>
+
             <div className="flex min-h-0 min-w-0 flex-1 flex-col h-full p-1">
               <div className="toolbar-row mb-4">
                 {locations && locations.length > 0 && (
