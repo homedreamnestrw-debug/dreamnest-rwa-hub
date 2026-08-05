@@ -1043,7 +1043,7 @@ export default function POS() {
           {/* Right: Cart + Checkout */}
           <Panel defaultSize={40} minSize={28}>
 
-            <Card className={cn("flex min-h-0 min-w-0 flex-col overflow-hidden border-0 rounded-none", !isMobileView && "h-full")}>
+            <Card className={cn("flex min-h-0 min-w-0 flex-col border-0 rounded-none", isMobileView ? "overflow-visible" : "h-full overflow-hidden")}>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="font-serif text-lg">Current Sale</CardTitle>
@@ -1058,7 +1058,7 @@ export default function POS() {
                 </div>
               </CardHeader>
 
-              <CardContent className="min-h-0 flex-1 overflow-hidden px-4 pb-4 pt-0">
+              <CardContent className={cn("min-h-0 flex-1 px-4 pb-4 pt-0", isMobileView ? "overflow-visible" : "overflow-hidden")}>
                 <Scroller mobile={isMobileView} className={cn("min-h-0", isMobileView ? "" : "h-full")}>
                   <div className="space-y-4 pr-3">
                     {cart.length === 0 ? (
