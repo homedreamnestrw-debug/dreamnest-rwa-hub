@@ -1040,7 +1040,7 @@ export default function POS() {
               </CardHeader>
 
               <CardContent className="min-h-0 flex-1 overflow-hidden px-4 pb-4 pt-0">
-                <ScrollArea className="h-full min-h-0">
+                <ScrollArea className={cn("min-h-0", isMobileView ? "max-h-[60vh]" : "h-full")}>
                   <div className="space-y-4 pr-3">
                     {cart.length === 0 ? (
                       <div className="py-12 text-center text-sm text-muted-foreground">
