@@ -1,4 +1,6 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { cn } from "@/lib/utils";
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -911,16 +913,27 @@ export default function POS() {
     </div>
   );
 
+  // On mobile the resizable panel group has no fixed height, which collapsed
+  // the product grid to zero height. Use plain stacked blocks instead.
+  const Group: any = isMobileView
+    ? ({ children }: any) => <div className="flex flex-col min-w-0">{children}</div>
+    : ResizablePanelGroup;
+  const Panel: any = isMobileView
+    ? ({ children, className }: any) => <div className={cn("min-w-0", className)}>{children}</div>
+    : ResizablePanel;
+  const Handle: any = isMobileView ? () => null : ResizableHandle;
+
   return (
     <>
       <div className="print:hidden lg:h-[calc(100dvh-8rem)]">
-        <ResizablePanelGroup
-          direction={isMobileView ? "vertical" : "horizontal"}
+        <Group
+          direction="horizontal"
           className="min-h-0 h-full min-w-0"
         >
           {/* Left: Product search + grid */}
-          <ResizablePanel defaultSize={60} minSize={isMobileView ? 40 : 35}>
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col h-full p-1">
+          <Panel defaultSize={60} minSize={35}>
+
+            <div className={cn("flex min-h-0 min-w-0 flex-col p-1", !isMobileView && "flex-1 h-full")}>
               <div className="toolbar-row mb-4">
                 {locations && locations.length > 0 && (
                   <Select value={selectedLocation} onValueChange={setSelectedLocation}>
@@ -962,7 +975,7 @@ export default function POS() {
               </div>
 
 
-              <ScrollArea className="flex-1 scroll-touch">
+              <ScrollArea className={cn("scroll-touch", isMobileView ? "max-h-[60vh]" : "flex-1")}>
                 <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
                   {sortedProducts.map((product: any) => {
                     const hasVar = productHasVariants(product);
@@ -1004,13 +1017,14 @@ export default function POS() {
                 </div>
               </ScrollArea>
             </div>
-          </ResizablePanel>
+          </Panel>
 
-          <ResizableHandle withHandle />
+          <Handle withHandle />
 
           {/* Right: Cart + Checkout */}
-          <ResizablePanel defaultSize={40} minSize={28}>
-            <Card className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden border-0 rounded-none">
+          <Panel defaultSize={40} minSize={28}>
+
+            <Card className={cn("flex min-h-0 min-w-0 flex-col overflow-hidden border-0 rounded-none", !isMobileView && "h-full")}>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="font-serif text-lg">Current Sale</CardTitle>
@@ -1026,7 +1040,7 @@ export default function POS() {
               </CardHeader>
 
               <CardContent className="min-h-0 flex-1 overflow-hidden px-4 pb-4 pt-0">
-                <ScrollArea className="h-full min-h-0">
+                <ScrollArea className={cn("min-h-0", isMobileView ? "max-h-[60vh]" : "h-full")}>
                   <div className="space-y-4 pr-3">
                     {cart.length === 0 ? (
                       <div className="py-12 text-center text-sm text-muted-foreground">
@@ -1282,8 +1296,9 @@ export default function POS() {
                 </ScrollArea>
               </CardContent>
             </Card>
-          </ResizablePanel>
-        </ResizablePanelGroup>
+          </Panel>
+        </Group>
+
       </div>
 
       {/* Variant Picker Dialog — multi-select */}
