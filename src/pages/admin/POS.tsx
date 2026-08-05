@@ -68,6 +68,26 @@ interface CompletedOrder {
   served_by_name?: string | null;
 }
 
+// Stable mobile layout primitives (declared at module scope so the POS subtree
+// is never remounted between renders — remounting steals input focus).
+const MobileGroup = ({ children }: any) => (
+  <div className="flex min-w-0 flex-col">{children}</div>
+);
+const MobilePanel = ({ children, className }: any) => (
+  <div className={cn("min-w-0", className)}>{children}</div>
+);
+const NoHandle = () => null;
+// On phones we let the page itself scroll instead of nesting scroll areas,
+// so the full product grid and the checkout button stay reachable.
+const Scroller = ({ mobile, className, children }: any) =>
+  mobile ? (
+    <div className={className}>{children}</div>
+  ) : (
+    <ScrollArea className={className}>{children}</ScrollArea>
+  );
+
+
+
 export default function POS() {
   const { user } = useAuth();
   const isMobileView = useIsMobile();
@@ -915,13 +935,12 @@ export default function POS() {
 
   // On mobile the resizable panel group has no fixed height, which collapsed
   // the product grid to zero height. Use plain stacked blocks instead.
-  const Group: any = isMobileView
-    ? ({ children }: any) => <div className="flex flex-col min-w-0">{children}</div>
-    : ResizablePanelGroup;
-  const Panel: any = isMobileView
-    ? ({ children, className }: any) => <div className={cn("min-w-0", className)}>{children}</div>
-    : ResizablePanel;
-  const Handle: any = isMobileView ? () => null : ResizableHandle;
+  // NOTE: these must be stable module-level components, otherwise the whole
+  // subtree remounts on every render and inputs lose focus while typing.
+  const Group: any = isMobileView ? MobileGroup : ResizablePanelGroup;
+  const Panel: any = isMobileView ? MobilePanel : ResizablePanel;
+  const Handle: any = isMobileView ? NoHandle : ResizableHandle;
+
 
   return (
     <>
@@ -975,7 +994,7 @@ export default function POS() {
               </div>
 
 
-              <ScrollArea className={cn("scroll-touch", isMobileView ? "max-h-[60vh]" : "flex-1")}>
+              <Scroller mobile={isMobileView} className={cn("scroll-touch", isMobileView ? "" : "flex-1")}>
                 <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
                   {sortedProducts.map((product: any) => {
                     const hasVar = productHasVariants(product);
@@ -1015,7 +1034,7 @@ export default function POS() {
                     </div>
                   )}
                 </div>
-              </ScrollArea>
+              </Scroller>
             </div>
           </Panel>
 
@@ -1024,7 +1043,7 @@ export default function POS() {
           {/* Right: Cart + Checkout */}
           <Panel defaultSize={40} minSize={28}>
 
-            <Card className={cn("flex min-h-0 min-w-0 flex-col overflow-hidden border-0 rounded-none", !isMobileView && "h-full")}>
+            <Card className={cn("flex min-h-0 min-w-0 flex-col border-0 rounded-none", isMobileView ? "overflow-visible" : "h-full overflow-hidden")}>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="font-serif text-lg">Current Sale</CardTitle>
@@ -1039,8 +1058,8 @@ export default function POS() {
                 </div>
               </CardHeader>
 
-              <CardContent className="min-h-0 flex-1 overflow-hidden px-4 pb-4 pt-0">
-                <ScrollArea className={cn("min-h-0", isMobileView ? "max-h-[60vh]" : "h-full")}>
+              <CardContent className={cn("min-h-0 flex-1 px-4 pb-4 pt-0", isMobileView ? "overflow-visible" : "overflow-hidden")}>
+                <Scroller mobile={isMobileView} className={cn("min-h-0", isMobileView ? "" : "h-full")}>
                   <div className="space-y-4 pr-3">
                     {cart.length === 0 ? (
                       <div className="py-12 text-center text-sm text-muted-foreground">
@@ -1293,7 +1312,7 @@ export default function POS() {
                       </>
                     )}
                   </div>
-                </ScrollArea>
+                </Scroller>
               </CardContent>
             </Card>
           </Panel>
