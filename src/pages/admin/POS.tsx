@@ -1034,7 +1034,7 @@ export default function POS() {
                     </div>
                   )}
                 </div>
-              </ScrollArea>
+              </Scroller>
             </div>
           </Panel>
 
@@ -1312,7 +1312,7 @@ export default function POS() {
                       </>
                     )}
                   </div>
-                </ScrollArea>
+                </Scroller>
               </CardContent>
             </Card>
           </Panel>
