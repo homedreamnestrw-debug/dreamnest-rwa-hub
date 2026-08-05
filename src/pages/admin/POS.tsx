@@ -915,13 +915,12 @@ export default function POS() {
 
   // On mobile the resizable panel group has no fixed height, which collapsed
   // the product grid to zero height. Use plain stacked blocks instead.
-  const Group: any = isMobileView
-    ? ({ children }: any) => <div className="flex flex-col min-w-0">{children}</div>
-    : ResizablePanelGroup;
-  const Panel: any = isMobileView
-    ? ({ children, className }: any) => <div className={cn("min-w-0", className)}>{children}</div>
-    : ResizablePanel;
-  const Handle: any = isMobileView ? () => null : ResizableHandle;
+  // NOTE: these must be stable module-level components, otherwise the whole
+  // subtree remounts on every render and inputs lose focus while typing.
+  const Group: any = isMobileView ? MobileGroup : ResizablePanelGroup;
+  const Panel: any = isMobileView ? MobilePanel : ResizablePanel;
+  const Handle: any = isMobileView ? NoHandle : ResizableHandle;
+
 
   return (
     <>
