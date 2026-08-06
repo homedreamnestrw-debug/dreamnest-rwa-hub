@@ -175,11 +175,6 @@ export function buildVoucherPdf(v: VoucherPdfData, biz?: any): string {
   c.stroke(GOLD);
   c.roundRect(bxx + 3, byy + 3, bw - 6, bh - 6, 10, "S");
 
-  // icons
-  const iconStore = (x: number, y: number) => {
-    c.stroke(GOLD);
-    c.ops_line(x, y);
-  };
   // simple gold glyphs
   c.stroke(GOLD);
   c.path(`${bxx + 38} ${byy + bh - 22} m ${bxx + 42} ${byy + bh - 14} l ${bxx + 58} ${byy + bh - 14} l ${bxx + 62} ${byy + bh - 22} l h`, "S");
@@ -198,10 +193,6 @@ export function buildVoucherPdf(v: VoucherPdfData, biz?: any): string {
 
   return assemblePdf(c.out());
 }
-
-// tiny shim so the helper above stays valid
-declare module "./voucherPdf.ts" {}
-(Canvas.prototype as any).ops_line = function () {};
 
 function assemblePdf(content: string): string {
   const stream = content;
