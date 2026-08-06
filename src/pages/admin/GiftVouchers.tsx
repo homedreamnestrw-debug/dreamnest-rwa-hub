@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +8,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { Gift, CheckCircle, XCircle, Eye, Loader2 } from "lucide-react";
+import { Gift, CheckCircle, XCircle, Eye, Loader2, Download, Image as ImageIcon } from "lucide-react";
+import { VoucherCard } from "@/components/voucher/VoucherCard";
+import { downloadVoucherPdf, downloadVoucherPng } from "@/lib/voucherExport";
+
 
 const formatPrice = (price: number) =>
   new Intl.NumberFormat("en-RW", { style: "currency", currency: "RWF", minimumFractionDigits: 0 }).format(price);
