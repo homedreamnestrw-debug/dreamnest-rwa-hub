@@ -5,6 +5,7 @@ const corsHeaders = {
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { SMTPClient } from 'npm:emailjs@4.0.3'
+import { buildVoucherPdf } from '../_shared/voucherPdf.ts'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -109,7 +110,7 @@ Deno.serve(async (req) => {
     })
 
     // Generate PDF
-    const pdfBase64 = generateVoucherPDF(voucher, biz)
+    const pdfBase64 = buildVoucherPdf(voucher, biz)
 
     const formatPrice = (n: number) =>
       new Intl.NumberFormat('en-RW', { style: 'currency', currency: 'RWF', minimumFractionDigits: 0 }).format(n)
@@ -229,6 +230,16 @@ function buildBuyerPurchaseEmail(v: any, fp: (n: number) => string, expires: str
     <p><strong>Status:</strong> Pending payment confirmation</p>
     <p>Once your payment is confirmed by our team, the voucher will be activated and your recipient will be notified.</p>
     <p><strong>Expires:</strong> ${expires}</p>
+    <div style="margin:22px 0;padding:18px 20px;background:#173B33;border-radius:14px;color:#F8F5EF;text-align:center">
+      <div style="font-size:12px;letter-spacing:2px;color:#E3C185">REDEEM IN-STORE &nbsp;|&nbsp; OR ONLINE</div>
+      <div style="height:1px;background:#B58A4555;margin:12px 0"></div>
+      <div style="font-size:13px;line-height:1.6">
+        Redeem in-store at our DreamNest shop in Kigali, or online at
+        <a href="https://dreamnestrw.com" style="color:#E3C185;font-weight:600;text-decoration:none">dreamnestrw.com</a>.<br/>
+        Enter your voucher code at checkout &mdash; it can be used for <strong>partial payments</strong>,
+        and any remaining balance stays on the voucher until it expires.
+      </div>
+    </div>
     <p style="color:#999;font-size:12px;margin-top:32px">The voucher PDF is attached to this email. — ${brand}</p>
   </div>`
 }
@@ -243,7 +254,16 @@ function buildRecipientEmail(v: any, fp: (n: number) => string, expires: string,
       <p style="margin:0;font-size:12px;color:#999">Your Voucher Code</p>
       <p style="margin:8px 0;font-size:32px;font-weight:bold;letter-spacing:4px;color:#5c4033">${v.code}</p>
     </div>
-    <p>Use this code at checkout on <a href="https://dreamnestrw.com" style="color:#5c4033">dreamnestrw.com</a></p>
+    <div style="margin:22px 0;padding:18px 20px;background:#173B33;border-radius:14px;color:#F8F5EF;text-align:center">
+      <div style="font-size:12px;letter-spacing:2px;color:#E3C185">REDEEM IN-STORE &nbsp;|&nbsp; OR ONLINE</div>
+      <div style="height:1px;background:#B58A4555;margin:12px 0"></div>
+      <div style="font-size:13px;line-height:1.6">
+        Redeem in-store at our DreamNest shop in Kigali, or online at
+        <a href="https://dreamnestrw.com" style="color:#E3C185;font-weight:600;text-decoration:none">dreamnestrw.com</a>.<br/>
+        Enter your voucher code at checkout &mdash; it can be used for <strong>partial payments</strong>,
+        and any remaining balance stays on the voucher until it expires.
+      </div>
+    </div>
     <p style="color:#999;font-size:12px;margin-top:32px">Valid until ${expires}. The voucher PDF is attached. — ${brand}</p>
   </div>`
 }
@@ -259,6 +279,16 @@ function buildBuyerApprovalEmail(v: any, fp: (n: number) => string, expires: str
       <p style="margin:0;font-size:14px;color:#666">Value: ${fp(v.amount)} — Expires: ${expires}</p>
     </div>
     ${v.recipient_email ? `<p>We've also notified ${v.recipient_name} via email.</p>` : ''}
+    <div style="margin:22px 0;padding:18px 20px;background:#173B33;border-radius:14px;color:#F8F5EF;text-align:center">
+      <div style="font-size:12px;letter-spacing:2px;color:#E3C185">REDEEM IN-STORE &nbsp;|&nbsp; OR ONLINE</div>
+      <div style="height:1px;background:#B58A4555;margin:12px 0"></div>
+      <div style="font-size:13px;line-height:1.6">
+        Redeem in-store at our DreamNest shop in Kigali, or online at
+        <a href="https://dreamnestrw.com" style="color:#E3C185;font-weight:600;text-decoration:none">dreamnestrw.com</a>.<br/>
+        Enter your voucher code at checkout &mdash; it can be used for <strong>partial payments</strong>,
+        and any remaining balance stays on the voucher until it expires.
+      </div>
+    </div>
     <p style="color:#999;font-size:12px;margin-top:32px">The voucher PDF is attached. — ${brand}</p>
   </div>`
 }
@@ -273,97 +303,4 @@ function buildShopApprovalEmail(v: any, fp: (n: number) => string, brand: string
     <p>Emails have been sent to ${[v.buyer_email, v.recipient_email].filter(Boolean).join(' and ') || 'N/A'}.</p>
     <p style="color:#999;font-size:11px;margin-top:24px">${brand}</p>
   </div>`
-}
-
-// ─── PDF Generator ──────────────────────────────────────────
-
-function generateVoucherPDF(voucher: any, biz: any): string {
-  const businessName = biz?.business_name || 'DreamNest'
-  const tagline = biz?.tagline || 'Premium Bedding & Home Decor'
-  const formatPrice = (n: number) =>
-    new Intl.NumberFormat('en-RW', { style: 'currency', currency: 'RWF', minimumFractionDigits: 0 }).format(n)
-  const amount = formatPrice(voucher.amount)
-  const expiresDate = new Date(voucher.expires_at).toLocaleDateString('en-US', {
-    year: 'numeric', month: 'long', day: 'numeric',
-  })
-
-  const lines: string[] = []
-  let y = 700
-
-  const addText = (text: string, size: number, x: number, yPos: number) => {
-    lines.push(`BT /F1 ${size} Tf ${x} ${yPos} Td (${escPdf(text)}) Tj ET`)
-  }
-
-  addText(businessName, 28, 180, y); y -= 30
-  addText(tagline, 10, 195, y); y -= 60
-  addText('GIFT VOUCHER', 24, 195, y); y -= 50
-  addText(amount, 36, 210, y); y -= 50
-  addText(`Code: ${voucher.code}`, 16, 215, y); y -= 40
-  addText(`To: ${voucher.recipient_name}`, 12, 180, y); y -= 20
-  addText(`From: ${voucher.buyer_name}`, 12, 180, y); y -= 30
-  if (voucher.personal_message) {
-    const msg = voucher.personal_message
-    addText(`"${msg.substring(0, 60)}"`, 11, 170, y); y -= 20
-    if (msg.length > 60) {
-      addText(`"${msg.substring(60, 120)}"`, 11, 170, y); y -= 20
-    }
-  }
-  y -= 20
-  addText(`Valid until: ${expiresDate}`, 10, 210, y); y -= 20
-  addText('Redeem online at dreamnestrw.com', 10, 190, y); y -= 20
-  addText('This voucher can be used for partial payments.', 9, 175, y)
-
-  const stream = lines.join('\n')
-  const streamBytes = new TextEncoder().encode(stream)
-
-  const pdf = `%PDF-1.4
-1 0 obj
-<< /Type /Catalog /Pages 2 0 R >>
-endobj
-
-2 0 obj
-<< /Type /Pages /Kids [3 0 R] /Count 1 >>
-endobj
-
-3 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842]
-   /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
-endobj
-
-4 0 obj
-<< /Length ${streamBytes.length} >>
-stream
-${stream}
-endstream
-endobj
-
-5 0 obj
-<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
-endobj
-
-xref
-0 6
-0000000000 65535 f 
-0000000009 00000 n 
-0000000058 00000 n 
-0000000115 00000 n 
-0000000266 00000 n 
-0000000${(317 + streamBytes.length).toString().padStart(4, '0')} 00000 n 
-
-trailer
-<< /Size 6 /Root 1 0 R >>
-startxref
-0
-%%EOF`
-
-  const bytes = new TextEncoder().encode(pdf)
-  let binary = ''
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i])
-  }
-  return btoa(binary)
-}
-
-function escPdf(str: string): string {
-  return str.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)')
 }

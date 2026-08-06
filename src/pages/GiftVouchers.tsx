@@ -304,9 +304,11 @@ export default function GiftVouchers() {
 
                   <div className="text-xs text-muted-foreground space-y-1">
                     <p>✓ Valid for 1 year from purchase</p>
+                    <p>✓ Redeem in-store or online at dreamnestrw.com</p>
                     <p>✓ Usable on all products</p>
-                    <p>✓ Partial redemption supported</p>
+                    <p>✓ Partial payments supported — balance stays on the voucher</p>
                   </div>
+
 
                   <Button type="submit" className="w-full" size="lg" disabled={submitting || amount < 1000}>
                     {submitting ? (
