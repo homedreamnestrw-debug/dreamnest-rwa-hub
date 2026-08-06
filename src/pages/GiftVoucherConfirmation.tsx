@@ -68,47 +68,32 @@ export default function GiftVoucherConfirmation() {
 
   return (
     <PublicLayout>
-      <div className="container mx-auto px-4 py-10 max-w-2xl">
+      <div className="container mx-auto px-4 py-10 max-w-4xl">
         <div className="text-center mb-8">
           <CheckCircle className="h-16 w-16 mx-auto mb-4 text-green-500" />
           <h1 className="text-3xl font-serif mb-2">Voucher Active!</h1>
-          <p className="text-muted-foreground">
-            Your gift voucher is ready to use.
-          </p>
+          <p className="text-muted-foreground">Your gift voucher is ready to use.</p>
         </div>
 
-        <Card className="mb-6">
-          <CardContent className="p-8">
-            <div className="text-center mb-6">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
-                <Gift className="h-8 w-8 text-primary" />
-              </div>
-              <div className="font-serif text-4xl font-bold mb-2">{formatPrice(voucher.balance)}</div>
-              <div className="text-sm text-muted-foreground">DreamNest Gift Voucher</div>
-            </div>
-
-            <div className="bg-muted/50 rounded-xl p-6 text-center mb-6">
-              <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Voucher Code</div>
-              <div className="font-mono text-3xl font-bold tracking-[0.3em]">{voucher.code}</div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-muted-foreground">Status:</span>
-                <p className="font-medium capitalize">{voucher.status}</p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Expires:</span>
-                <p className="font-medium">{format(new Date(voucher.expires_at), "MMM d, yyyy")}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="mb-8">
+          <VoucherCard
+            artworkRef={artRef}
+            amount={voucher.balance}
+            code={voucher.code}
+            recipient={(voucher as any).recipient_name}
+            from={(voucher as any).buyer_name}
+            validUntil={voucher.expires_at}
+          />
+        </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
-          <Button onClick={handleDownloadPDF} variant="outline" className="flex-1">
+          <Button onClick={() => handleDownload("pdf")} className="flex-1">
             <Download className="mr-2 h-4 w-4" />
             Download PDF
+          </Button>
+          <Button onClick={() => handleDownload("png")} variant="outline" className="flex-1">
+            <ImageIcon className="mr-2 h-4 w-4" />
+            Download Image
           </Button>
           <Link to="/shop" className="flex-1">
             <Button variant="outline" className="w-full">Continue Shopping</Button>
@@ -118,3 +103,4 @@ export default function GiftVoucherConfirmation() {
     </PublicLayout>
   );
 }
+
