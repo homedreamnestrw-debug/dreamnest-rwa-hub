@@ -1,17 +1,17 @@
 import { useParams, Link } from "react-router-dom";
+import { useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Gift, CheckCircle, Download } from "lucide-react";
-import { format } from "date-fns";
-
-const formatPrice = (price: number) =>
-  new Intl.NumberFormat("en-RW", { style: "currency", currency: "RWF", minimumFractionDigits: 0 }).format(price);
+import { Loader2, CheckCircle, Download, Image as ImageIcon } from "lucide-react";
+import { VoucherCard } from "@/components/voucher/VoucherCard";
+import { downloadVoucherPdf, downloadVoucherPng } from "@/lib/voucherExport";
+import { toast } from "sonner";
 
 export default function GiftVoucherConfirmation() {
   const { code } = useParams<{ code: string }>();
+  const artRef = useRef<HTMLDivElement>(null);
 
   // Use the secure validate_voucher RPC instead of direct table query
   const { data: voucher, isLoading } = useQuery({
@@ -25,31 +25,16 @@ export default function GiftVoucherConfirmation() {
     enabled: !!code,
   });
 
-  const handleDownloadPDF = async () => {
-    if (!voucher) return;
+  const handleDownload = async (kind: "pdf" | "png") => {
+    if (!artRef.current || !voucher) return;
     try {
-      const { data, error } = await supabase.functions.invoke("generate-voucher-pdf", {
-        body: { voucher_code: voucher.code },
-      });
-      if (error) throw error;
-
-      const byteCharacters = atob(data.pdf);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `DreamNest-Voucher-${voucher.code}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
+      if (kind === "pdf") await downloadVoucherPdf(artRef.current, voucher.code);
+      else await downloadVoucherPng(artRef.current, voucher.code);
     } catch {
-      window.print();
+      toast.error("Could not generate the file. Please try again.");
     }
   };
+
 
   if (isLoading) {
     return (
