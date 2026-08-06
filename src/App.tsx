@@ -44,6 +44,7 @@ import CreditManagement from "./pages/admin/CreditManagement";
 import Messages from "./pages/admin/Messages";
 import GiftVouchers from "./pages/GiftVouchers";
 import GiftVoucherConfirmation from "./pages/GiftVoucherConfirmation";
+import VoucherPreview from "./pages/VoucherPreview";
 import AdminGiftVouchers from "./pages/admin/GiftVouchers";
 import CreativeStudio from "./pages/admin/CreativeStudio";
 import { Navigate } from "react-router-dom";
@@ -83,6 +84,7 @@ const App = () => (
             <Route path="/account" element={<Account />} />
             <Route path="/wishlist" element={<Account />} />
             <Route path="/gift-vouchers" element={<GiftVouchers />} />
+            <Route path="/__voucher-preview" element={<VoucherPreview />} />
             <Route path="/gift-vouchers/confirmation/:code" element={<GiftVoucherConfirmation />} />
             <Route path="/creative-studio" element={<Navigate to="/admin/creative-studio" replace />} />
 
