@@ -19,6 +19,18 @@ const formatPrice = (price: number) =>
 export default function AdminGiftVouchers() {
   const queryClient = useQueryClient();
   const [selectedVoucher, setSelectedVoucher] = useState<any>(null);
+  const artRef = useRef<HTMLDivElement>(null);
+
+  const exportVoucher = async (kind: "pdf" | "png") => {
+    if (!artRef.current || !selectedVoucher) return;
+    try {
+      if (kind === "pdf") await downloadVoucherPdf(artRef.current, selectedVoucher.code);
+      else await downloadVoucherPng(artRef.current, selectedVoucher.code);
+    } catch {
+      toast.error("Could not generate the file");
+    }
+  };
+
 
   const { data: vouchers = [], isLoading } = useQuery({
     queryKey: ["admin-gift-vouchers"],
