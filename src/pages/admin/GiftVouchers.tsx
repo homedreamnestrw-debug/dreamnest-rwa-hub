@@ -232,29 +232,38 @@ export default function AdminGiftVouchers() {
 
       {/* Detail Dialog */}
       <Dialog open={!!selectedVoucher} onOpenChange={() => setSelectedVoucher(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-serif">Voucher Details</DialogTitle>
           </DialogHeader>
           {selectedVoucher && (
             <div className="space-y-4">
-              <div className="text-center p-4 bg-muted/50 rounded-xl">
-                <div className="font-mono text-2xl font-bold tracking-widest">{selectedVoucher.code}</div>
-                <div className="text-sm text-muted-foreground mt-1">
-                  {formatPrice(selectedVoucher.amount)} — Balance: {formatPrice(selectedVoucher.balance)}
-                </div>
+              <VoucherCard
+                artworkRef={artRef}
+                amount={selectedVoucher.amount}
+                code={selectedVoucher.code}
+                recipient={selectedVoucher.recipient_name}
+                from={selectedVoucher.buyer_name}
+                validUntil={selectedVoucher.expires_at}
+                message={selectedVoucher.personal_message}
+              />
+              <div className="flex gap-2">
+                <Button size="sm" onClick={() => exportVoucher("pdf")}>
+                  <Download className="h-4 w-4 mr-2" /> PDF
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => exportVoucher("png")}>
+                  <ImageIcon className="h-4 w-4 mr-2" /> Image
+                </Button>
               </div>
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div><span className="text-muted-foreground">Status:</span> <Badge variant={statusColor(selectedVoucher.status) as any}>{selectedVoucher.status}</Badge></div>
                 <div><span className="text-muted-foreground">Payment:</span> {selectedVoucher.payment_method?.replace("_", " ")}</div>
+                <div><span className="text-muted-foreground">Balance:</span> {formatPrice(selectedVoucher.balance)}</div>
                 <div><span className="text-muted-foreground">Buyer:</span> {selectedVoucher.buyer_name}</div>
                 <div><span className="text-muted-foreground">Recipient:</span> {selectedVoucher.recipient_name}</div>
                 <div><span className="text-muted-foreground">Created:</span> {format(new Date(selectedVoucher.created_at), "MMM d, yyyy")}</div>
-                <div><span className="text-muted-foreground">Expires:</span> {format(new Date(selectedVoucher.expires_at), "MMM d, yyyy")}</div>
               </div>
-              {selectedVoucher.personal_message && (
-                <div className="p-3 bg-primary/5 rounded-lg text-sm italic">"{selectedVoucher.personal_message}"</div>
-              )}
+
               {redemptions.length > 0 && (
                 <div>
                   <h4 className="font-medium mb-2">Redemption History</h4>
