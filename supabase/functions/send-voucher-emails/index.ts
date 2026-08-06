@@ -230,6 +230,16 @@ function buildBuyerPurchaseEmail(v: any, fp: (n: number) => string, expires: str
     <p><strong>Status:</strong> Pending payment confirmation</p>
     <p>Once your payment is confirmed by our team, the voucher will be activated and your recipient will be notified.</p>
     <p><strong>Expires:</strong> ${expires}</p>
+    <div style="margin:22px 0;padding:18px 20px;background:#173B33;border-radius:14px;color:#F8F5EF;text-align:center">
+      <div style="font-size:12px;letter-spacing:2px;color:#E3C185">REDEEM IN-STORE &nbsp;|&nbsp; OR ONLINE</div>
+      <div style="height:1px;background:#B58A4555;margin:12px 0"></div>
+      <div style="font-size:13px;line-height:1.6">
+        Redeem in-store at our DreamNest shop in Kigali, or online at
+        <a href="https://dreamnestrw.com" style="color:#E3C185;font-weight:600;text-decoration:none">dreamnestrw.com</a>.<br/>
+        Enter your voucher code at checkout &mdash; it can be used for <strong>partial payments</strong>,
+        and any remaining balance stays on the voucher until it expires.
+      </div>
+    </div>
     <p style="color:#999;font-size:12px;margin-top:32px">The voucher PDF is attached to this email. — ${brand}</p>
   </div>`
 }
@@ -244,7 +254,16 @@ function buildRecipientEmail(v: any, fp: (n: number) => string, expires: string,
       <p style="margin:0;font-size:12px;color:#999">Your Voucher Code</p>
       <p style="margin:8px 0;font-size:32px;font-weight:bold;letter-spacing:4px;color:#5c4033">${v.code}</p>
     </div>
-    <p>Use this code at checkout on <a href="https://dreamnestrw.com" style="color:#5c4033">dreamnestrw.com</a></p>
+    <div style="margin:22px 0;padding:18px 20px;background:#173B33;border-radius:14px;color:#F8F5EF;text-align:center">
+      <div style="font-size:12px;letter-spacing:2px;color:#E3C185">REDEEM IN-STORE &nbsp;|&nbsp; OR ONLINE</div>
+      <div style="height:1px;background:#B58A4555;margin:12px 0"></div>
+      <div style="font-size:13px;line-height:1.6">
+        Redeem in-store at our DreamNest shop in Kigali, or online at
+        <a href="https://dreamnestrw.com" style="color:#E3C185;font-weight:600;text-decoration:none">dreamnestrw.com</a>.<br/>
+        Enter your voucher code at checkout &mdash; it can be used for <strong>partial payments</strong>,
+        and any remaining balance stays on the voucher until it expires.
+      </div>
+    </div>
     <p style="color:#999;font-size:12px;margin-top:32px">Valid until ${expires}. The voucher PDF is attached. — ${brand}</p>
   </div>`
 }
@@ -260,6 +279,16 @@ function buildBuyerApprovalEmail(v: any, fp: (n: number) => string, expires: str
       <p style="margin:0;font-size:14px;color:#666">Value: ${fp(v.amount)} — Expires: ${expires}</p>
     </div>
     ${v.recipient_email ? `<p>We've also notified ${v.recipient_name} via email.</p>` : ''}
+    <div style="margin:22px 0;padding:18px 20px;background:#173B33;border-radius:14px;color:#F8F5EF;text-align:center">
+      <div style="font-size:12px;letter-spacing:2px;color:#E3C185">REDEEM IN-STORE &nbsp;|&nbsp; OR ONLINE</div>
+      <div style="height:1px;background:#B58A4555;margin:12px 0"></div>
+      <div style="font-size:13px;line-height:1.6">
+        Redeem in-store at our DreamNest shop in Kigali, or online at
+        <a href="https://dreamnestrw.com" style="color:#E3C185;font-weight:600;text-decoration:none">dreamnestrw.com</a>.<br/>
+        Enter your voucher code at checkout &mdash; it can be used for <strong>partial payments</strong>,
+        and any remaining balance stays on the voucher until it expires.
+      </div>
+    </div>
     <p style="color:#999;font-size:12px;margin-top:32px">The voucher PDF is attached. — ${brand}</p>
   </div>`
 }
