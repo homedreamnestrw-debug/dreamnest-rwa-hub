@@ -113,13 +113,13 @@ export const VoucherArtwork = forwardRef<HTMLDivElement, VoucherCardProps>(
             left: 0,
             bottom: 0,
             width: 620,
-            padding: "52px 56px",
+            padding: "44px 56px",
             zIndex: 6,
             display: "flex",
             flexDirection: "column",
           }}
         >
-          <img src={logo} alt="DreamNest" style={{ height: 92, objectFit: "contain", objectPosition: "left" }} />
+          <img src={logo} alt="DreamNest" style={{ height: 130, marginLeft: -8, objectFit: "contain", objectPosition: "left" }} />
           <div
             style={{
               marginTop: 6,
