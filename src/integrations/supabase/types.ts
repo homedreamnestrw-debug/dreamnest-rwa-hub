@@ -792,6 +792,71 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_reads: {
+        Row: {
+          id: string
+          notification_id: string
+          read_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          notification_id: string
+          read_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          notification_id?: string
+          read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_reads_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "notifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          audience: string
+          body: string | null
+          created_at: string
+          id: string
+          link: string | null
+          metadata: Json
+          title: string
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          audience?: string
+          body?: string | null
+          created_at?: string
+          id?: string
+          link?: string | null
+          metadata?: Json
+          title: string
+          type?: string
+          user_id?: string | null
+        }
+        Update: {
+          audience?: string
+          body?: string | null
+          created_at?: string
+          id?: string
+          link?: string | null
+          metadata?: Json
+          title?: string
+          type?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           created_at: string
@@ -1836,6 +1901,16 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      notify_staff: {
+        Args: {
+          _body: string
+          _link: string
+          _metadata?: Json
+          _title: string
+          _type: string
+        }
+        Returns: undefined
       }
       redeem_voucher: {
         Args: { p_amount: number; p_order_id: string; p_voucher_code: string }
