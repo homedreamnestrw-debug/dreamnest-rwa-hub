@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/hooks/useCart";
 import { useShopEnabled } from "@/hooks/useShopEnabled";
+import { NotificationBell } from "@/components/NotificationBell";
+
 import { useState } from "react";
 
 export function Header() {
