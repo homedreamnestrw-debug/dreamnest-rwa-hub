@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/hooks/useCart";
 import { useShopEnabled } from "@/hooks/useShopEnabled";
+import { NotificationBell } from "@/components/NotificationBell";
+
 import { useState } from "react";
 
 export function Header() {
@@ -46,11 +48,13 @@ export function Header() {
             <Button variant="ghost" size="icon" className="hidden md:flex" onClick={() => setSearchOpen((v) => !v)} aria-label="Search">
               <Search className="h-5 w-5" />
             </Button>
+            {user && <NotificationBell />}
             {user && (
               <Link to="/wishlist">
                 <Button variant="ghost" size="icon"><Heart className="h-5 w-5" /></Button>
               </Link>
             )}
+
             <Link to="/cart" className="relative">
               <Button variant="ghost" size="icon">
                 <ShoppingCart className="h-5 w-5" />
