@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.notify_staff(text, text, text, text, jsonb) FROM anon, authenticated, PUBLIC;
