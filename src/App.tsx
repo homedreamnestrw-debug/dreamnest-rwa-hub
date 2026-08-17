@@ -9,6 +9,7 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import ScrollToTop from "@/components/ScrollToTop";
 import { SessionTimeoutWarning } from "@/components/SessionTimeoutWarning";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { WelcomePopup } from "@/components/WelcomePopup";
 
 import Home from "./pages/Home";
 import Shop from "./pages/Shop";
