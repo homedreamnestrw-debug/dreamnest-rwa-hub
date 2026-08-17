@@ -61,6 +61,7 @@ const App = () => (
         <AuthProvider>
           <SessionTimeoutWarning />
           <InstallPrompt />
+          <WelcomePopup />
 
           <Routes>
             {/* Public */}
