@@ -14,6 +14,8 @@ import { Link, Navigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Package, User, Heart, LogOut, Trash2, Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { PushToggle } from "@/components/PushToggle";
+
 
 export default function Account() {
   const { user, loading, signOut } = useAuth();
@@ -226,7 +228,10 @@ function ProfileTab({ userId, email, onSignOut }: { userId: string; email: strin
         </CardContent>
       </Card>
 
+      <PushToggle description="Get order updates on this device, even when DreamNest is closed." />
+
       <Card>
+
         <CardContent className="p-6">
           <Button variant="outline" className="text-destructive" onClick={onSignOut}>
             <LogOut className="mr-2 h-4 w-4" /> Sign Out
