@@ -1,13 +1,19 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Bell, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Bell, Loader2, Send } from "lucide-react";
 import { toast } from "sonner";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function PushToggle({ description }: { description?: string }) {
   const { supported, enabled, busy, permission, needsInstall, enable, disable } =
     usePushNotifications();
+  const { user } = useAuth();
+  const [testing, setTesting] = useState(false);
 
   const handleChange = async (checked: boolean) => {
     if (checked) {
@@ -21,6 +27,29 @@ export function PushToggle({ description }: { description?: string }) {
       toast.success("Notifications disabled on this device");
     }
   };
+
+  const sendTest = async () => {
+    if (!user) return;
+    setTesting(true);
+    try {
+      const { error } = await supabase.from("notifications").insert({
+        audience: "user",
+        user_id: user.id,
+        type: "test",
+        title: "DreamNest test notification",
+        body: "If you can see this on your phone, push notifications are working.",
+        link: "/admin/settings",
+      });
+      if (error) throw error;
+      toast.success("Test sent — check your phone's notification tray");
+    } catch (err) {
+      console.error("test push failed", err);
+      toast.error("Could not send the test notification");
+    } finally {
+      setTesting(false);
+    }
+  };
+
 
   return (
     <Card>
