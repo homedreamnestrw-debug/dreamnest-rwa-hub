@@ -1,13 +1,19 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Bell, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Bell, Loader2, Send } from "lucide-react";
 import { toast } from "sonner";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function PushToggle({ description }: { description?: string }) {
   const { supported, enabled, busy, permission, needsInstall, enable, disable } =
     usePushNotifications();
+  const { user } = useAuth();
+  const [testing, setTesting] = useState(false);
 
   const handleChange = async (checked: boolean) => {
     if (checked) {
@@ -21,6 +27,29 @@ export function PushToggle({ description }: { description?: string }) {
       toast.success("Notifications disabled on this device");
     }
   };
+
+  const sendTest = async () => {
+    if (!user) return;
+    setTesting(true);
+    try {
+      const { error } = await supabase.from("notifications").insert({
+        audience: "user",
+        user_id: user.id,
+        type: "test",
+        title: "DreamNest test notification",
+        body: "If you can see this on your phone, push notifications are working.",
+        link: "/admin/settings",
+      });
+      if (error) throw error;
+      toast.success("Test sent — check your phone's notification tray");
+    } catch (err) {
+      console.error("test push failed", err);
+      toast.error("Could not send the test notification");
+    } finally {
+      setTesting(false);
+    }
+  };
+
 
   return (
     <Card>
@@ -45,28 +74,36 @@ export function PushToggle({ description }: { description?: string }) {
             This browser does not support push notifications.
           </div>
         ) : (
-          <div className="flex items-center justify-between gap-4 rounded-md border border-border p-3">
-            <div className="space-y-0.5">
-              <Label htmlFor="push-toggle">Enable on this device</Label>
-              <p className="text-xs text-muted-foreground">
-                {permission === "denied"
-                  ? "Blocked — allow notifications in your browser settings first."
-                  : enabled
-                  ? "Active on this device"
-                  : "Currently off"}
-              </p>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-4 rounded-md border border-border p-3">
+              <div className="space-y-0.5">
+                <Label htmlFor="push-toggle">Enable on this device</Label>
+                <p className="text-xs text-muted-foreground">
+                  {permission === "denied"
+                    ? "Blocked — allow notifications in your browser settings first."
+                    : enabled
+                    ? "Active on this device"
+                    : "Currently off"}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                {busy && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                <Switch
+                  id="push-toggle"
+                  checked={enabled}
+                  disabled={busy || permission === "denied"}
+                  onCheckedChange={handleChange}
+                />
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              {busy && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-              <Switch
-                id="push-toggle"
-                checked={enabled}
-                disabled={busy || permission === "denied"}
-                onCheckedChange={handleChange}
-              />
-            </div>
+            {enabled && (
+              <Button variant="outline" className="w-full" onClick={sendTest} disabled={testing}>
+                {testing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
+                {testing ? "Sending test..." : "Send test notification"}
+              </Button>
+            )}
           </div>
-        )}
+        )
       </CardContent>
     </Card>
   );
