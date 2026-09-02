@@ -74,28 +74,36 @@ export function PushToggle({ description }: { description?: string }) {
             This browser does not support push notifications.
           </div>
         ) : (
-          <div className="flex items-center justify-between gap-4 rounded-md border border-border p-3">
-            <div className="space-y-0.5">
-              <Label htmlFor="push-toggle">Enable on this device</Label>
-              <p className="text-xs text-muted-foreground">
-                {permission === "denied"
-                  ? "Blocked — allow notifications in your browser settings first."
-                  : enabled
-                  ? "Active on this device"
-                  : "Currently off"}
-              </p>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-4 rounded-md border border-border p-3">
+              <div className="space-y-0.5">
+                <Label htmlFor="push-toggle">Enable on this device</Label>
+                <p className="text-xs text-muted-foreground">
+                  {permission === "denied"
+                    ? "Blocked — allow notifications in your browser settings first."
+                    : enabled
+                    ? "Active on this device"
+                    : "Currently off"}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                {busy && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                <Switch
+                  id="push-toggle"
+                  checked={enabled}
+                  disabled={busy || permission === "denied"}
+                  onCheckedChange={handleChange}
+                />
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              {busy && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-              <Switch
-                id="push-toggle"
-                checked={enabled}
-                disabled={busy || permission === "denied"}
-                onCheckedChange={handleChange}
-              />
-            </div>
+            {enabled && (
+              <Button variant="outline" className="w-full" onClick={sendTest} disabled={testing}>
+                {testing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
+                {testing ? "Sending test..." : "Send test notification"}
+              </Button>
+            )}
           </div>
-        )}
+        )
       </CardContent>
     </Card>
   );
