@@ -10,6 +10,8 @@ import { Separator } from "@/components/ui/separator";
 import { Save, Building2, CreditCard, Mail, Heart, FileText, Upload, Loader2, Globe, Database, Shield } from "lucide-react";
 import { DataBackup } from "@/components/admin/DataBackup";
 import { ActiveSessions } from "@/components/ActiveSessions";
+import { PushToggle } from "@/components/PushToggle";
+
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
@@ -476,8 +478,10 @@ export default function Settings() {
         </TabsContent>
 
         <TabsContent value="security" className="space-y-4 mt-4">
+          <PushToggle description="Get alerts on this device for new orders, low stock, payments and messages — even when DreamNest is closed." />
           <ActiveSessions />
         </TabsContent>
+
       </Tabs>
     </div>
   );
