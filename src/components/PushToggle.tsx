@@ -103,7 +103,7 @@ export function PushToggle({ description }: { description?: string }) {
               </Button>
             )}
           </div>
-        )
+        )}
       </CardContent>
     </Card>
   );
