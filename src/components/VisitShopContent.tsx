@@ -3,8 +3,7 @@ import { MapPin, Gift, Instagram } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useWebsiteContent } from "@/hooks/useWebsiteContent";
 
-export const DEFAULT_SHOP_ADDRESS =
-  "KG 1 Avenue 31, Cobblestone Road From Kisimenti to Sonatube, Kigali, Rwanda";
+export const DEFAULT_SHOP_ADDRESS = "KG 1 Avenue 31, Kigali, Rwanda";
 export const DEFAULT_INSTAGRAM_URL = "https://www.instagram.com/dreamnestrw";
 
 export const mapsUrl = (address: string) =>
