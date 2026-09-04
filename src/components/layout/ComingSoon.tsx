@@ -1,24 +1,18 @@
 import { PublicLayout } from "./PublicLayout";
-import { Gift, Clock } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Clock } from "lucide-react";
+import { VisitShopActions, VisitShopBody, useVisitShopInfo } from "@/components/VisitShopContent";
 
 export function ComingSoon() {
+  const { address, mapsUrl, instagramUrl } = useVisitShopInfo();
+
   return (
     <PublicLayout>
-      <div className="container mx-auto px-4 py-20 text-center">
-        <Clock className="h-16 w-16 text-soft-gold mx-auto mb-6" />
-        <h1 className="text-4xl lg:text-5xl font-serif mb-4">We're Launching Soon</h1>
-        <p className="text-lg text-muted-foreground max-w-md mx-auto mb-8">
-          Our online shop is being prepared with care. Stay tuned for premium bedding and home decor.
-        </p>
-        <div className="flex gap-4 justify-center">
-          <Link to="/contact">
-            <Button variant="outline" size="lg">Contact Us</Button>
-          </Link>
-          <Link to="/">
-            <Button variant="ghost" size="lg">Back Home</Button>
-          </Link>
+      <div className="container mx-auto px-4 py-20">
+        <div className="max-w-xl mx-auto text-center">
+          <Clock className="h-16 w-16 text-soft-gold mx-auto mb-6" />
+          <h1 className="text-4xl lg:text-5xl font-serif mb-4">Visit our shop today!</h1>
+          <VisitShopBody address={address} />
+          <VisitShopActions mapsUrl={mapsUrl} instagramUrl={instagramUrl} />
         </div>
       </div>
     </PublicLayout>

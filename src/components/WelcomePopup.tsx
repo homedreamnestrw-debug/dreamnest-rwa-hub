@@ -1,23 +1,17 @@
 import { useEffect, useState, useCallback } from "react";
-import { Link } from "react-router-dom";
-import { X, MapPin, Gift, Instagram } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useWebsiteContent } from "@/hooks/useWebsiteContent";
+import { VisitShopActions, VisitShopBody, useVisitShopInfo } from "@/components/VisitShopContent";
 
 const STORAGE_KEY = "dreamnest-welcome-popup";
 const SHOW_DELAY_MS = 3000;
 const DISMISS_FOR_DAYS = 7;
 
-const SHOP_ADDRESS = "31 KG 1 Ave, Kigali, Rwanda";
-const MAPS_URL = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(SHOP_ADDRESS)}`;
-const DEFAULT_INSTAGRAM_URL = "https://www.instagram.com/dreamnestrw";
-
 export function WelcomePopup() {
   const [isOpen, setIsOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
-  const { content: c } = useWebsiteContent();
-  const instagramUrl = c.social_instagram || DEFAULT_INSTAGRAM_URL;
+  const { address, mapsUrl, instagramUrl } = useVisitShopInfo();
+
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -99,42 +93,11 @@ export function WelcomePopup() {
             Visit our shop today!
           </h2>
 
-          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-            Our full online store is launching soon. In the meantime, you can visit us in person at{" "}
-            <span className="font-medium text-foreground">{SHOP_ADDRESS}</span> or buy digital gift vouchers online.
-          </p>
+          <VisitShopBody address={address} />
         </div>
 
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <Button asChild className="w-full h-11" onClick={close}>
-            <a
-              href={MAPS_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <MapPin className="h-4 w-4" />
-              Get Store Directions
-            </a>
-          </Button>
+        <VisitShopActions mapsUrl={mapsUrl} instagramUrl={instagramUrl} onAction={close} />
 
-          <Button asChild variant="outline" className="w-full h-11" onClick={close}>
-            <Link to="/gift-vouchers">
-              <Gift className="h-4 w-4" />
-              Buy a Gift Voucher
-            </Link>
-          </Button>
-
-          <Button asChild variant="outline" className="w-full h-11 sm:col-span-2" onClick={close}>
-            <a
-              href={instagramUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Instagram className="h-4 w-4" />
-              Visit Our Instagram
-            </a>
-          </Button>
-        </div>
       </div>
     </div>
   );
