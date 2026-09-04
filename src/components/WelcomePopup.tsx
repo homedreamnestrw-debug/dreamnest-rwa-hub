@@ -1,23 +1,17 @@
 import { useEffect, useState, useCallback } from "react";
-import { Link } from "react-router-dom";
-import { X, MapPin, Gift, Instagram } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useWebsiteContent } from "@/hooks/useWebsiteContent";
+import { VisitShopActions, VisitShopBody, useVisitShopInfo } from "@/components/VisitShopContent";
 
 const STORAGE_KEY = "dreamnest-welcome-popup";
 const SHOW_DELAY_MS = 3000;
 const DISMISS_FOR_DAYS = 7;
 
-const SHOP_ADDRESS = "31 KG 1 Ave, Kigali, Rwanda";
-const MAPS_URL = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(SHOP_ADDRESS)}`;
-const DEFAULT_INSTAGRAM_URL = "https://www.instagram.com/dreamnestrw";
-
 export function WelcomePopup() {
   const [isOpen, setIsOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
-  const { content: c } = useWebsiteContent();
-  const instagramUrl = c.social_instagram || DEFAULT_INSTAGRAM_URL;
+  const { address, mapsUrl, instagramUrl } = useVisitShopInfo();
+
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
