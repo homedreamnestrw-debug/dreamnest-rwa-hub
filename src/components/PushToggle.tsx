@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function PushToggle({ description }: { description?: string }) {
-  const { supported, enabled, busy, permission, needsInstall, enable, disable } =
+  const { supported, enabled, busy, permission, needsInstall, enable, disable, refresh } =
     usePushNotifications();
   const { user } = useAuth();
   const [testing, setTesting] = useState(false);
@@ -32,6 +32,17 @@ export function PushToggle({ description }: { description?: string }) {
     if (!user) return;
     setTesting(true);
     try {
+      const { count, error: countError } = await supabase
+        .from("push_subscriptions")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id);
+      if (countError) throw countError;
+      if (!count) {
+        toast.error("This device isn't registered yet — turn the switch off and on again.");
+        await refresh();
+        return;
+      }
+
       const { error } = await supabase.from("notifications").insert({
         audience: "user",
         user_id: user.id,
@@ -49,6 +60,7 @@ export function PushToggle({ description }: { description?: string }) {
       setTesting(false);
     }
   };
+
 
 
   return (
