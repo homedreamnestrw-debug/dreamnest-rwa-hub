@@ -12,7 +12,6 @@ import {
   Truck,
   LogOut,
   Monitor,
-  ExternalLink,
   MessageSquare,
   Gift,
   Sparkles,
@@ -187,14 +186,6 @@ export function AdminSidebar() {
               </SidebarMenuButton>
             </SidebarMenuItem>
           )}
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <a href="/" target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="h-4 w-4" />
-                {!collapsed && <span>View Store</span>}
-              </a>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton onClick={signOut}>
               <LogOut className="h-4 w-4" />
