@@ -2,6 +2,7 @@ import { Outlet } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "./AdminSidebar";
 import { NotificationBell } from "@/components/NotificationBell";
+import { AdminPushPrompt } from "./AdminPushPrompt";
 
 export function AdminLayout() {
   return (
@@ -23,6 +24,7 @@ export function AdminLayout() {
         </div>
       </div>
 
+      <AdminPushPrompt />
     </SidebarProvider>
   );
 }
