@@ -185,6 +185,182 @@ export type Database = {
         }
         Relationships: []
       }
+      calendar_events: {
+        Row: {
+          all_day: boolean
+          assigned_to: string | null
+          attachments: string[]
+          color: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          end_date: string | null
+          end_time: string | null
+          event_type: Database["public"]["Enums"]["calendar_event_type"]
+          id: string
+          is_recurring: boolean
+          is_system: boolean
+          linked_entity_id: string | null
+          linked_entity_type: string | null
+          notes: string | null
+          priority: Database["public"]["Enums"]["calendar_priority"]
+          recurrence_count: number | null
+          recurrence_days_of_week: number[]
+          recurrence_end_date: string | null
+          recurrence_interval: number
+          recurrence_rule:
+            | Database["public"]["Enums"]["calendar_recurrence"]
+            | null
+          reminder_minutes_before: number | null
+          start_date: string
+          start_time: string | null
+          status: Database["public"]["Enums"]["calendar_event_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          all_day?: boolean
+          assigned_to?: string | null
+          attachments?: string[]
+          color?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_date?: string | null
+          end_time?: string | null
+          event_type?: Database["public"]["Enums"]["calendar_event_type"]
+          id?: string
+          is_recurring?: boolean
+          is_system?: boolean
+          linked_entity_id?: string | null
+          linked_entity_type?: string | null
+          notes?: string | null
+          priority?: Database["public"]["Enums"]["calendar_priority"]
+          recurrence_count?: number | null
+          recurrence_days_of_week?: number[]
+          recurrence_end_date?: string | null
+          recurrence_interval?: number
+          recurrence_rule?:
+            | Database["public"]["Enums"]["calendar_recurrence"]
+            | null
+          reminder_minutes_before?: number | null
+          start_date: string
+          start_time?: string | null
+          status?: Database["public"]["Enums"]["calendar_event_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          all_day?: boolean
+          assigned_to?: string | null
+          attachments?: string[]
+          color?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_date?: string | null
+          end_time?: string | null
+          event_type?: Database["public"]["Enums"]["calendar_event_type"]
+          id?: string
+          is_recurring?: boolean
+          is_system?: boolean
+          linked_entity_id?: string | null
+          linked_entity_type?: string | null
+          notes?: string | null
+          priority?: Database["public"]["Enums"]["calendar_priority"]
+          recurrence_count?: number | null
+          recurrence_days_of_week?: number[]
+          recurrence_end_date?: string | null
+          recurrence_interval?: number
+          recurrence_rule?:
+            | Database["public"]["Enums"]["calendar_recurrence"]
+            | null
+          reminder_minutes_before?: number | null
+          start_date?: string
+          start_time?: string | null
+          status?: Database["public"]["Enums"]["calendar_event_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      calendar_tasks: {
+        Row: {
+          assigned_to: string | null
+          category: Database["public"]["Enums"]["calendar_task_category"]
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_date: string | null
+          due_time: string | null
+          id: string
+          is_recurring: boolean
+          linked_event_id: string | null
+          priority: Database["public"]["Enums"]["calendar_priority"]
+          recurrence_end_date: string | null
+          recurrence_interval: number
+          recurrence_rule:
+            | Database["public"]["Enums"]["calendar_recurrence"]
+            | null
+          status: Database["public"]["Enums"]["calendar_task_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          category?: Database["public"]["Enums"]["calendar_task_category"]
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          due_time?: string | null
+          id?: string
+          is_recurring?: boolean
+          linked_event_id?: string | null
+          priority?: Database["public"]["Enums"]["calendar_priority"]
+          recurrence_end_date?: string | null
+          recurrence_interval?: number
+          recurrence_rule?:
+            | Database["public"]["Enums"]["calendar_recurrence"]
+            | null
+          status?: Database["public"]["Enums"]["calendar_task_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          category?: Database["public"]["Enums"]["calendar_task_category"]
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          due_time?: string | null
+          id?: string
+          is_recurring?: boolean
+          linked_event_id?: string | null
+          priority?: Database["public"]["Enums"]["calendar_priority"]
+          recurrence_end_date?: string | null
+          recurrence_interval?: number
+          recurrence_rule?:
+            | Database["public"]["Enums"]["calendar_recurrence"]
+            | null
+          status?: Database["public"]["Enums"]["calendar_task_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_tasks_linked_event_id_fkey"
+            columns: ["linked_event_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cart_items: {
         Row: {
           created_at: string
@@ -1987,6 +2163,27 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "staff" | "customer" | "stock_manager"
+      calendar_event_status: "pending" | "completed" | "cancelled"
+      calendar_event_type:
+        | "reminder"
+        | "task"
+        | "delivery"
+        | "invoice"
+        | "marketing"
+        | "staff"
+        | "operations"
+        | "holiday"
+        | "customer"
+      calendar_priority: "low" | "medium" | "high" | "urgent"
+      calendar_recurrence: "daily" | "weekly" | "monthly" | "yearly"
+      calendar_task_category:
+        | "marketing"
+        | "operations"
+        | "stock"
+        | "finance"
+        | "staff"
+        | "other"
+      calendar_task_status: "todo" | "in_progress" | "completed" | "cancelled"
       delivery_method: "ship" | "pickup"
       document_status:
         | "draft"
@@ -2148,6 +2345,29 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "staff", "customer", "stock_manager"],
+      calendar_event_status: ["pending", "completed", "cancelled"],
+      calendar_event_type: [
+        "reminder",
+        "task",
+        "delivery",
+        "invoice",
+        "marketing",
+        "staff",
+        "operations",
+        "holiday",
+        "customer",
+      ],
+      calendar_priority: ["low", "medium", "high", "urgent"],
+      calendar_recurrence: ["daily", "weekly", "monthly", "yearly"],
+      calendar_task_category: [
+        "marketing",
+        "operations",
+        "stock",
+        "finance",
+        "staff",
+        "other",
+      ],
+      calendar_task_status: ["todo", "in_progress", "completed", "cancelled"],
       delivery_method: ["ship", "pickup"],
       document_status: [
         "draft",
