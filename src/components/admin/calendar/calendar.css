@@ -1,0 +1,52 @@
+.dreamnest-calendar .rbc-calendar {
+  font-family: inherit;
+}
+
+.dreamnest-calendar .rbc-header {
+  padding: 8px 4px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  border-bottom: 1px solid hsl(var(--border));
+  color: hsl(var(--muted-foreground));
+}
+
+.dreamnest-calendar .rbc-month-view,
+.dreamnest-calendar .rbc-time-view,
+.dreamnest-calendar .rbc-agenda-view table {
+  border-color: hsl(var(--border));
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: hsl(var(--card));
+}
+
+.dreamnest-calendar .rbc-day-bg + .rbc-day-bg,
+.dreamnest-calendar .rbc-month-row + .rbc-month-row,
+.dreamnest-calendar .rbc-time-content,
+.dreamnest-calendar .rbc-time-header-content {
+  border-color: hsl(var(--border));
+}
+
+.dreamnest-calendar .rbc-off-range-bg {
+  background: hsl(var(--muted) / 0.4);
+}
+
+.dreamnest-calendar .rbc-today,
+.dreamnest-calendar .rbc-today-dreamnest {
+  background: hsl(var(--accent) / 0.25);
+  box-shadow: inset 0 0 0 1px hsl(var(--primary) / 0.35);
+}
+
+.dreamnest-calendar .rbc-toolbar {
+  display: none;
+}
+
+.dreamnest-calendar .rbc-event,
+.dreamnest-calendar .rbc-event.rbc-selected {
+  outline: none;
+  box-shadow: 0 1px 2px hsl(var(--foreground) / 0.12);
+}
+
+.dreamnest-calendar .rbc-agenda-view table.rbc-agenda-table tbody > tr > td {
+  padding: 8px;
+  font-size: 0.85rem;
+}
