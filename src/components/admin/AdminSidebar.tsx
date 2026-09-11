@@ -16,6 +16,7 @@ import {
   Gift,
   Sparkles,
   CreditCard,
+  CalendarDays,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -64,6 +65,7 @@ const peopleItems: NavItem[] = [
 ];
 
 const operationsItems: NavItem[] = [
+  { title: "Calendar", url: "/admin/calendar", icon: CalendarDays, visibility: "both" },
   { title: "Suppliers", url: "/admin/suppliers", icon: Truck, visibility: "stockPlus" },
   { title: "Purchase Orders", url: "/admin/purchase-orders", icon: FileText, visibility: "stockPlus" },
   { title: "Expenses", url: "/admin/expenses", icon: DollarSign, visibility: "admin" },
