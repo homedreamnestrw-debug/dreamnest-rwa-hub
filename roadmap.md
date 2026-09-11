@@ -9,12 +9,12 @@
 - Task board: To Do / In Progress / Completed / Cancelled, drag between columns, quick add, filters, sorting, one-click complete, overdue in red, repeating tasks regenerate
 - Dashboard widget: today, next 5 items, overdue count, quick reminder
 - Sidebar entry for admin and staff
+- Bell alerts for items due in the next 24 hours + red overdue badge on the Calendar menu item
 
 ### Open (Phase 2)
 - Auto-events from invoice due dates, purchase order delivery dates, low stock
 - Preloaded recurring business reminders (monthly sales review, salaries, quarterly RDB, yearly licence/audit)
 - Rwanda public holidays preloaded, with no-promotions flag on 7 April
-- Bell count for items due in next 24 hours + red badge on the Calendar menu item
 - Reminder emails, 8:00 AM Kigali daily digest, Monday overdue summary (Zoho SMTP + scheduled job)
 - Automatic overdue marking in the database
 - Calendar tab in Admin → Settings: default view, working hours/days, digest toggle, default reminder, staff visibility toggle

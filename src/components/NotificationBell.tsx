@@ -1,4 +1,4 @@
-import { Bell, CheckCheck } from "lucide-react";
+import { Bell, CalendarDays, CheckCheck, ListTodo } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
+import { CalendarAlert, formatCalendarAlertTime } from "@/hooks/useCalendarAlerts";
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -18,11 +19,16 @@ function timeAgo(iso: string) {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-export function NotificationBell() {
+interface NotificationBellProps {
+  calendarAlerts?: CalendarAlert[];
+}
+
+export function NotificationBell({ calendarAlerts = [] }: NotificationBellProps) {
   const { user } = useAuth();
   const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const totalCount = unreadCount + calendarAlerts.length;
 
   if (!user) return null;
 
@@ -31,9 +37,9 @@ export function NotificationBell() {
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative tap-target" aria-label="Notifications">
           <Bell className="h-5 w-5" />
-          {unreadCount > 0 && (
+          {totalCount > 0 && (
             <Badge className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 flex items-center justify-center p-0 text-[10px]">
-              {unreadCount > 9 ? "9+" : unreadCount}
+              {totalCount > 9 ? "9+" : totalCount}
             </Badge>
           )}
         </Button>
@@ -48,9 +54,46 @@ export function NotificationBell() {
           )}
         </div>
         <ScrollArea className="max-h-[60vh]">
-          {notifications.length === 0 ? (
+          {calendarAlerts.length > 0 && (
+            <div className="border-b">
+              <div className="flex items-center justify-between bg-muted/40 px-3 py-2">
+                <span className="text-xs font-medium">Due in the next 24 hours</span>
+                <Badge variant="destructive" className="h-5 px-1.5 text-[10px]">
+                  {calendarAlerts.length}
+                </Badge>
+              </div>
+              <ul className="divide-y">
+                {calendarAlerts.map((alert) => (
+                  <li key={alert.id}>
+                    <button
+                      className="w-full px-3 py-2.5 text-left transition-colors hover:bg-muted/60"
+                      onClick={() => {
+                        setOpen(false);
+                        navigate("/admin/calendar");
+                      }}
+                    >
+                      <div className="flex items-start gap-2">
+                        {alert.kind === "event" ? (
+                          <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                        ) : (
+                          <ListTodo className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="break-words text-sm font-medium">{alert.title}</p>
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            {formatCalendarAlertTime(alert)} · {alert.priority} priority
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {notifications.length === 0 && calendarAlerts.length === 0 ? (
             <p className="p-6 text-center text-sm text-muted-foreground">No notifications yet</p>
-          ) : (
+          ) : notifications.length > 0 ? (
             <ul className="divide-y">
               {notifications.map((n) => (
                 <li key={n.id}>
@@ -80,7 +123,7 @@ export function NotificationBell() {
                 </li>
               ))}
             </ul>
-          )}
+          ) : null}
         </ScrollArea>
       </PopoverContent>
     </Popover>

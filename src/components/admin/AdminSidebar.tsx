@@ -102,7 +102,11 @@ function VisibilityTag({ visibility }: { visibility: Visibility }) {
   );
 }
 
-export function AdminSidebar() {
+interface AdminSidebarProps {
+  calendarOverdueCount?: number;
+}
+
+export function AdminSidebar({ calendarOverdueCount = 0 }: AdminSidebarProps) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
@@ -139,8 +143,25 @@ export function AdminSidebar() {
                     {!collapsed && (
                       <>
                         <span>{item.title}</span>
-                        <VisibilityTag visibility={item.visibility} />
+                        {item.url === "/admin/calendar" && calendarOverdueCount > 0 ? (
+                          <span
+                            className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold text-destructive-foreground"
+                            aria-label={`${calendarOverdueCount} overdue calendar tasks`}
+                          >
+                            {calendarOverdueCount > 99 ? "99+" : calendarOverdueCount}
+                          </span>
+                        ) : (
+                          <VisibilityTag visibility={item.visibility} />
+                        )}
                       </>
+                    )}
+                    {collapsed && item.url === "/admin/calendar" && calendarOverdueCount > 0 && (
+                      <span
+                        className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-0.5 text-[9px] font-semibold text-destructive-foreground"
+                        aria-label={`${calendarOverdueCount} overdue calendar tasks`}
+                      >
+                        {calendarOverdueCount > 9 ? "9+" : calendarOverdueCount}
+                      </span>
                     )}
                   </NavLink>
                 </SidebarMenuButton>
