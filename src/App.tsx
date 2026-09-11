@@ -47,6 +47,7 @@ import GiftVouchers from "./pages/GiftVouchers";
 import GiftVoucherConfirmation from "./pages/GiftVoucherConfirmation";
 import AdminGiftVouchers from "./pages/admin/GiftVouchers";
 import CreativeStudio from "./pages/admin/CreativeStudio";
+import AdminCalendar from "./pages/admin/Calendar";
 import { Navigate } from "react-router-dom";
 
 const queryClient = new QueryClient();
@@ -109,6 +110,7 @@ const App = () => (
               <Route path="messages" element={<Messages />} />
               <Route path="gift-vouchers" element={<AdminGiftVouchers />} />
               <Route path="creative-studio" element={<CreativeStudio />} />
+              <Route path="calendar" element={<AdminCalendar />} />
 
               {/* Admin-only */}
               <Route path="dashboard" element={<ProtectedRoute requiredRole="admin"><Dashboard /></ProtectedRoute>} />

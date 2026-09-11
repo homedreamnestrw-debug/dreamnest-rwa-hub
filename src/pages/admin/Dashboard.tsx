@@ -6,6 +6,7 @@ import {
   CheckCircle2, Clock, Globe, Store, Wallet, Receipt, BadgePercent, Truck,
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
+import { DashboardCalendarWidget } from "@/components/admin/calendar/DashboardCalendarWidget";
 
 const formatRWF = (n: number) =>
   new Intl.NumberFormat("en-RW", { style: "currency", currency: "RWF", minimumFractionDigits: 0 }).format(n || 0);
@@ -268,6 +269,10 @@ export default function Dashboard() {
         <KpiTile icon={TrendingUp} color="text-emerald-700" label="Net Profit" value={formatRWF(m.netProfit)} sub="Gross − Expenses" />
         <KpiTile icon={ShoppingCart} color="text-rose-700" label="Cancelled / Refunded" value={formatRWF(m.cancelledRevenue)} sub={`${formatInt(m.cancelledCount)} orders`} />
         <KpiTile icon={Users} color="text-violet-600" label="Customers" value={formatInt(counts.customers)} sub={`${formatInt(counts.products)} products`} />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <DashboardCalendarWidget />
       </div>
 
       {/* Low stock warning */}
