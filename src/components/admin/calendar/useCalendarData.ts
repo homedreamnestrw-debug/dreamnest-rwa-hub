@@ -59,12 +59,14 @@ export function useCalendarData() {
       if (error) throw error;
     }
     await load();
+    window.dispatchEvent(new Event("calendar-data-changed"));
   };
 
   const deleteEvent = async (id: string) => {
     const { error } = await supabase.from("calendar_events").delete().eq("id", id);
     if (error) throw error;
     await load();
+    window.dispatchEvent(new Event("calendar-data-changed"));
   };
 
   const saveTask = async (payload: Partial<CalendarTask> & { id?: string }) => {
@@ -79,12 +81,14 @@ export function useCalendarData() {
       if (error) throw error;
     }
     await load();
+    window.dispatchEvent(new Event("calendar-data-changed"));
   };
 
   const deleteTask = async (id: string) => {
     const { error } = await supabase.from("calendar_tasks").delete().eq("id", id);
     if (error) throw error;
     await load();
+    window.dispatchEvent(new Event("calendar-data-changed"));
   };
 
   return { events, tasks, staff, loading, reload: load, saveEvent, deleteEvent, saveTask, deleteTask };
