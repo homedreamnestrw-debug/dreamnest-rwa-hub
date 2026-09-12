@@ -212,6 +212,7 @@ export type Database = {
             | Database["public"]["Enums"]["calendar_recurrence"]
             | null
           reminder_minutes_before: number | null
+          reminder_notified_at: string | null
           start_date: string
           start_time: string | null
           status: Database["public"]["Enums"]["calendar_event_status"]
@@ -244,6 +245,7 @@ export type Database = {
             | Database["public"]["Enums"]["calendar_recurrence"]
             | null
           reminder_minutes_before?: number | null
+          reminder_notified_at?: string | null
           start_date: string
           start_time?: string | null
           status?: Database["public"]["Enums"]["calendar_event_status"]
@@ -276,6 +278,7 @@ export type Database = {
             | Database["public"]["Enums"]["calendar_recurrence"]
             | null
           reminder_minutes_before?: number | null
+          reminder_notified_at?: string | null
           start_date?: string
           start_time?: string | null
           status?: Database["public"]["Enums"]["calendar_event_status"]
@@ -303,6 +306,7 @@ export type Database = {
           recurrence_rule:
             | Database["public"]["Enums"]["calendar_recurrence"]
             | null
+          reminder_notified_at: string | null
           status: Database["public"]["Enums"]["calendar_task_status"]
           title: string
           updated_at: string
@@ -325,6 +329,7 @@ export type Database = {
           recurrence_rule?:
             | Database["public"]["Enums"]["calendar_recurrence"]
             | null
+          reminder_notified_at?: string | null
           status?: Database["public"]["Enums"]["calendar_task_status"]
           title: string
           updated_at?: string
@@ -347,6 +352,7 @@ export type Database = {
           recurrence_rule?:
             | Database["public"]["Enums"]["calendar_recurrence"]
             | null
+          reminder_notified_at?: string | null
           status?: Database["public"]["Enums"]["calendar_task_status"]
           title?: string
           updated_at?: string
@@ -2039,6 +2045,7 @@ export type Database = {
           order_number: number
         }[]
       }
+      dispatch_calendar_reminders: { Args: never; Returns: undefined }
       generate_voucher_code: { Args: never; Returns: string }
       get_admin_products_with_costs: {
         Args: never
