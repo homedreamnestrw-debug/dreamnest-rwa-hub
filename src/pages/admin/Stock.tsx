@@ -130,29 +130,35 @@ export default function Stock() {
         const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
         return { blob, filename: "products-template.xlsx" };
       }}
-      importNotes={`One row per product. Add extra rows with the same slug (and variant_name filled) to attach variants. Category is matched by name (created if missing). variant_attributes must be JSON, e.g. {"Size":"Queen"}.`}
+      importNotes={`One row per product. For variants, add rows right below the product with the name left blank (or repeated) and variant_name filled, e.g. "Queen / Beige". Slug, SKU and variant SKUs are generated automatically. Blank variant price/cost uses the product's price/cost. Category is matched by name (created if missing).`}
       onImport={async (rows): Promise<ImportResult> => {
         const errors: string[] = [];
         let ok = 0, failed = 0;
-        const [{ data: cats }, { data: defaultLocation }] = await Promise.all([
+        const [{ data: cats }, { data: defaultLocation }, { data: existingProds }] = await Promise.all([
           supabase.from("categories").select("id,name"),
           supabase.from("stock_locations").select("id").eq("is_active", true).order("created_at").limit(1).maybeSingle(),
+          supabase.from("products").select("slug,sku,variant_attributes"),
         ]);
         const catByName = new Map((cats || []).map((c) => [c.name.toLowerCase(), c.id]));
+        const prodBySlug = new Map((existingProds || []).map((p: any) => [p.slug, p]));
+        const takenSkus = new Set((existingProds || []).map((p: any) => (p.sku || "").toUpperCase()).filter(Boolean));
 
-        // Group rows by slug (or generated slug from name)
+        // Group rows: a named row starts a product; blank-name rows attach to the previous product.
         const groups = new Map<string, Record<string, string>[]>();
+        let currentKey = "";
         for (const r of rows) {
-          const key = (r.slug || (r.name ? slugify(r.name) : "")).toLowerCase();
-          if (!key) { failed++; errors.push("(row missing name and slug)"); continue; }
+          const explicit = (r.slug || (r.name ? slugify(r.name) : "")).toLowerCase();
+          const key = explicit || currentKey;
+          if (!key) { failed++; errors.push("(row missing product name)"); continue; }
+          currentKey = key;
           const arr = groups.get(key) || []; arr.push(r); groups.set(key, arr);
         }
 
         for (const [slugKey, group] of groups) {
           try {
-            // Product header = first row that has a name OR fallback to first row
             const header = group.find((r) => r.name) || group[0];
             const variantRows = group.filter((r) => r.variant_name);
+            if (!header.name) throw new Error("product name is required");
 
             let category_id: string | null = null;
             if (header.category_name) {
@@ -166,9 +172,27 @@ export default function Stock() {
                 catByName.set(k, category_id);
               }
             }
-            const slug = header.slug || slugify(header.name);
+            const slug = header.slug || slugKey;
+            const existingProd: any = prodBySlug.get(slug);
+            let sku = (header.sku || "").trim();
+            if (!sku) sku = existingProd?.sku || nextSku(header.category_name, takenSkus);
+            else takenSkus.add(sku.toUpperCase());
+
+            // Build option schema from variant names
+            const parsedAttrs = variantRows.map((vr) => {
+              if (vr.variant_attributes) {
+                try { return JSON.parse(vr.variant_attributes); } catch { /* fall through */ }
+              }
+              return parseVariantAttributes(vr.variant_name, Object.keys(existingProd?.variant_attributes || {}));
+            });
+            const schema: Record<string, string[]> = {};
+            parsedAttrs.forEach((a) => Object.entries(a).forEach(([k, v]) => {
+              schema[k] = schema[k] || [];
+              if (!schema[k].includes(String(v))) schema[k].push(String(v));
+            }));
+
             const payload: any = {
-              name: header.name, slug, sku: header.sku || null,
+              name: header.name, slug, sku,
               price: Number(header.price || 0), cost_price: Number(header.cost_price || 0),
               stock_quantity: Number(header.stock_quantity || 0),
               low_stock_threshold: Number(header.low_stock_threshold || 5),
@@ -178,27 +202,24 @@ export default function Stock() {
               tax_enabled: parseBool(header.tax_enabled, true),
               description: header.description || null,
             };
+            if (variantRows.length > 0) payload.variant_attributes = schema;
             const { data: prod, error } = await supabase.from("products").upsert(payload, { onConflict: "slug" }).select("id").single();
             if (error) throw error;
             ok++;
 
-            // Variants: upsert by (product_id, variant_name) — each variant is its own try/catch row
-            for (const vr of variantRows) {
+            for (const [vi, vr] of variantRows.entries()) {
               try {
-                let attributes: any = {};
-                if (vr.variant_attributes) {
-                  try { attributes = JSON.parse(vr.variant_attributes); }
-                  catch { throw new Error(`invalid JSON in variant_attributes`); }
-                }
+                const attributes = parsedAttrs[vi];
                 const { data: existing, error: selErr } = await supabase
-                  .from("product_variants").select("id")
+                  .from("product_variants").select("id,sku")
                   .eq("product_id", prod!.id).eq("variant_name", vr.variant_name).maybeSingle();
                 if (selErr) throw selErr;
                 const vPayload: any = {
                   product_id: prod!.id,
                   variant_name: vr.variant_name,
-                  sku: vr.variant_sku ? vr.variant_sku : null,
-                  price_override: vr.variant_price ? Number(vr.variant_price) : null,
+                  sku: vr.variant_sku || existing?.sku || buildVariantSku(sku, vr.variant_name, vi),
+                  price_override: String(vr.variant_price ?? "").trim() !== "" ? Number(vr.variant_price) : null,
+                  cost_price: String(vr.variant_cost_price ?? "").trim() !== "" ? Number(vr.variant_cost_price) : null,
                   attributes,
                   is_active: true,
                 };
