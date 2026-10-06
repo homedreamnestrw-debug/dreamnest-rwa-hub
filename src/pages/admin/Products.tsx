@@ -16,6 +16,8 @@ import { Plus, Pencil, Trash2, Search, Sparkles, Loader2, Languages, Wand2, Scis
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { ProductImageUpload } from "@/components/admin/ProductImageUpload";
+import { loadExistingSkus, nextSku } from "@/lib/sku";
+import { slugify } from "@/lib/csv";
 import { VariantManager, persistVariants, type OptionsSchema, type VariantRow } from "@/components/admin/VariantManager";
 import type { Tables, TablesInsert } from "@/integrations/supabase/types";
 import { LanguageSelector } from "@/components/admin/studio/LanguageSelector";
@@ -240,7 +242,7 @@ export default function Products() {
     setOptionsSchema(schema);
     const { data: vData } = await supabase
       .from("product_variants")
-      .select("id, variant_name, attributes, sku, price_override, is_active, image_url, description")
+      .select("id, variant_name, attributes, sku, price_override, cost_price, is_active, image_url, description")
       .eq("product_id", p.id)
       .eq("is_active", true);
     const variantIds = (vData ?? []).map((v) => v.id);
@@ -262,6 +264,7 @@ export default function Products() {
         attributes: (v.attributes ?? {}) as Record<string, string>,
         sku: v.sku ?? "",
         price_override: v.price_override,
+        cost_price: v.cost_price ?? null,
         is_active: v.is_active,
         image_url: v.image_url ?? null,
         description: v.description ?? null,
@@ -274,13 +277,19 @@ export default function Products() {
   const totalStock = Object.values(locationStock).reduce((a, b) => a + (b || 0), 0);
 
   const handleSave = async () => {
-    const slug = form.slug || form.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+    const slug = form.slug || slugify(form.name);
     const { images, hidden_images, ...rest } = form;
     const hasVariants = variantRows.length > 0;
     // Keep hidden_images in sync with current images (drop any that no longer exist)
     const cleanedHidden = (hidden_images || []).filter((u) => images.includes(u));
+    let sku = (form.sku || "").trim();
+    if (!sku) {
+      const taken = await loadExistingSkus();
+      sku = nextSku(categories.find((c) => c.id === form.category_id)?.name, taken);
+    }
     const payload: TablesInsert<"products"> = {
       ...rest,
+      sku,
       slug,
       category_id: form.category_id || null,
       images: images.length > 0 ? images : null,
@@ -306,7 +315,7 @@ export default function Products() {
 
     // Persist variants (and their per-location stock) when defined
     if (hasVariants) {
-      const { error: vErr } = await persistVariants(productId, variantRows);
+      const { error: vErr } = await persistVariants(productId, variantRows, sku);
       if (vErr) { toast({ title: "Variants save failed", description: vErr, variant: "destructive" }); }
       // Zero out per-product stock so it doesn't conflict with variant totals
       await supabase
@@ -383,7 +392,8 @@ export default function Products() {
               </div>
               <div>
                 <Label>Slug</Label>
-                <Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} placeholder="auto-generated" />
+                <Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} placeholder={slugify(form.name) || "auto-generated from name"} />
+                <p className="text-xs text-muted-foreground mt-1">Leave blank to generate from the name.</p>
               </div>
               <div>
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -502,7 +512,16 @@ export default function Products() {
                 )}
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div><Label>SKU</Label><Input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} /></div>
+                <div>
+                  <Label>SKU</Label>
+                  <div className="flex gap-1">
+                    <Input value={form.sku} placeholder="Auto on save" onChange={(e) => setForm({ ...form, sku: e.target.value })} />
+                    <Button type="button" size="sm" variant="outline" title="Generate SKU" onClick={async () => {
+                      const taken = await loadExistingSkus();
+                      setForm((f) => ({ ...f, sku: nextSku(categories.find((c) => c.id === f.category_id)?.name, taken) }));
+                    }}><Sparkles className="h-3.5 w-3.5" /></Button>
+                  </div>
+                </div>
                 <div><Label>Low Stock Threshold</Label><Input type="number" value={form.low_stock_threshold} onChange={(e) => setForm({ ...form, low_stock_threshold: +e.target.value })} /></div>
               </div>
               {variantRows.length === 0 && (
@@ -542,6 +561,9 @@ export default function Products() {
                 variants={variantRows}
                 onVariantsChange={setVariantRows}
                 productImages={form.images}
+                baseSku={form.sku}
+                baseCost={form.cost_price}
+                showCost={canManageStock}
               />
 
               <div>

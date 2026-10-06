@@ -9,6 +9,7 @@ import {
 import { FileBarChart2, ChevronDown } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { downloadCSV, serializeCSV, slugify } from "@/lib/csv";
+import { nextSku, buildVariantSku, parseVariantAttributes } from "@/lib/sku";
 import { ImportExportBar } from "@/components/admin/stock/ImportExportBar";
 import type { ImportResult } from "@/components/admin/stock/ImportDialog";
 
@@ -37,10 +38,12 @@ export default function Stock() {
   // ============ Per-tab import/export configs ============
 
   // PRODUCTS (with variants + Excel template w/ category dropdown)
+  // slug, sku, variant_sku and variant_attributes are generated automatically on import
+  // (legacy files that still contain them are respected).
   const PRODUCT_HEADERS = [
-    "name","slug","sku","price","cost_price","stock_quantity","low_stock_threshold",
+    "name","price","cost_price","stock_quantity","low_stock_threshold",
     "category_name","is_active","featured","tax_enabled","description",
-    "variant_name","variant_sku","variant_price","variant_stock","variant_attributes",
+    "variant_name","variant_price","variant_cost_price","variant_stock",
   ];
   const productsBar = (
     <ImportExportBar
@@ -52,38 +55,34 @@ export default function Stock() {
         const [{ data: prods }, { data: cats }, { data: vars }] = await Promise.all([
           supabase.rpc("get_admin_products_with_costs"),
           supabase.from("categories").select("id,name"),
-          supabase.from("product_variants").select("product_id,variant_name,sku,price_override,stock_quantity,attributes,is_active").eq("is_active", true),
+          supabase.from("product_variants").select("product_id,variant_name,price_override,cost_price,stock_quantity,is_active").eq("is_active", true),
         ]);
         const catMap = new Map((cats || []).map((c) => [c.id, c.name]));
         const varsByProduct = new Map<string, any[]>();
-        (vars || []).forEach((v) => {
+        (vars || []).forEach((v: any) => {
           const list = varsByProduct.get(v.product_id) || [];
           list.push(v); varsByProduct.set(v.product_id, list);
         });
         const out: any[] = [];
         (prods || []).forEach((p) => {
-          const base = {
-            name: p.name, slug: p.slug, sku: p.sku || "",
+          out.push({
+            name: p.name,
             price: p.price, cost_price: p.cost_price,
             stock_quantity: p.stock_quantity, low_stock_threshold: p.low_stock_threshold,
             category_name: p.category_id ? catMap.get(p.category_id) || "" : "",
             is_active: p.is_active, featured: p.featured, tax_enabled: p.tax_enabled,
             description: p.description || "",
-            variant_name: "", variant_sku: "", variant_price: "", variant_stock: "", variant_attributes: "",
-          };
-          const variants = varsByProduct.get(p.id) || [];
-          if (variants.length === 0) { out.push(base); return; }
-          out.push(base);
-          variants.forEach((v) => {
+            variant_name: "", variant_price: "", variant_cost_price: "", variant_stock: "",
+          });
+          (varsByProduct.get(p.id) || []).forEach((v) => {
             out.push({
-              name: "", slug: p.slug, sku: "", price: "", cost_price: "",
+              name: "", price: "", cost_price: "",
               stock_quantity: "", low_stock_threshold: "",
               category_name: "", is_active: "", featured: "", tax_enabled: "", description: "",
               variant_name: v.variant_name,
-              variant_sku: v.sku || "",
               variant_price: v.price_override ?? "",
+              variant_cost_price: v.cost_price ?? "",
               variant_stock: v.stock_quantity ?? 0,
-              variant_attributes: v.attributes ? JSON.stringify(v.attributes) : "",
             });
           });
         });
@@ -97,9 +96,10 @@ export default function Stock() {
         const ws = wb.addWorksheet("Products");
         ws.addRow(PRODUCT_HEADERS);
         ws.getRow(1).font = { bold: true };
-        // Sample product row + a sample variant row sharing the slug
-        ws.addRow(["Sample Pillow","sample-pillow","PIL-001",15000,9000,20,5,(cats?.[0]?.name || "Bedding"),"true","false","true","Soft cotton pillow","","","","",""]);
-        ws.addRow(["","sample-pillow","","","","","","","","","","","Queen / Beige","PIL-001-QB","","10",'{"Size":"Queen","Color":"Beige"}']);
+        // Sample product row + variant rows (blank name = belongs to product above)
+        ws.addRow(["Sample Pillow",15000,9000,20,5,(cats?.[0]?.name || "Bedding"),"true","false","true","Soft cotton pillow","","","",""]);
+        ws.addRow(["","","","","","","","","","","Queen / Beige",18000,10000,10]);
+        ws.addRow(["","","","","","","","","","","King / Beige","","",5]);
 
         // Hidden sheet holding category list for the dropdown
         const listWs = wb.addWorksheet("_lists");
@@ -131,29 +131,35 @@ export default function Stock() {
         const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
         return { blob, filename: "products-template.xlsx" };
       }}
-      importNotes={`One row per product. Add extra rows with the same slug (and variant_name filled) to attach variants. Category is matched by name (created if missing). variant_attributes must be JSON, e.g. {"Size":"Queen"}.`}
+      importNotes={`One row per product. For variants, add rows right below the product with the name left blank (or repeated) and variant_name filled, e.g. "Queen / Beige". Slug, SKU and variant SKUs are generated automatically. Blank variant price/cost uses the product's price/cost. Category is matched by name (created if missing).`}
       onImport={async (rows): Promise<ImportResult> => {
         const errors: string[] = [];
         let ok = 0, failed = 0;
-        const [{ data: cats }, { data: defaultLocation }] = await Promise.all([
+        const [{ data: cats }, { data: defaultLocation }, { data: existingProds }] = await Promise.all([
           supabase.from("categories").select("id,name"),
           supabase.from("stock_locations").select("id").eq("is_active", true).order("created_at").limit(1).maybeSingle(),
+          supabase.from("products").select("slug,sku,variant_attributes"),
         ]);
         const catByName = new Map((cats || []).map((c) => [c.name.toLowerCase(), c.id]));
+        const prodBySlug = new Map((existingProds || []).map((p: any) => [p.slug, p]));
+        const takenSkus = new Set((existingProds || []).map((p: any) => (p.sku || "").toUpperCase()).filter(Boolean));
 
-        // Group rows by slug (or generated slug from name)
+        // Group rows: a named row starts a product; blank-name rows attach to the previous product.
         const groups = new Map<string, Record<string, string>[]>();
+        let currentKey = "";
         for (const r of rows) {
-          const key = (r.slug || (r.name ? slugify(r.name) : "")).toLowerCase();
-          if (!key) { failed++; errors.push("(row missing name and slug)"); continue; }
+          const explicit = (r.slug || (r.name ? slugify(r.name) : "")).toLowerCase();
+          const key = explicit || currentKey;
+          if (!key) { failed++; errors.push("(row missing product name)"); continue; }
+          currentKey = key;
           const arr = groups.get(key) || []; arr.push(r); groups.set(key, arr);
         }
 
         for (const [slugKey, group] of groups) {
           try {
-            // Product header = first row that has a name OR fallback to first row
             const header = group.find((r) => r.name) || group[0];
             const variantRows = group.filter((r) => r.variant_name);
+            if (!header.name) throw new Error("product name is required");
 
             let category_id: string | null = null;
             if (header.category_name) {
@@ -167,9 +173,27 @@ export default function Stock() {
                 catByName.set(k, category_id);
               }
             }
-            const slug = header.slug || slugify(header.name);
+            const slug = header.slug || slugKey;
+            const existingProd: any = prodBySlug.get(slug);
+            let sku = (header.sku || "").trim();
+            if (!sku) sku = existingProd?.sku || nextSku(header.category_name, takenSkus);
+            else takenSkus.add(sku.toUpperCase());
+
+            // Build option schema from variant names
+            const parsedAttrs = variantRows.map((vr) => {
+              if (vr.variant_attributes) {
+                try { return JSON.parse(vr.variant_attributes); } catch { /* fall through */ }
+              }
+              return parseVariantAttributes(vr.variant_name, Object.keys(existingProd?.variant_attributes || {}));
+            });
+            const schema: Record<string, string[]> = {};
+            parsedAttrs.forEach((a) => Object.entries(a).forEach(([k, v]) => {
+              schema[k] = schema[k] || [];
+              if (!schema[k].includes(String(v))) schema[k].push(String(v));
+            }));
+
             const payload: any = {
-              name: header.name, slug, sku: header.sku || null,
+              name: header.name, slug, sku,
               price: Number(header.price || 0), cost_price: Number(header.cost_price || 0),
               stock_quantity: Number(header.stock_quantity || 0),
               low_stock_threshold: Number(header.low_stock_threshold || 5),
@@ -179,27 +203,24 @@ export default function Stock() {
               tax_enabled: parseBool(header.tax_enabled, true),
               description: header.description || null,
             };
+            if (variantRows.length > 0) payload.variant_attributes = schema;
             const { data: prod, error } = await supabase.from("products").upsert(payload, { onConflict: "slug" }).select("id").single();
             if (error) throw error;
             ok++;
 
-            // Variants: upsert by (product_id, variant_name) — each variant is its own try/catch row
-            for (const vr of variantRows) {
+            for (const [vi, vr] of variantRows.entries()) {
               try {
-                let attributes: any = {};
-                if (vr.variant_attributes) {
-                  try { attributes = JSON.parse(vr.variant_attributes); }
-                  catch { throw new Error(`invalid JSON in variant_attributes`); }
-                }
+                const attributes = parsedAttrs[vi];
                 const { data: existing, error: selErr } = await supabase
-                  .from("product_variants").select("id")
+                  .from("product_variants").select("id,sku")
                   .eq("product_id", prod!.id).eq("variant_name", vr.variant_name).maybeSingle();
                 if (selErr) throw selErr;
                 const vPayload: any = {
                   product_id: prod!.id,
                   variant_name: vr.variant_name,
-                  sku: vr.variant_sku ? vr.variant_sku : null,
-                  price_override: vr.variant_price ? Number(vr.variant_price) : null,
+                  sku: vr.variant_sku || existing?.sku || buildVariantSku(sku, vr.variant_name, vi),
+                  price_override: String(vr.variant_price ?? "").trim() !== "" ? Number(vr.variant_price) : null,
+                  cost_price: String(vr.variant_cost_price ?? "").trim() !== "" ? Number(vr.variant_cost_price) : null,
                   attributes,
                   is_active: true,
                 };
@@ -586,7 +607,7 @@ function todayStr() {
 
 function await_sample_products(): Record<string, string> {
   return {
-    name: "Sample Pillow", slug: "sample-pillow", sku: "PIL-001",
+    name: "Sample Pillow",
     price: "15000", cost_price: "9000",
     stock_quantity: "20", low_stock_threshold: "5",
     category_name: "Bedding",

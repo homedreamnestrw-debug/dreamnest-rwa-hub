@@ -99,7 +99,7 @@ export default function Analytics() {
           .select("product_id, location_id, quantity, products!inner(name, price, cost_price, low_stock_threshold, category_id, is_active, categories(name)), stock_locations!inner(name, is_active)")
           .limit(20000),
         supabase.from("variant_stock")
-          .select("variant_id, location_id, quantity, product_variants!inner(id, product_id, variant_name, price_override, is_active, products!inner(name, price, cost_price, low_stock_threshold, category_id, is_active, categories(name))), stock_locations!inner(name, is_active)")
+          .select("variant_id, location_id, quantity, product_variants!inner(id, product_id, variant_name, price_override, cost_price, is_active, products!inner(name, price, cost_price, low_stock_threshold, category_id, is_active, categories(name))), stock_locations!inner(name, is_active)")
           .limit(20000),
         supabase.from("product_variants").select("product_id").eq("is_active", true).limit(20000),
         supabase.from("stock_locations").select("id, name").eq("is_active", true).order("name"),
@@ -148,7 +148,7 @@ export default function Analytics() {
           location_name: r.stock_locations?.name || "—",
           product_name: p.name || "Unknown",
           price: v.price_override ?? p.price ?? null,
-          cost_price: p.cost_price ?? null,
+          cost_price: v.cost_price ?? p.cost_price ?? null,
           low_stock_threshold: p.low_stock_threshold ?? null,
           category_id: p.category_id ?? null,
           category_name: p.categories?.name || "Uncategorized",

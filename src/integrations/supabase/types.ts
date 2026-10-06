@@ -1276,6 +1276,7 @@ export type Database = {
         Row: {
           attributes: Json | null
           barcode: string | null
+          cost_price: number | null
           created_at: string
           description: string | null
           id: string
@@ -1291,6 +1292,7 @@ export type Database = {
         Insert: {
           attributes?: Json | null
           barcode?: string | null
+          cost_price?: number | null
           created_at?: string
           description?: string | null
           id?: string
@@ -1306,6 +1308,7 @@ export type Database = {
         Update: {
           attributes?: Json | null
           barcode?: string | null
+          cost_price?: number | null
           created_at?: string
           description?: string | null
           id?: string

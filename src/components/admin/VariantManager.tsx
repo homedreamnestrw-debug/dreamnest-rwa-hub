@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { buildVariantSku } from "@/lib/sku";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +16,7 @@ export interface VariantRow {
   attributes: Record<string, string>; // {Size: "Queen", Color: "Beige"}
   sku: string;
   price_override: number | null;
+  cost_price?: number | null;
   is_active: boolean;
   image_url: string | null; // optional override image (must be one of product.images)
   description?: string | null; // optional variant-specific description
@@ -30,6 +32,9 @@ interface Props {
   variants: VariantRow[];
   onVariantsChange: (next: VariantRow[]) => void;
   productImages?: string[];
+  baseSku?: string;
+  baseCost?: number;
+  showCost?: boolean;
 }
 
 const cartesian = (lists: string[][]): string[][] => {
@@ -48,6 +53,9 @@ export function VariantManager({
   variants,
   onVariantsChange,
   productImages = [],
+  baseSku = "",
+  baseCost = 0,
+  showCost = true,
 }: Props) {
   const [newOptName, setNewOptName] = useState("");
   const [newOptValue, setNewOptValue] = useState<Record<string, string>>({});
@@ -114,6 +122,7 @@ export function VariantManager({
         attributes: attrs,
         sku: "",
         price_override: null,
+        cost_price: null,
         is_active: true,
         image_url: null,
         description: null,
@@ -218,7 +227,7 @@ export function VariantManager({
       {variants.length > 0 && (
         <div className="space-y-2">
           <div className="text-xs text-muted-foreground">
-            {variants.length} variant{variants.length === 1 ? "" : "s"} — fill SKU, price (leaves base price if blank), and stock per location.
+            {variants.length} variant{variants.length === 1 ? "" : "s"} — SKU auto-fills if blank; price/cost use the product's if blank, and stock per location.
           </div>
           <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
             {variants.map((v, idx) => (
@@ -244,10 +253,11 @@ export function VariantManager({
                     className="h-7 flex-1 text-xs font-medium"
                   />
                   <Input
-                    placeholder="SKU"
+                    placeholder={baseSku ? buildVariantSku(baseSku, v.variant_name, idx) : "SKU (auto)"}
                     value={v.sku}
                     onChange={(e) => updateVariant(idx, { sku: e.target.value })}
                     className="h-7 w-28 text-xs"
+                    title="Leave blank to auto-generate"
                   />
                   <Input
                     type="number"
@@ -258,7 +268,21 @@ export function VariantManager({
                     }
                     className="h-7 w-28 text-xs"
                     min={0}
+                    title="Selling price"
                   />
+                  {showCost && (
+                    <Input
+                      type="number"
+                      placeholder={`Cost (${baseCost})`}
+                      value={v.cost_price ?? ""}
+                      onChange={(e) =>
+                        updateVariant(idx, { cost_price: e.target.value === "" ? null : +e.target.value })
+                      }
+                      className="h-7 w-28 text-xs"
+                      min={0}
+                      title="Cost price (blank = product cost)"
+                    />
+                  )}
                   <Button
                     type="button"
                     variant="ghost"
@@ -344,7 +368,8 @@ export function VariantManager({
  */
 export async function persistVariants(
   productId: string,
-  variants: VariantRow[]
+  variants: VariantRow[],
+  baseSku = ""
 ): Promise<{ error: string | null }> {
   // Fetch existing variants for this product
   const { data: existing, error: fetchErr } = await supabase
@@ -370,7 +395,8 @@ export async function persistVariants(
   }
 
   // Upsert each variant
-  for (const v of variants) {
+  for (const [vi, v] of variants.entries()) {
+    const sku = v.sku || (baseSku ? buildVariantSku(baseSku, v.variant_name, vi) : null);
     const key = keyOf(v.attributes);
     const match = existingByKey.get(key) as any;
     let variantId: string;
@@ -380,8 +406,9 @@ export async function persistVariants(
         .update({
           variant_name: v.variant_name,
           attributes: v.attributes,
-          sku: v.sku || null,
+          sku,
           price_override: v.price_override,
+          cost_price: v.cost_price ?? null,
           image_url: v.image_url ?? null,
           description: v.description ?? null,
           is_active: true,
@@ -396,8 +423,9 @@ export async function persistVariants(
           product_id: productId,
           variant_name: v.variant_name,
           attributes: v.attributes,
-          sku: v.sku || null,
+          sku,
           price_override: v.price_override,
+          cost_price: v.cost_price ?? null,
           image_url: v.image_url ?? null,
           description: v.description ?? null,
           is_active: true,
