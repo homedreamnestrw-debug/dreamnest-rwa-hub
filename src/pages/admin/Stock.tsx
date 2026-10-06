@@ -37,10 +37,12 @@ export default function Stock() {
   // ============ Per-tab import/export configs ============
 
   // PRODUCTS (with variants + Excel template w/ category dropdown)
+  // slug, sku, variant_sku and variant_attributes are generated automatically on import
+  // (legacy files that still contain them are respected).
   const PRODUCT_HEADERS = [
-    "name","slug","sku","price","cost_price","stock_quantity","low_stock_threshold",
+    "name","price","cost_price","stock_quantity","low_stock_threshold",
     "category_name","is_active","featured","tax_enabled","description",
-    "variant_name","variant_sku","variant_price","variant_stock","variant_attributes",
+    "variant_name","variant_price","variant_cost_price","variant_stock",
   ];
   const productsBar = (
     <ImportExportBar
