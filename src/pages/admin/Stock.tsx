@@ -9,6 +9,7 @@ import {
 import { FileBarChart2, ChevronDown } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { downloadCSV, serializeCSV, slugify } from "@/lib/csv";
+import { nextSku, buildVariantSku, parseVariantAttributes } from "@/lib/sku";
 import { ImportExportBar } from "@/components/admin/stock/ImportExportBar";
 import type { ImportResult } from "@/components/admin/stock/ImportDialog";
 
