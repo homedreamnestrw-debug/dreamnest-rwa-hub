@@ -244,10 +244,11 @@ export function VariantManager({
                     className="h-7 flex-1 text-xs font-medium"
                   />
                   <Input
-                    placeholder="SKU"
+                    placeholder={baseSku ? buildVariantSku(baseSku, v.variant_name, idx) : "SKU (auto)"}
                     value={v.sku}
                     onChange={(e) => updateVariant(idx, { sku: e.target.value })}
                     className="h-7 w-28 text-xs"
+                    title="Leave blank to auto-generate"
                   />
                   <Input
                     type="number"
@@ -258,7 +259,21 @@ export function VariantManager({
                     }
                     className="h-7 w-28 text-xs"
                     min={0}
+                    title="Selling price"
                   />
+                  {showCost && (
+                    <Input
+                      type="number"
+                      placeholder={`Cost (${baseCost})`}
+                      value={v.cost_price ?? ""}
+                      onChange={(e) =>
+                        updateVariant(idx, { cost_price: e.target.value === "" ? null : +e.target.value })
+                      }
+                      className="h-7 w-28 text-xs"
+                      min={0}
+                      title="Cost price (blank = product cost)"
+                    />
+                  )}
                   <Button
                     type="button"
                     variant="ghost"

@@ -607,7 +607,7 @@ function todayStr() {
 
 function await_sample_products(): Record<string, string> {
   return {
-    name: "Sample Pillow", slug: "sample-pillow", sku: "PIL-001",
+    name: "Sample Pillow",
     price: "15000", cost_price: "9000",
     stock_quantity: "20", low_stock_threshold: "5",
     category_name: "Bedding",
