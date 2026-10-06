@@ -148,7 +148,7 @@ export default function Analytics() {
           location_name: r.stock_locations?.name || "—",
           product_name: p.name || "Unknown",
           price: v.price_override ?? p.price ?? null,
-          cost_price: p.cost_price ?? null,
+          cost_price: v.cost_price ?? p.cost_price ?? null,
           low_stock_threshold: p.low_stock_threshold ?? null,
           category_id: p.category_id ?? null,
           category_name: p.categories?.name || "Uncategorized",
