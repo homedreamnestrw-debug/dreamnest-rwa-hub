@@ -54,38 +54,34 @@ export default function Stock() {
         const [{ data: prods }, { data: cats }, { data: vars }] = await Promise.all([
           supabase.rpc("get_admin_products_with_costs"),
           supabase.from("categories").select("id,name"),
-          supabase.from("product_variants").select("product_id,variant_name,sku,price_override,stock_quantity,attributes,is_active").eq("is_active", true),
+          supabase.from("product_variants").select("product_id,variant_name,price_override,cost_price,stock_quantity,is_active").eq("is_active", true),
         ]);
         const catMap = new Map((cats || []).map((c) => [c.id, c.name]));
         const varsByProduct = new Map<string, any[]>();
-        (vars || []).forEach((v) => {
+        (vars || []).forEach((v: any) => {
           const list = varsByProduct.get(v.product_id) || [];
           list.push(v); varsByProduct.set(v.product_id, list);
         });
         const out: any[] = [];
         (prods || []).forEach((p) => {
-          const base = {
-            name: p.name, slug: p.slug, sku: p.sku || "",
+          out.push({
+            name: p.name,
             price: p.price, cost_price: p.cost_price,
             stock_quantity: p.stock_quantity, low_stock_threshold: p.low_stock_threshold,
             category_name: p.category_id ? catMap.get(p.category_id) || "" : "",
             is_active: p.is_active, featured: p.featured, tax_enabled: p.tax_enabled,
             description: p.description || "",
-            variant_name: "", variant_sku: "", variant_price: "", variant_stock: "", variant_attributes: "",
-          };
-          const variants = varsByProduct.get(p.id) || [];
-          if (variants.length === 0) { out.push(base); return; }
-          out.push(base);
-          variants.forEach((v) => {
+            variant_name: "", variant_price: "", variant_cost_price: "", variant_stock: "",
+          });
+          (varsByProduct.get(p.id) || []).forEach((v) => {
             out.push({
-              name: "", slug: p.slug, sku: "", price: "", cost_price: "",
+              name: "", price: "", cost_price: "",
               stock_quantity: "", low_stock_threshold: "",
               category_name: "", is_active: "", featured: "", tax_enabled: "", description: "",
               variant_name: v.variant_name,
-              variant_sku: v.sku || "",
               variant_price: v.price_override ?? "",
+              variant_cost_price: v.cost_price ?? "",
               variant_stock: v.stock_quantity ?? 0,
-              variant_attributes: v.attributes ? JSON.stringify(v.attributes) : "",
             });
           });
         });
@@ -99,9 +95,10 @@ export default function Stock() {
         const ws = wb.addWorksheet("Products");
         ws.addRow(PRODUCT_HEADERS);
         ws.getRow(1).font = { bold: true };
-        // Sample product row + a sample variant row sharing the slug
-        ws.addRow(["Sample Pillow","sample-pillow","PIL-001",15000,9000,20,5,(cats?.[0]?.name || "Bedding"),"true","false","true","Soft cotton pillow","","","","",""]);
-        ws.addRow(["","sample-pillow","","","","","","","","","","","Queen / Beige","PIL-001-QB","","10",'{"Size":"Queen","Color":"Beige"}']);
+        // Sample product row + variant rows (blank name = belongs to product above)
+        ws.addRow(["Sample Pillow",15000,9000,20,5,(cats?.[0]?.name || "Bedding"),"true","false","true","Soft cotton pillow","","","",""]);
+        ws.addRow(["","","","","","","","","","","Queen / Beige",18000,10000,10]);
+        ws.addRow(["","","","","","","","","","","King / Beige","","",5]);
 
         // Hidden sheet holding category list for the dropdown
         const listWs = wb.addWorksheet("_lists");
