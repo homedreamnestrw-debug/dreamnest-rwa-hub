@@ -52,9 +52,9 @@ export function InventoryLedger() {
       try {
         const [ps, vs, mv] = await Promise.all([
           fetchAll<any>((a, b) => supabase.from("product_stock")
-            .select("product_id, location_id, quantity, products!inner(name, sku, cost_price, category_id, categories(name))").range(a, b)),
+            .select("product_id, location_id, quantity, products!inner(name, sku, cost_price, price, category_id, categories(name))").range(a, b)),
           fetchAll<any>((a, b) => supabase.from("variant_stock")
-            .select("variant_id, location_id, quantity, product_variants!inner(product_id, variant_name, sku, cost_price, products!inner(name, sku, cost_price, category_id, categories(name)))").range(a, b)),
+            .select("variant_id, location_id, quantity, product_variants!inner(product_id, variant_name, sku, cost_price, price_override, products!inner(name, sku, cost_price, price, category_id, categories(name)))").range(a, b)),
           fetchAll<any>((a, b) => supabase.from("stock_movements")
             .select("product_id, variant_id, location_id, movement_type, quantity, previous_stock, new_stock, created_at")
             .gte("created_at", from.toISOString()).order("created_at").range(a, b)),
@@ -67,7 +67,7 @@ export function InventoryLedger() {
             key: r.product_id, product_id: r.product_id, variant_id: null, location_id: r.location_id,
             name: r.products.name, sku: r.products.sku, category_id: r.products.category_id,
             category: r.products.categories?.name ?? "Uncategorized",
-            cost: Number(r.products.cost_price || 0), quantity: r.quantity || 0,
+            cost: Number(r.products.cost_price || 0), price: Number(r.products.price || 0), quantity: r.quantity || 0,
           });
         });
         vs.forEach((r: any) => {
@@ -76,7 +76,7 @@ export function InventoryLedger() {
             key: r.variant_id, product_id: v.product_id, variant_id: r.variant_id, location_id: r.location_id,
             name: `${p.name} — ${v.variant_name}`, sku: v.sku ?? p.sku, category_id: p.category_id,
             category: p.categories?.name ?? "Uncategorized",
-            cost: Number(v.cost_price ?? p.cost_price ?? 0), quantity: r.quantity || 0,
+            cost: Number(v.cost_price ?? p.cost_price ?? 0), price: Number(v.price_override ?? p.price ?? 0), quantity: r.quantity || 0,
           });
         });
         if (active) { setItems(list); setMovements(mv); }
@@ -97,9 +97,9 @@ export function InventoryLedger() {
   const totals = useMemo(() => rows.reduce((t, r) => ({
     opening: t.opening + r.opening, openingVal: t.openingVal + r.opening * r.cost,
     inward: t.inward + r.inward, inwardVal: t.inwardVal + r.inward * r.cost,
-    outward: t.outward + r.outward, outwardVal: t.outwardVal + r.outward * r.cost,
-    closing: t.closing + r.closing, closingVal: t.closingVal + r.closing * r.cost,
-  }), { opening: 0, openingVal: 0, inward: 0, inwardVal: 0, outward: 0, outwardVal: 0, closing: 0, closingVal: 0 }), [rows]);
+    outward: t.outward + r.outward, outwardVal: t.outwardVal + r.outward * r.price,
+    closing: t.closing + r.closing, closingVal: t.closingVal + r.closing * r.cost, closingSell: t.closingSell + r.closing * r.price,
+  }), { opening: 0, openingVal: 0, inward: 0, inwardVal: 0, outward: 0, outwardVal: 0, closing: 0, closingVal: 0, closingSell: 0 }), [rows]);
 
   const locName = locationId === "all" ? "All locations" : locations.find((l) => l.id === locationId)?.name ?? "";
   const periodLabel = `${format(from, "dd MMM yyyy")} – ${format(to, "dd MMM yyyy")}`;
@@ -113,9 +113,9 @@ export function InventoryLedger() {
     ws.addRow(["DreamNest — Inventory Movement & Valuation Ledger"]).font = { bold: true, size: 14 };
     ws.addRow([`Period: ${periodLabel}`, "", `Location: ${locName}`]);
     ws.addRow([]);
-    const g = ws.addRow(["", "", "", "Opening", "", "", "Inward", "", "", "Outward", "", "", "Closing", "", ""]);
-    ws.mergeCells(4, 4, 4, 6); ws.mergeCells(4, 7, 4, 9); ws.mergeCells(4, 10, 4, 12); ws.mergeCells(4, 13, 4, 15);
-    const h = ws.addRow(["Product", "SKU", "Category", "Qty", "Avg rate", "Value", "Qty", "Avg rate", "Value", "Qty", "Avg rate", "Value", "Qty", "Avg rate", "Value"]);
+    const g = ws.addRow(["", "", "", "Opening (cost)", "", "", "Inward (cost)", "", "", "Outward (selling)", "", "", "Closing", "", "", ""]);
+    ws.mergeCells(4, 4, 4, 6); ws.mergeCells(4, 7, 4, 9); ws.mergeCells(4, 10, 4, 12); ws.mergeCells(4, 13, 4, 16);
+    const h = ws.addRow(["Product", "SKU", "Category", "Qty", "Avg rate", "Value", "Qty", "Avg rate", "Value", "Qty", "Selling rate", "Selling value", "Qty", "Avg rate", "Cost value", "Selling value"]);
     [g, h].forEach((row) => row.eachCell((c) => {
       c.font = { bold: true, color: { argb: "FFFFFFFF" } };
       c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF5C4033" } };
@@ -124,7 +124,7 @@ export function InventoryLedger() {
     const start = 6;
     rows.forEach((r) => ws.addRow([r.name, r.sku ?? "", r.category,
       r.opening, r.cost, r.opening * r.cost, r.inward, r.cost, r.inward * r.cost,
-      r.outward, r.cost, r.outward * r.cost, r.closing, r.cost, r.closing * r.cost]));
+      r.outward, r.price, r.outward * r.price, r.closing, r.cost, r.closing * r.cost, r.closing * r.price]));
     const end = start + rows.length - 1;
     const tr = ws.addRow(["TOTAL", "", ""]);
     if (rows.length) {
@@ -134,6 +134,7 @@ export function InventoryLedger() {
         ws.getCell(`${valCol}${tr.number}`).value = { formula: `SUM(${valCol}${start}:${valCol}${end})` } as any;
         ws.getCell(`${rateCol}${tr.number}`).value = { formula: `IF(${col}${tr.number}=0,0,${valCol}${tr.number}/${col}${tr.number})` } as any;
       });
+      ws.getCell(`P${tr.number}`).value = { formula: `SUM(P${start}:P${end})` } as any;
     }
     tr.font = { bold: true };
     tr.eachCell((c) => { c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF3E9D2" } }; });
@@ -158,18 +159,18 @@ export function InventoryLedger() {
       head: [
         [{ content: "Product", rowSpan: 2 }, { content: "SKU", rowSpan: 2 },
           { content: "Opening", colSpan: 3 }, { content: "Inward", colSpan: 3 },
-          { content: "Outward", colSpan: 3 }, { content: "Closing", colSpan: 3 }],
-        ["Qty", "Rate", "Value", "Qty", "Rate", "Value", "Qty", "Rate", "Value", "Qty", "Rate", "Value"],
+          { content: "Outward (selling)", colSpan: 3 }, { content: "Closing", colSpan: 4 }],
+        ["Qty", "Rate", "Value", "Qty", "Rate", "Value", "Qty", "Sell rate", "Sell value", "Qty", "Rate", "Cost value", "Sell value"],
       ],
       body: rows.map((r) => [r.name, r.sku ?? "",
         ...cells(r.opening, r.opening * r.cost), ...cells(r.inward, r.inward * r.cost),
-        ...cells(r.outward, r.outward * r.cost), ...cells(r.closing, r.closing * r.cost)]),
+        ...cells(r.outward, r.outward * r.price), ...cells(r.closing, r.closing * r.cost), fmt(r.closing * r.price)]),
       foot: [["TOTAL", "", ...cells(totals.opening, totals.openingVal), ...cells(totals.inward, totals.inwardVal),
-        ...cells(totals.outward, totals.outwardVal), ...cells(totals.closing, totals.closingVal)]],
+        ...cells(totals.outward, totals.outwardVal), ...cells(totals.closing, totals.closingVal), fmt(totals.closingSell)]],
       styles: { fontSize: 7, cellPadding: 3 },
       headStyles: { fillColor: [92, 64, 51], halign: "center" },
       footStyles: { fillColor: [243, 233, 210], textColor: [40, 30, 20], fontStyle: "bold" },
-      columnStyles: Object.fromEntries(Array.from({ length: 12 }, (_, i) => [i + 2, { halign: "right" }])),
+      columnStyles: Object.fromEntries(Array.from({ length: 13 }, (_, i) => [i + 2, { halign: "right" }])),
       margin: { left: 30, right: 30 },
       didDrawPage: () => {
         pdf.setFontSize(8);
@@ -179,10 +180,11 @@ export function InventoryLedger() {
     pdf.save(`${fileBase}.pdf`);
   };
 
-  const Group = ({ q, v }: { q: number; v: number }) => (<>
+  const Group = ({ q, v, sell }: { q: number; v: number; sell?: number }) => (<>
     <td className="px-2 py-1.5 text-right tabular-nums">{formatInt(q)}</td>
     <td className="px-2 py-1.5 text-right tabular-nums text-muted-foreground">{fmt(rate(v, q))}</td>
-    <td className="px-2 py-1.5 text-right tabular-nums border-r">{fmt(v)}</td>
+    <td className={`px-2 py-1.5 text-right tabular-nums ${sell === undefined ? "border-r" : ""}`}>{fmt(v)}</td>
+    {sell !== undefined && <td className="px-2 py-1.5 text-right tabular-nums border-r">{fmt(sell)}</td>}
   </>);
 
   return (
@@ -220,22 +222,22 @@ export function InventoryLedger() {
             <thead className="sticky top-0 bg-muted z-10">
               <tr>
                 <th rowSpan={2} className="px-2 py-1.5 text-left border-r">Product</th>
-                {["Opening", "Inward", "Outward", "Closing"].map((g) => <th key={g} colSpan={3} className="px-2 py-1.5 text-center border-r border-b">{g}</th>)}
+                {["Opening", "Inward", "Outward (selling)", "Closing"].map((g) => <th key={g} colSpan={g === "Closing" ? 4 : 3} className="px-2 py-1.5 text-center border-r border-b">{g}</th>)}
               </tr>
-              <tr>{Array.from({ length: 4 }).flatMap((_, i) => ["Qty", "Avg rate", "Value"].map((h) => <th key={`${i}${h}`} className={`px-2 py-1 text-right font-medium ${h === "Value" ? "border-r" : ""}`}>{h}</th>))}</tr>
+              <tr>{[["Qty", "Avg rate", "Value"], ["Qty", "Avg rate", "Value"], ["Qty", "Sell rate", "Sell value"], ["Qty", "Avg rate", "Cost value", "Sell value"]].flatMap((hs, i) => hs.map((h, j) => <th key={`${i}${h}`} className={`px-2 py-1 text-right font-medium ${j === hs.length - 1 ? "border-r" : ""}`}>{h}</th>))}</tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={13} className="py-10 text-center"><Loader2 className="h-5 w-5 animate-spin inline" /></td></tr>
+                <tr><td colSpan={14} className="py-10 text-center"><Loader2 className="h-5 w-5 animate-spin inline" /></td></tr>
               ) : rows.length === 0 ? (
-                <tr><td colSpan={13} className="py-10 text-center text-muted-foreground">No stock activity for this selection</td></tr>
+                <tr><td colSpan={14} className="py-10 text-center text-muted-foreground">No stock activity for this selection</td></tr>
               ) : rows.map((r) => (
                 <tr key={r.key} className="border-t hover:bg-muted/40">
                   <td className="px-2 py-1.5 border-r max-w-[280px] truncate" title={r.name}>{r.name}<span className="block text-[10px] text-muted-foreground">{r.sku || "—"} · {r.category}</span></td>
                   <Group q={r.opening} v={r.opening * r.cost} />
                   <Group q={r.inward} v={r.inward * r.cost} />
-                  <Group q={r.outward} v={r.outward * r.cost} />
-                  <Group q={r.closing} v={r.closing * r.cost} />
+                  <Group q={r.outward} v={r.outward * r.price} />
+                  <Group q={r.closing} v={r.closing * r.cost} sell={r.closing * r.price} />
                 </tr>
               ))}
             </tbody>
@@ -246,13 +248,13 @@ export function InventoryLedger() {
                   <Group q={totals.opening} v={totals.openingVal} />
                   <Group q={totals.inward} v={totals.inwardVal} />
                   <Group q={totals.outward} v={totals.outwardVal} />
-                  <Group q={totals.closing} v={totals.closingVal} />
+                  <Group q={totals.closing} v={totals.closingVal} sell={totals.closingSell} />
                 </tr>
               </tfoot>
             )}
           </table>
         </div>
-        <p className="text-[11px] text-muted-foreground">Rates use each item's cost price (variant cost, falling back to product cost). Opening/closing are reconstructed from current stock and recorded movements.</p>
+        <p className="text-[11px] text-muted-foreground">Opening, inward and closing cost use each item's cost price; outward and closing selling value use the selling price (variant price, falling back to product price). Opening/closing are reconstructed from current stock and recorded movements.</p>
       </CardContent>
     </Card>
   );

@@ -1,7 +1,7 @@
 export interface StockItem {
   key: string; product_id: string; variant_id: string | null; location_id: string;
   name: string; sku: string | null; category_id: string | null; category: string;
-  cost: number; quantity: number;
+  cost: number; price?: number; quantity: number;
 }
 export interface Movement {
   product_id: string | null; variant_id: string | null; location_id: string | null;
@@ -9,7 +9,7 @@ export interface Movement {
 }
 export interface LedgerRow {
   key: string; name: string; sku: string | null; category_id: string | null; category: string;
-  cost: number; opening: number; inward: number; outward: number; closing: number;
+  cost: number; price: number; opening: number; inward: number; outward: number; closing: number;
 }
 
 /** Signed change in stock caused by a movement. */
@@ -30,7 +30,7 @@ export function buildLedger(items: StockItem[], movements: Movement[], from: Dat
     if (locationId && it.location_id !== locationId) continue;
     const r = map.get(it.key);
     if (r) r.current += it.quantity;
-    else map.set(it.key, { key: it.key, name: it.name, sku: it.sku, category_id: it.category_id, category: it.category, cost: it.cost, current: it.quantity, opening: 0, inward: 0, outward: 0, closing: 0 });
+    else map.set(it.key, { key: it.key, name: it.name, sku: it.sku, category_id: it.category_id, category: it.category, cost: it.cost, price: it.price ?? 0, current: it.quantity, opening: 0, inward: 0, outward: 0, closing: 0 });
   }
   const after = new Map<string, number>();
   const fromT = from.getTime(), toT = to.getTime();
