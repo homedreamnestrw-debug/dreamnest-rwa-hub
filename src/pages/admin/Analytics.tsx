@@ -13,6 +13,7 @@ import { useReportRange } from "@/components/admin/reports/useDateRange";
 import { KpiCard } from "@/components/admin/reports/KpiCard";
 import { formatRWF, formatInt, pctDelta, bucketKey, bucketLabel, emptyBuckets, downloadCSV } from "@/lib/reportAggregations";
 import { exportElementToPDF } from "@/lib/reportPdf";
+import { InventoryLedger } from "@/components/admin/reports/InventoryLedger";
 
 const COLORS = ["hsl(25, 35%, 28%)", "hsl(40, 50%, 72%)", "hsl(32, 25%, 65%)", "hsl(0, 72%, 51%)", "hsl(210, 60%, 50%)", "hsl(150, 50%, 40%)", "hsl(280, 40%, 55%)"];
 
@@ -735,6 +736,7 @@ export default function Analytics() {
           </div>
         </div>
       </div>
+      <InventoryLedger />
     </div>
   );
 }
