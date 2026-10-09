@@ -14,6 +14,7 @@ import { KpiCard } from "@/components/admin/reports/KpiCard";
 import { formatRWF, formatInt, pctDelta, bucketKey, bucketLabel, emptyBuckets, downloadCSV } from "@/lib/reportAggregations";
 import { exportElementToPDF } from "@/lib/reportPdf";
 import { InventoryLedger } from "@/components/admin/reports/InventoryLedger";
+import { StockHealthDialog, classifyHealth, type HealthItem, type HealthStatus } from "@/components/admin/reports/StockHealthDialog";
 
 const COLORS = ["hsl(25, 35%, 28%)", "hsl(40, 50%, 72%)", "hsl(32, 25%, 65%)", "hsl(0, 72%, 51%)", "hsl(210, 60%, 50%)", "hsl(150, 50%, 40%)", "hsl(280, 40%, 55%)"];
 
@@ -47,6 +48,7 @@ const TERMINAL_BAD = new Set(["cancelled", "refunded"]);
 
 export default function Analytics() {
   const { state, setState, range, prevRange, granularity } = useReportRange("analytics-range", "last30");
+  const [healthStatus, setHealthStatus] = useState<HealthStatus | null>(null);
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [prevOrders, setPrevOrders] = useState<OrderRow[]>([]);
   const [items, setItems] = useState<ItemRow[]>([]);
@@ -319,16 +321,17 @@ export default function Analytics() {
     const retailValue = inventory.reduce((s, p) => s + (p.stock_quantity || 0) * (p.price || 0), 0);
     const costValue = inventory.reduce((s, p) => s + (p.stock_quantity || 0) * (p.cost_price || 0), 0);
     const skus = inventory.length;
-    const outOfStock = inventory.filter((p) => (p.stock_quantity || 0) <= 0).length;
-    const lowStock = inventory.filter((p) => {
-      const q = p.stock_quantity || 0;
-      const t = p.low_stock_threshold || 0;
-      return q > 0 && t > 0 && q <= t;
-    }).length;
-    const soldIds = new Set(validItems.map((i) => i.product_id).filter(Boolean) as string[]);
-    const deadStock = inventory.filter((p) => (p.stock_quantity || 0) > 0 && !soldIds.has(p.id)).length;
+    const soldQty: Record<string, number> = {};
+    validItems.forEach((i) => { if (i.product_id) soldQty[i.product_id] = (soldQty[i.product_id] || 0) + (i.quantity || 0); });
+    const healthItems: HealthItem[] = inventory.map((p) => {
+      const stock = p.stock_quantity || 0, threshold = p.low_stock_threshold || 0, sold = soldQty[p.id] || 0;
+      return { id: p.id, name: p.name, category: p.categories?.name || "Uncategorized", stock, threshold,
+        cost: p.cost_price || 0, price: p.price || 0, sold, status: classifyHealth(stock, threshold, sold) };
+    });
+    const count = (st: HealthStatus) => healthItems.filter((h) => h.status === st).length;
+    const outOfStock = count("Out of Stock"), lowStock = count("Low Stock"), deadStock = count("Dead Stock"), healthy = count("Healthy");
     const potentialMargin = retailValue - costValue;
-    return { totalUnits, retailValue, costValue, skus, outOfStock, lowStock, deadStock, potentialMargin };
+    return { totalUnits, retailValue, costValue, skus, outOfStock, lowStock, deadStock, healthy, healthItems, potentialMargin };
   }, [inventory, validItems]);
 
   const inventoryByCategory = useMemo(() => {
@@ -565,9 +568,9 @@ export default function Analytics() {
             <KpiCard label="Total Units in Stock" value={formatInt(inventoryKpis.totalUnits)} />
             <KpiCard label="Stock Value (retail)" value={formatRWF(inventoryKpis.retailValue)} />
             <KpiCard label="Stock Value (cost)" value={formatRWF(inventoryKpis.costValue)} sub={`Potential margin ${formatRWF(inventoryKpis.potentialMargin)}`} />
-            <KpiCard label="Out of Stock" value={formatInt(inventoryKpis.outOfStock)} invertDelta />
-            <KpiCard label="Low Stock" value={formatInt(inventoryKpis.lowStock)} invertDelta />
-            <KpiCard label="Dead Stock (no sales)" value={formatInt(inventoryKpis.deadStock)} sub="In selected period" invertDelta />
+            <KpiCard label="Out of Stock" value={formatInt(inventoryKpis.outOfStock)} sub="Click to view" onClick={() => setHealthStatus("Out of Stock")} />
+            <KpiCard label="Low Stock" value={formatInt(inventoryKpis.lowStock)} sub="Click to view" onClick={() => setHealthStatus("Low Stock")} />
+            <KpiCard label="Dead Stock (no sales)" value={formatInt(inventoryKpis.deadStock)} sub="In stock, no sales in period" onClick={() => setHealthStatus("Dead Stock")} />
             <KpiCard label="Sell-through" value={`${inventoryKpis.totalUnits ? ((kpis.itemsSold / (inventoryKpis.totalUnits + kpis.itemsSold)) * 100).toFixed(1) : "0.0"}%`} sub="Sold ÷ (sold + stock)" />
           </div>
 
@@ -598,24 +601,23 @@ export default function Analytics() {
             </Card>
 
             <Card>
-              <CardHeader><CardTitle className="text-base">Stock Health</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base">Stock Health</CardTitle><p className="text-xs text-muted-foreground">Click a slice to see its products</p></CardHeader>
               <CardContent>
                 {(() => {
-                  const inStock = inventoryKpis.skus - inventoryKpis.outOfStock - inventoryKpis.lowStock;
                   const data = [
-                    { name: "Healthy", value: Math.max(0, inStock) },
-                    { name: "Low Stock", value: inventoryKpis.lowStock },
-                    { name: "Out of Stock", value: inventoryKpis.outOfStock },
-                    { name: "Dead Stock", value: inventoryKpis.deadStock },
+                    { name: "Healthy" as HealthStatus, value: inventoryKpis.healthy, color: "hsl(150, 50%, 40%)" },
+                    { name: "Low Stock" as HealthStatus, value: inventoryKpis.lowStock, color: "hsl(40, 70%, 55%)" },
+                    { name: "Out of Stock" as HealthStatus, value: inventoryKpis.outOfStock, color: "hsl(0, 72%, 51%)" },
+                    { name: "Dead Stock" as HealthStatus, value: inventoryKpis.deadStock, color: "hsl(280, 30%, 55%)" },
                   ].filter((d) => d.value > 0);
-                  const healthColors = ["hsl(150, 50%, 40%)", "hsl(40, 70%, 55%)", "hsl(0, 72%, 51%)", "hsl(280, 30%, 55%)"];
                   return data.length > 0 ? (
                     <ResponsiveContainer width="100%" height={320}>
                       <PieChart>
-                        <Pie data={data} cx="50%" cy="50%" outerRadius={100} dataKey="value" label={({ name, value }) => `${name}: ${value}`}>
-                          {data.map((_, i) => <Cell key={i} fill={healthColors[i % healthColors.length]} />)}
+                        <Pie data={data} cx="50%" cy="50%" outerRadius={100} dataKey="value" className="cursor-pointer" onClick={(d: any) => setHealthStatus(d?.name as HealthStatus)} label={({ name, value }) => `${name}: ${value}`}>
+                          {data.map((d) => <Cell key={d.name} fill={d.color} />)}
                         </Pie>
-                        <Legend />
+                        <Tooltip />
+                        <Legend wrapperStyle={{ cursor: "pointer" }} onClick={(e: any) => setHealthStatus(e?.value as HealthStatus)} />
                       </PieChart>
                     </ResponsiveContainer>
                   ) : <p className="text-center text-muted-foreground py-8">No data</p>;
@@ -737,6 +739,7 @@ export default function Analytics() {
         </div>
       </div>
       <InventoryLedger />
+      <StockHealthDialog status={healthStatus} items={inventoryKpis.healthItems} onClose={() => setHealthStatus(null)} />
     </div>
   );
 }
