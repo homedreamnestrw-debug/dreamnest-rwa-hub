@@ -60,7 +60,7 @@ export function StockHealthDialog({ status, items, onClose }: Props) {
         <div className="flex flex-wrap gap-2">
           <Input placeholder="Search product or category…" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-xs" />
           <Button variant="outline" size="sm" onClick={exportCsv} disabled={!rows.length}><Download className="h-4 w-4 mr-1" />Export CSV</Button>
-          <Button variant="outline" size="sm" asChild><Link to="/admin/stock-management"><ExternalLink className="h-4 w-4 mr-1" />Stock Management</Link></Button>
+          <Button variant="outline" size="sm" asChild><Link to="/admin/stock"><ExternalLink className="h-4 w-4 mr-1" />Stock Management</Link></Button>
         </div>
         <div className="overflow-auto flex-1 border rounded-md">
           <table className="w-full text-sm whitespace-nowrap">
