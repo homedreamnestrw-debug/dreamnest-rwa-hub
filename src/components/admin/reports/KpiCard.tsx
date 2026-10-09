@@ -8,16 +8,17 @@ interface Props {
   sub?: string;
   delta?: number | null; // percentage change vs prev
   invertDelta?: boolean; // true: lower is better (expenses)
+  onClick?: () => void;
 }
 
-export function KpiCard({ label, value, sub, delta, invertDelta }: Props) {
+export function KpiCard({ label, value, sub, delta, invertDelta, onClick }: Props) {
   const hasDelta = delta !== undefined && delta !== null && isFinite(delta);
   const positive = hasDelta && delta! > 0;
   const negative = hasDelta && delta! < 0;
   const good = invertDelta ? negative : positive;
   const bad = invertDelta ? positive : negative;
   return (
-    <Card>
+    <Card onClick={onClick} className={cn(onClick && "cursor-pointer transition-colors hover:border-primary")}>
       <CardContent className="p-4 space-y-1">
         <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
         <p className="text-2xl font-semibold font-serif">{value}</p>

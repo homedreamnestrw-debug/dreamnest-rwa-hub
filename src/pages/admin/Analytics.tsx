@@ -48,6 +48,7 @@ const TERMINAL_BAD = new Set(["cancelled", "refunded"]);
 
 export default function Analytics() {
   const { state, setState, range, prevRange, granularity } = useReportRange("analytics-range", "last30");
+  const [healthStatus, setHealthStatus] = useState<HealthStatus | null>(null);
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [prevOrders, setPrevOrders] = useState<OrderRow[]>([]);
   const [items, setItems] = useState<ItemRow[]>([]);
