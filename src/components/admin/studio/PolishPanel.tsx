@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Sparkles, Loader2, RotateCcw, Wand2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { getCutout } from "@/lib/photoroomCutout";
 
 const CLOUD_NAME = "ddhy9zqh2";
 
@@ -34,6 +35,7 @@ const DEFAULT_POLISH: PolishOptions = {
 
 interface Props {
   sourceUrl: string | null;
+  productId?: string;
   onPolished: (url: string) => void;
   onReset: () => void;
 }
@@ -48,8 +50,6 @@ function buildTransformations(opts: PolishOptions): string {
       .trim()
       .replace(/\s+/g, "%20");
     parts.push(`e_gen_background_replace:prompt_${safe}`);
-  } else if (opts.removeBg) {
-    parts.push("e_background_removal");
   }
   if (opts.autoEnhance) parts.push("e_improve");
   if (opts.autoColor) parts.push("e_auto_color");
@@ -61,7 +61,9 @@ function buildTransformations(opts: PolishOptions): string {
   return parts.join(",");
 }
 
-export function PolishPanel({ sourceUrl, onPolished, onReset }: Props) {
+export function PolishPanel({ sourceUrl, productId, onPolished, onReset }: Props) {
+  const [cutoutId, setCutoutId] = useState<string | null>(null);
+  const [cutting, setCutting] = useState(false);
   const [publicId, setPublicId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [opts, setOpts] = useState<PolishOptions>(DEFAULT_POLISH);
@@ -71,9 +73,27 @@ export function PolishPanel({ sourceUrl, onPolished, onReset }: Props) {
   if (sourceUrl !== lastSource) {
     setLastSource(sourceUrl);
     setPublicId(null);
+    setCutoutId(null);
   }
 
-  const apply = (next: PolishOptions, id = publicId) => {
+  const ensureCutout = async (force = false): Promise<string | null> => {
+    if (cutoutId && !force) return cutoutId;
+    if (!sourceUrl) return null;
+    setCutting(true);
+    try {
+      const cut = await getCutout(sourceUrl, productId, force);
+      if (!cut) return null;
+      const { data } = await supabase.functions.invoke("cloudinary-polish", { body: { imageUrl: cut } });
+      const id = (data?.publicId as string) ?? null;
+      setCutoutId(id);
+      return id;
+    } finally {
+      setCutting(false);
+    }
+  };
+
+  const apply = (next: PolishOptions, base = publicId, cut = cutoutId) => {
+    const id = next.removeBg && !next.bgReplacePrompt.trim() && cut ? cut : base;
     if (!id) return;
     const t = buildTransformations(next);
     const url = `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/${t}/${id}.png`;
@@ -107,10 +127,15 @@ export function PolishPanel({ sourceUrl, onPolished, onReset }: Props) {
     }
   };
 
-  const update = (patch: Partial<PolishOptions>) => {
+  const update = async (patch: Partial<PolishOptions>) => {
     const next = { ...opts, ...patch };
+    let cut = cutoutId;
+    if (patch.removeBg) {
+      cut = await ensureCutout();
+      if (!cut) next.removeBg = false;
+    }
     setOpts(next);
-    if (publicId) apply(next);
+    if (publicId) apply(next, publicId, cut);
   };
 
   return (
@@ -138,6 +163,7 @@ export function PolishPanel({ sourceUrl, onPolished, onReset }: Props) {
           variant="outline"
           onClick={() => {
             setPublicId(null);
+            setCutoutId(null);
             setOpts(DEFAULT_POLISH);
             onReset();
           }}
@@ -148,13 +174,23 @@ export function PolishPanel({ sourceUrl, onPolished, onReset }: Props) {
       </div>
 
       <div className="space-y-2 rounded-md border p-2">
-        <Row label="Remove background" hint="AI cutout (slower)">
-          <Switch
-            checked={opts.removeBg}
-            onCheckedChange={(v) => update({ removeBg: v })}
-            disabled={!publicId}
-          />
+        <Row label="Remove background" hint={cutting ? "PhotoRoom processing…" : "PhotoRoom AI cutout (cached)"}>
+          {cutting ? (
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          ) : (
+            <Switch
+              checked={opts.removeBg}
+              onCheckedChange={(v) => update({ removeBg: v })}
+              disabled={!publicId}
+            />
+          )}
         </Row>
+        {opts.removeBg && cutoutId && (
+          <Button size="sm" variant="ghost" className="h-7 px-2 text-[11px]" disabled={cutting}
+            onClick={async () => { const c = await ensureCutout(true); if (c) apply(opts, publicId, c); }}>
+            Re-cut (uses 1 PhotoRoom credit)
+          </Button>
+        )}
         <Row label="Auto enhance" hint="e_improve">
           <Switch
             checked={opts.autoEnhance}
