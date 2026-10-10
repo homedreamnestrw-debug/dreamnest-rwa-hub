@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { ImagePlus, X, Loader2, Sparkles, Wand2, Scissors, Palette, Sun, ArrowLeft, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { getCutout } from "@/lib/photoroomCutout";
 
 const CLOUD_NAME = "ddhy9zqh2";
 const AUTO_ENHANCE = "e_improve,e_auto_color,e_sharpen:80,c_limit,w_2000,f_auto,q_auto";
@@ -23,6 +24,7 @@ interface ProductImageUploadProps {
   onChange: (images: string[]) => void;
   hiddenImages?: string[];
   onHiddenChange?: (hidden: string[]) => void;
+  productId?: string;
 }
 
 interface PolishOpts {
@@ -56,7 +58,7 @@ function buildTransform(opts: PolishOpts): string {
     const safe = prompt.replace(/[^a-zA-Z0-9\s,.-]/g, "").trim().replace(/\s+/g, "%20");
     parts.push(`e_gen_background_replace:prompt_${safe}`);
   } else if (opts.removeBg) {
-    parts.push("e_background_removal");
+    // Background removal is done by PhotoRoom beforehand; only fill colour here.
     if (opts.bgColor) parts.push(`b_rgb:${opts.bgColor.replace("#", "")}`);
   }
   if (opts.autoEnhance) parts.push("e_improve");
@@ -81,7 +83,7 @@ function buildCloudinaryUrl(publicId: string, transform: string, ext = "jpg") {
   return `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/${transform}/${publicId}.${ext}`;
 }
 
-export function ProductImageUpload({ images, onChange, hiddenImages = [], onHiddenChange }: ProductImageUploadProps) {
+export function ProductImageUpload({ images, onChange, hiddenImages = [], onHiddenChange, productId }: ProductImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [autoEnhance, setAutoEnhance] = useState(true);
   const [editorIdx, setEditorIdx] = useState<number | null>(null);
@@ -228,6 +230,7 @@ export function ProductImageUpload({ images, onChange, hiddenImages = [], onHidd
       {editorIdx !== null && (
         <ImageEditor
           sourceUrl={images[editorIdx]}
+          productId={productId}
           onClose={() => setEditorIdx(null)}
           onSave={(url) => {
             replaceImage(editorIdx!, url);
@@ -241,10 +244,12 @@ export function ProductImageUpload({ images, onChange, hiddenImages = [], onHidd
 
 function ImageEditor({
   sourceUrl,
+  productId,
   onClose,
   onSave,
 }: {
   sourceUrl: string;
+  productId?: string;
   onClose: () => void;
   onSave: (url: string) => void;
 }) {
@@ -265,9 +270,32 @@ function ImageEditor({
     return pid;
   };
 
-  const previewUrl = publicId ? buildCloudinaryUrl(publicId, buildTransform(opts), "png") : sourceUrl;
+  const [cutoutPid, setCutoutPid] = useState<string | null>(null);
+  const [cutting, setCutting] = useState(false);
 
-  const update = (patch: Partial<PolishOpts>) => setOpts({ ...opts, ...patch });
+  const ensureCutout = async (force = false): Promise<boolean> => {
+    if (cutoutPid && !force) return true;
+    setCutting(true);
+    const cut = await getCutout(sourceUrl, productId, force);
+    const pid = cut ? await uploadToCloudinary(cut) : null;
+    setCutting(false);
+    if (!pid) return false;
+    setCutoutPid(pid);
+    return true;
+  };
+
+  const activePid = opts.removeBg && cutoutPid ? cutoutPid : publicId;
+  const previewUrl = activePid ? buildCloudinaryUrl(activePid, buildTransform(opts), "png") : sourceUrl;
+
+  const update = async (patch: Partial<PolishOpts>) => {
+    const next = { ...opts, ...patch };
+    if (patch.removeBg) {
+      await ensurePublicId();
+      const ok = await ensureCutout();
+      if (!ok) next.removeBg = false;
+    }
+    setOpts(next);
+  };
 
   const applyPreset = async (
     preset: "studio" | "lifestyle" | "vivid" | "soft" | "white-bg" | "remove-bg",
@@ -288,9 +316,11 @@ function ImageEditor({
         setOpts({ ...DEFAULT_OPTS, autoEnhance: true, saturation: -10, brightness: 8, sharpen: 20 });
         break;
       case "white-bg":
+        if (!(await ensureCutout())) return;
         setOpts({ ...DEFAULT_OPTS, removeBg: true, bgColor: "ffffff", autoEnhance: true });
         break;
       case "remove-bg":
+        if (!(await ensureCutout())) return;
         setOpts({ ...DEFAULT_OPTS, removeBg: true, bgColor: "", autoEnhance: true });
         break;
     }
@@ -300,7 +330,7 @@ function ImageEditor({
     const pid = await ensurePublicId();
     if (!pid) return;
     const ext = opts.removeBg && !opts.bgColor && !opts.bgPrompt ? "png" : "jpg";
-    onSave(buildCloudinaryUrl(pid, buildTransform(opts), ext));
+    onSave(buildCloudinaryUrl(opts.removeBg && cutoutPid ? cutoutPid : pid, buildTransform(opts), ext));
   };
 
   return (
@@ -309,7 +339,7 @@ function ImageEditor({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary" />
-            Enhance image with Cloudinary AI
+            Enhance image (PhotoRoom cutout + Cloudinary)
           </DialogTitle>
         </DialogHeader>
 
@@ -317,14 +347,14 @@ function ImageEditor({
           {/* Preview */}
           <div className="space-y-2">
             <div className="aspect-square w-full rounded-md border bg-muted/30 overflow-hidden flex items-center justify-center">
-              {loading ? (
+              {loading || cutting ? (
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               ) : (
                 <img src={previewUrl} alt="preview" className="w-full h-full object-contain" />
               )}
             </div>
             <p className="text-[10px] text-muted-foreground text-center">
-              {publicId ? "Live preview · changes apply instantly" : "Click any preset or option below to start"}
+              {cutting ? "Removing background with PhotoRoom…" : publicId ? "Live preview · changes apply instantly" : "Click any preset or option below to start"}
             </p>
           </div>
 
@@ -377,6 +407,11 @@ function ImageEditor({
               <Row label="Remove background (AI)">
                 <Switch checked={opts.removeBg} onCheckedChange={(v) => update({ removeBg: v, bgPrompt: v ? opts.bgPrompt : "" })} />
               </Row>
+              {opts.removeBg && cutoutPid && (
+                <Button size="sm" variant="ghost" className="h-7 px-2 text-[11px]" onClick={() => ensureCutout(true)} disabled={cutting}>
+                  Re-cut image (uses 1 PhotoRoom credit)
+                </Button>
+              )}
               {opts.removeBg && (
                 <div className="space-y-1">
                   <Label className="text-[11px]">Solid background color (hex)</Label>
@@ -420,8 +455,8 @@ function ImageEditor({
 
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button variant="ghost" onClick={() => setOpts(DEFAULT_OPTS)}>Reset</Button>
-          <Button onClick={handleSave} disabled={loading}>
+          <Button variant="ghost" onClick={() => setOpts(DEFAULT_OPTS)} disabled={cutting}>Reset</Button>
+          <Button onClick={handleSave} disabled={loading || cutting}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
             Save enhanced
           </Button>

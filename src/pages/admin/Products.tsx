@@ -585,6 +585,7 @@ export default function Products() {
                   onChange={(imgs) => setForm({ ...form, images: imgs })}
                   hiddenImages={form.hidden_images}
                   onHiddenChange={(h) => setForm({ ...form, hidden_images: h })}
+                  productId={editing?.id}
                 />
               </div>
               <Button onClick={handleSave} className="w-full">{editing ? "Update" : "Create"} Product</Button>
