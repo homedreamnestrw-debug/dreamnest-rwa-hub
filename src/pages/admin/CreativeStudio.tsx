@@ -251,6 +251,7 @@ export default function CreativeStudio() {
                     <AccordionContent>
                       <PolishPanel
                         sourceUrl={mainImageUrl}
+                        productId={product?.id}
                         onPolished={setPolishedUrl}
                         onReset={() => setPolishedUrl(null)}
                       />
