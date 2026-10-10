@@ -18,3 +18,7 @@
 - Reminder emails, 8:00 AM Kigali daily digest, Monday overdue summary (Zoho SMTP + scheduled job)
 - Automatic overdue marking in the database
 - Calendar tab in Admin → Settings: default view, working hours/days, digest toggle, default reminder, staff visibility toggle
+
+## PhotoRoom image polishing
+- [x] PhotoRoom background removal with cached cutouts (Products editor + Creative Studio)
+- [ ] Clean up stored cutouts when a product is permanently deleted
