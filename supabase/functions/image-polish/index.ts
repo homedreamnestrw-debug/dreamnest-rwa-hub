@@ -44,6 +44,26 @@ Deno.serve(async (req) => {
     const productId = typeof body?.productId === "string" && /^[\w-]{1,64}$/.test(body.productId)
       ? body.productId : "unassigned";
     const force = body?.force === true;
+
+    if (body?.action === "cleanup") {
+      if (productId === "unassigned") return json({ error: "productId required" }, 400);
+      const sk = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      if (!sk) return json({ removed: 0 });
+      const adm = createClient(url, sk);
+      // Only clean up if the product truly no longer exists
+      const { data: still } = await adm.from("products").select("id").eq("id", productId).maybeSingle();
+      if (still) return json({ removed: 0, reason: "product_exists" });
+      let removed = 0;
+      for (const [bucket, prefix] of [["studio-cutouts", productId], ["product-images", `cutouts/${productId}`]]) {
+        const { data: files } = await adm.storage.from(bucket).list(prefix, { limit: 1000 });
+        const paths = (files ?? []).map((f) => `${prefix}/${f.name}`);
+        if (paths.length) {
+          await adm.storage.from(bucket).remove(paths);
+          removed += paths.length;
+        }
+      }
+      return json({ removed });
+    }
     if (typeof imageUrl !== "string" || !/^https:\/\//.test(imageUrl) || imageUrl.length > 2000) {
       return json({ error: "Valid https imageUrl is required" }, 400);
     }

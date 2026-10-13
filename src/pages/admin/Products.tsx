@@ -343,7 +343,13 @@ export default function Products() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this product?")) return;
-    await supabase.from("products").delete().eq("id", id);
+    const { error } = await supabase.from("products").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Could not delete product", description: error.message, variant: "destructive" });
+      return;
+    }
+    // Clean up cached PhotoRoom cutouts (only on permanent delete)
+    supabase.functions.invoke("image-polish", { body: { action: "cleanup", productId: id } }).catch(() => {});
     toast({ title: "Product deleted" });
     fetchData();
   };
