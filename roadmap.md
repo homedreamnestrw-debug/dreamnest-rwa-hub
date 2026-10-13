@@ -21,4 +21,4 @@
 
 ## PhotoRoom image polishing
 - [x] PhotoRoom background removal with cached cutouts (Products editor + Creative Studio)
-- [ ] Clean up stored cutouts when a product is permanently deleted
+- [x] Clean up stored cutouts when a product is permanently deleted
