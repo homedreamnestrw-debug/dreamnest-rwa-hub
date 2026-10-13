@@ -12,9 +12,9 @@
 - Bell alerts for items due in the next 24 hours + red overdue badge on the Calendar menu item
 
 ### Open (Phase 2)
-- Auto-events from invoice due dates, purchase order delivery dates, low stock
-- Preloaded recurring business reminders (monthly sales review, salaries, quarterly RDB, yearly licence/audit)
-- Rwanda public holidays preloaded, with no-promotions flag on 7 April
+- [x] Auto-events from invoice due dates, purchase order delivery dates, low stock
+- [x] Preloaded recurring business reminders (monthly sales review, salaries, quarterly RDB, yearly licence/audit)
+- [x] Rwanda public holidays preloaded, with no-promotions flag on 7 April
 - Reminder emails, 8:00 AM Kigali daily digest, Monday overdue summary (Zoho SMTP + scheduled job)
 - Automatic overdue marking in the database
 - Calendar tab in Admin → Settings: default view, working hours/days, digest toggle, default reminder, staff visibility toggle
