@@ -216,6 +216,7 @@ function safeVoucher(v: any) {
 }
 
 function buildShopEmail(v: any, fp: (n: number) => string, brand: string) {
+  v = safeVoucher(v)
   return `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px">
     <h2 style="color:#5c4033">🎁 New Gift Voucher Purchase</h2>
     <p><strong>Amount:</strong> ${fp(v.amount)}</p>
@@ -229,6 +230,7 @@ function buildShopEmail(v: any, fp: (n: number) => string, brand: string) {
 }
 
 function buildBuyerPurchaseEmail(v: any, fp: (n: number) => string, expires: string, brand: string) {
+  v = safeVoucher(v)
   return `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px">
     <h2 style="color:#5c4033">🎁 Thank You for Your Gift Voucher Purchase!</h2>
     <p>Dear ${v.buyer_name},</p>
@@ -256,6 +258,7 @@ function buildBuyerPurchaseEmail(v: any, fp: (n: number) => string, expires: str
 }
 
 function buildRecipientEmail(v: any, fp: (n: number) => string, expires: string, brand: string) {
+  v = safeVoucher(v)
   return `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px">
     <h2 style="color:#5c4033">🎁 You've Received a Gift!</h2>
     <p>Dear ${v.recipient_name},</p>
@@ -280,6 +283,7 @@ function buildRecipientEmail(v: any, fp: (n: number) => string, expires: string,
 }
 
 function buildBuyerApprovalEmail(v: any, fp: (n: number) => string, expires: string, brand: string) {
+  v = safeVoucher(v)
   return `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px">
     <h2 style="color:#5c4033">✅ Your Gift Voucher Is Now Active!</h2>
     <p>Dear ${v.buyer_name},</p>
@@ -305,6 +309,7 @@ function buildBuyerApprovalEmail(v: any, fp: (n: number) => string, expires: str
 }
 
 function buildShopApprovalEmail(v: any, fp: (n: number) => string, brand: string) {
+  v = safeVoucher(v)
   return `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px">
     <h2 style="color:#5c4033">✅ Gift Voucher Approved</h2>
     <p><strong>Code:</strong> ${v.code}</p>
