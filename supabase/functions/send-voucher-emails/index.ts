@@ -185,7 +185,7 @@ Deno.serve(async (req) => {
           ],
         } as any)
       } catch (e) {
-        console.error(`Failed to send email to ${email.to}:`, e)
+        console.error('Failed to send a voucher email:', (e as Error)?.message ?? 'unknown error')
       }
     }
 
@@ -204,7 +204,19 @@ Deno.serve(async (req) => {
 
 // ─── Email Templates ────────────────────────────────────────
 
+function esc(v: unknown): string {
+  return String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' } as Record<string, string>)[c])
+}
+function safeVoucher(v: any) {
+  const out: any = { ...v }
+  for (const k of ['buyer_name','buyer_phone','buyer_email','recipient_name','recipient_email','recipient_phone','personal_message','payment_method','code']) {
+    if (out[k] != null) out[k] = esc(out[k])
+  }
+  return out
+}
+
 function buildShopEmail(v: any, fp: (n: number) => string, brand: string) {
+  v = safeVoucher(v)
   return `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px">
     <h2 style="color:#5c4033">🎁 New Gift Voucher Purchase</h2>
     <p><strong>Amount:</strong> ${fp(v.amount)}</p>
@@ -218,6 +230,7 @@ function buildShopEmail(v: any, fp: (n: number) => string, brand: string) {
 }
 
 function buildBuyerPurchaseEmail(v: any, fp: (n: number) => string, expires: string, brand: string) {
+  v = safeVoucher(v)
   return `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px">
     <h2 style="color:#5c4033">🎁 Thank You for Your Gift Voucher Purchase!</h2>
     <p>Dear ${v.buyer_name},</p>
@@ -245,6 +258,7 @@ function buildBuyerPurchaseEmail(v: any, fp: (n: number) => string, expires: str
 }
 
 function buildRecipientEmail(v: any, fp: (n: number) => string, expires: string, brand: string) {
+  v = safeVoucher(v)
   return `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px">
     <h2 style="color:#5c4033">🎁 You've Received a Gift!</h2>
     <p>Dear ${v.recipient_name},</p>
@@ -269,6 +283,7 @@ function buildRecipientEmail(v: any, fp: (n: number) => string, expires: string,
 }
 
 function buildBuyerApprovalEmail(v: any, fp: (n: number) => string, expires: string, brand: string) {
+  v = safeVoucher(v)
   return `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px">
     <h2 style="color:#5c4033">✅ Your Gift Voucher Is Now Active!</h2>
     <p>Dear ${v.buyer_name},</p>
@@ -294,6 +309,7 @@ function buildBuyerApprovalEmail(v: any, fp: (n: number) => string, expires: str
 }
 
 function buildShopApprovalEmail(v: any, fp: (n: number) => string, brand: string) {
+  v = safeVoucher(v)
   return `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px">
     <h2 style="color:#5c4033">✅ Gift Voucher Approved</h2>
     <p><strong>Code:</strong> ${v.code}</p>

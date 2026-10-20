@@ -1,3 +1,4 @@
+import { escapeHtml } from "@/lib/escapeHtml";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -41,7 +42,7 @@ export default function Finance() {
   const sendNotification = async (order: any, type: "approved" | "rejected", note?: string) => {
     const email = order.guest_email;
     if (!email) return;
-    const name = order.guest_name || "Customer";
+    const name = escapeHtml(order.guest_name || "Customer");
     const orderNum = order.order_number;
     const subject = type === "approved"
       ? `Payment Confirmed – Order #${orderNum}`
@@ -58,7 +59,7 @@ export default function Finance() {
            <h2 style="color:#5c4033">Payment Could Not Be Verified</h2>
            <p>Dear ${name},</p>
            <p>Unfortunately, we were unable to verify the payment for <strong>Order #${orderNum}</strong> and the order has been cancelled.</p>
-           ${note ? `<p><strong>Reason:</strong> ${note}</p>` : ""}
+           ${note ? `<p><strong>Reason:</strong> ${escapeHtml(note)}</p>` : ""}
            <p>Please feel free to place a new order or contact us for assistance.</p>
            <p style="color:#999;font-size:12px;margin-top:32px">DreamNest – Premium Bedding & Home Decor</p>
          </div>`;
