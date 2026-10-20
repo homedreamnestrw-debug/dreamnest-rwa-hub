@@ -1,3 +1,4 @@
+import { escapeHtml } from "@/lib/escapeHtml";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -282,7 +283,7 @@ export default function Checkout() {
 
       // Build item summary for emails
       const itemsList = cartItems
-        .map((item) => `${item.product?.name} × ${item.quantity} — ${formatPrice((item.product?.price ?? 0) * item.quantity)}`)
+        .map((item) => `${escapeHtml(item.product?.name)} × ${item.quantity} — ${formatPrice((item.product?.price ?? 0) * item.quantity)}`)
         .join("<br/>");
 
       const customerEmail = user ? (user.email || form.email) : form.email;
@@ -298,14 +299,14 @@ export default function Checkout() {
             subject: `New Online Order #${orderNum} — ${formatPrice(total)}`,
             html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px">
               <h2 style="color:#5c4033">🛒 New Online Order #${orderNum}</h2>
-              <p><strong>Customer:</strong> ${customerName}</p>
-              <p><strong>Phone:</strong> ${form.phone}</p>
-              ${customerEmail ? `<p><strong>Email:</strong> ${customerEmail}</p>` : ""}
-              <p><strong>Shipping:</strong> ${form.delivery_method === "pickup" ? "Store Pickup" : `${form.shipping_address}, ${form.shipping_city}`}</p>
+              <p><strong>Customer:</strong> ${escapeHtml(customerName)}</p>
+              <p><strong>Phone:</strong> ${escapeHtml(form.phone)}</p>
+              ${customerEmail ? `<p><strong>Email:</strong> ${escapeHtml(customerEmail)}</p>` : ""}
+              <p><strong>Shipping:</strong> ${form.delivery_method === "pickup" ? "Store Pickup" : `${escapeHtml(form.shipping_address)}, ${escapeHtml(form.shipping_city)}`}</p>
               <p><strong>Delivery:</strong> ${form.delivery_method === "pickup" ? "Pickup at store" : "Ship to address"}</p>
-              <p><strong>Payment:</strong> ${paymentLabel}</p>
+              <p><strong>Payment:</strong> ${escapeHtml(paymentLabel)}</p>
               <p><strong>Marketing opt-in:</strong> ${form.marketing_opt_in ? "Yes" : "No"}</p>
-              ${form.notes ? `<p><strong>Notes:</strong> ${form.notes}</p>` : ""}
+              ${form.notes ? `<p><strong>Notes:</strong> ${escapeHtml(form.notes)}</p>` : ""}
               <hr style="border:none;border-top:1px solid #eee;margin:16px 0"/>
               <p style="font-size:14px">${itemsList}</p>
               <hr style="border:none;border-top:1px solid #eee;margin:16px 0"/>
@@ -323,15 +324,15 @@ export default function Checkout() {
               subject: `Order Received — #${orderNum} — DreamNest`,
               html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px">
                 <h2 style="color:#5c4033">Thank You for Your Order! 🎉</h2>
-                <p>Dear ${customerName},</p>
+                <p>Dear ${escapeHtml(customerName)},</p>
                 <p>We've received your order <strong>#${orderNum}</strong> and it's being reviewed. You'll receive another email once your payment is confirmed.</p>
                 <hr style="border:none;border-top:1px solid #eee;margin:16px 0"/>
                 <p style="font-size:14px"><strong>Items:</strong></p>
                 <p style="font-size:14px">${itemsList}</p>
                 <hr style="border:none;border-top:1px solid #eee;margin:16px 0"/>
                 <p><strong>Total: ${formatPrice(total)}</strong></p>
-                <p><strong>Payment:</strong> ${paymentLabel}</p>
-                <p><strong>${form.delivery_method === "pickup" ? "Pickup" : "Delivery to"}:</strong> ${form.delivery_method === "pickup" ? "At our store" : `${form.shipping_address}, ${form.shipping_city}`}</p>
+                <p><strong>Payment:</strong> ${escapeHtml(paymentLabel)}</p>
+                <p><strong>${form.delivery_method === "pickup" ? "Pickup" : "Delivery to"}:</strong> ${form.delivery_method === "pickup" ? "At our store" : `${escapeHtml(form.shipping_address)}, ${escapeHtml(form.shipping_city)}`}</p>
                 <p style="margin-top:24px">If you have any questions, feel free to reply to this email or contact us at <strong>+250 788 742 122</strong>.</p>
                 <p style="color:#999;font-size:12px;margin-top:32px">DreamNest — Premium Bedding & Home Decor</p>
               </div>`,
