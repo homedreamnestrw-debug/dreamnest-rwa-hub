@@ -2049,6 +2049,8 @@ export type Database = {
         }[]
       }
       dispatch_calendar_reminders: { Args: never; Returns: undefined }
+      dispatch_plan_prompt: { Args: { _kind: string }; Returns: undefined }
+      dispatch_zero_sales_check: { Args: never; Returns: undefined }
       generate_voucher_code: { Args: never; Returns: string }
       get_admin_products_with_costs: {
         Args: never
