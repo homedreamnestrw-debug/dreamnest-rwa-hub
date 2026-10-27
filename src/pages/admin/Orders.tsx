@@ -9,6 +9,7 @@ import { Search, Eye, ArrowDownAZ, ArrowUpAZ } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Constants } from "@/integrations/supabase/types";
 import { OrderDetailDialog } from "@/components/admin/OrderDetailDialog";
+import { loadStaffNames } from "@/lib/staffNames";
 import {
   TIMELINE_LABELS, TIMELINE_ORDER, TimelinePreset,
   rangeFromPreset, inRange,
@@ -24,6 +25,9 @@ export default function Orders() {
   const [customTo, setCustomTo] = useState("");
   const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
   const [detailOrderId, setDetailOrderId] = useState<string | null>(null);
+  const [staffNames, setStaffNames] = useState<Record<string, string>>({});
+
+  useEffect(() => { loadStaffNames().then(setStaffNames); }, []);
 
   const fetchOrders = async () => {
     const { data } = await supabase
@@ -60,6 +64,12 @@ export default function Orders() {
     if (o.guest_name) return o.guest_name;
     if (o.guest_phone) return o.guest_phone;
     if (o.customer_id) return "Registered";
+    return "—";
+  };
+
+  const creatorDisplay = (o: any) => {
+    if (o.served_by) return staffNames[o.served_by] || "Staff";
+    if (o.channel === "online") return "Customer (online)";
     return "—";
   };
 
@@ -174,7 +184,7 @@ export default function Orders() {
             </div>
             <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
               <span className="text-xs text-muted-foreground">
-                {new Date(o.created_at).toLocaleString(undefined, { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                {creatorDisplay(o)} · {new Date(o.created_at).toLocaleString(undefined, { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
               </span>
               <div onClick={(e) => e.stopPropagation()}>
                 <Select value={o.status} onValueChange={(v) => updateStatus(o.id, v)}>
@@ -196,6 +206,7 @@ export default function Orders() {
             <TableRow>
               <TableHead>Order #</TableHead>
               <TableHead>Customer</TableHead>
+              <TableHead>Created by</TableHead>
               <TableHead>Channel</TableHead>
               <TableHead>Total</TableHead>
               <TableHead>Payment</TableHead>
@@ -207,9 +218,9 @@ export default function Orders() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
             ) : filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No orders found</TableCell></TableRow>
+              <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">No orders found</TableCell></TableRow>
             ) : filtered.map((o) => (
               <TableRow key={o.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setDetailOrderId(o.id)}>
                 <TableCell className="font-medium">#{o.order_number}</TableCell>
@@ -221,6 +232,7 @@ export default function Orders() {
                     )}
                   </div>
                 </TableCell>
+                <TableCell className="text-sm whitespace-nowrap">{creatorDisplay(o)}</TableCell>
                 <TableCell>
                   <Badge variant="secondary" className="capitalize text-xs">{o.channel}</Badge>
                 </TableCell>
