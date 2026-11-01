@@ -43,7 +43,7 @@ export default function Stock() {
   const PRODUCT_HEADERS = [
     "name","price","cost_price","stock_quantity","low_stock_threshold",
     "category_name","is_active","featured","tax_enabled","description",
-    "variant_name","variant_price","variant_cost_price","variant_stock",
+    "variant_name","variant_price","variant_cost_price","variant_stock","location_name",
   ];
   const productsBar = (
     <ImportExportBar
@@ -72,7 +72,7 @@ export default function Stock() {
             category_name: p.category_id ? catMap.get(p.category_id) || "" : "",
             is_active: p.is_active, featured: p.featured, tax_enabled: p.tax_enabled,
             description: p.description || "",
-            variant_name: "", variant_price: "", variant_cost_price: "", variant_stock: "",
+            variant_name: "", variant_price: "", variant_cost_price: "", variant_stock: "", location_name: "",
           });
           (varsByProduct.get(p.id) || []).forEach((v) => {
             out.push({
@@ -83,6 +83,7 @@ export default function Stock() {
               variant_price: v.price_override ?? "",
               variant_cost_price: v.cost_price ?? "",
               variant_stock: v.stock_quantity ?? 0,
+              location_name: "",
             });
           });
         });
@@ -91,15 +92,19 @@ export default function Stock() {
       templateSample={await_sample_products()}
       xlsxTemplate={async () => {
         const ExcelJS = (await import("exceljs")).default;
-        const { data: cats } = await supabase.from("categories").select("name").order("name");
+        const [{ data: cats }, { data: locs }] = await Promise.all([
+          supabase.from("categories").select("name").order("name"),
+          supabase.from("stock_locations").select("name").eq("is_active", true).order("name"),
+        ]);
+        const firstLoc = locs?.[0]?.name || "";
         const wb = new ExcelJS.Workbook();
         const ws = wb.addWorksheet("Products");
         ws.addRow(PRODUCT_HEADERS);
         ws.getRow(1).font = { bold: true };
         // Sample product row + variant rows (blank name = belongs to product above)
-        ws.addRow(["Sample Pillow",15000,9000,20,5,(cats?.[0]?.name || "Bedding"),"true","false","true","Soft cotton pillow","","","",""]);
-        ws.addRow(["","","","","","","","","","","Queen / Beige",18000,10000,10]);
-        ws.addRow(["","","","","","","","","","","King / Beige","","",5]);
+        ws.addRow(["Sample Pillow",15000,9000,20,5,(cats?.[0]?.name || "Bedding"),"true","false","true","Soft cotton pillow","","","","",firstLoc]);
+        ws.addRow(["","","","","","","","","","","Queen / Beige",18000,10000,10,firstLoc]);
+        ws.addRow(["","","","","","","","","","","King / Beige","","",5,firstLoc]);
 
         // Hidden sheet holding category list for the dropdown
         const listWs = wb.addWorksheet("_lists");
@@ -107,6 +112,10 @@ export default function Stock() {
         const catNames = (cats || []).map((c) => c.name);
         catNames.forEach((n, i) => { listWs.getCell(i + 1, 1).value = n; });
         const catRange = catNames.length > 0 ? `=_lists!$A$1:$A$${catNames.length}` : undefined;
+        const locNames = (locs || []).map((l) => l.name);
+        locNames.forEach((n, i) => { listWs.getCell(i + 1, 2).value = n; });
+        const locRange = locNames.length > 0 ? `=_lists!$B$1:$B$${locNames.length}` : undefined;
+        const locCol = PRODUCT_HEADERS.indexOf("location_name") + 1;
 
         // Apply data validation to category_name column for first 1000 rows
         const catCol = PRODUCT_HEADERS.indexOf("category_name") + 1;
@@ -117,6 +126,13 @@ export default function Stock() {
               type: "list", allowBlank: true, formulae: [catRange],
               showErrorMessage: true, errorStyle: "warning",
               errorTitle: "Unknown category", error: "Pick a category from the dropdown or it will be created on import.",
+            } as any;
+          }
+          if (locRange) {
+            ws.getCell(r, locCol).dataValidation = {
+              type: "list", allowBlank: true, formulae: [locRange],
+              showErrorMessage: true, errorStyle: "stop",
+              errorTitle: "Unknown location", error: "Pick a stock location from the dropdown.",
             } as any;
           }
           boolCols.forEach((c) => {
@@ -131,15 +147,27 @@ export default function Stock() {
         const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
         return { blob, filename: "products-template.xlsx" };
       }}
-      importNotes={`One row per product. For variants, add rows right below the product with the name left blank (or repeated) and variant_name filled, e.g. "Queen / Beige". Slug, SKU and variant SKUs are generated automatically. Blank variant price/cost uses the product's price/cost. Category is matched by name (created if missing).`}
+      importNotes={`One row per product. For variants, add rows right below the product with the name left blank (or repeated) and variant_name filled, e.g. "Queen / Beige". Slug, SKU and variant SKUs are generated automatically. Blank variant price/cost uses the product's price/cost. Category is matched by name (created if missing). Pick location_name from the dropdown — stock is placed at that location (blank = product row's location, or the first active location).`}
       onImport={async (rows): Promise<ImportResult> => {
         const errors: string[] = [];
         let ok = 0, failed = 0;
-        const [{ data: cats }, { data: defaultLocation }, { data: existingProds }] = await Promise.all([
+        const [{ data: cats }, { data: allLocs }, { data: existingProds }] = await Promise.all([
           supabase.from("categories").select("id,name"),
-          supabase.from("stock_locations").select("id").eq("is_active", true).order("created_at").limit(1).maybeSingle(),
+          supabase.from("stock_locations").select("id,name,created_at").eq("is_active", true).order("created_at"),
           supabase.from("products").select("slug,sku,variant_attributes"),
         ]);
+        const defaultLocation = (allLocs || [])[0] as { id: string } | undefined;
+        const locByName = new Map((allLocs || []).map((l: any) => [String(l.name).toLowerCase(), l.id as string]));
+        const resolveLoc = (...names: (string | undefined)[]) => {
+          for (const n of names) {
+            const k = String(n || "").trim().toLowerCase();
+            if (!k) continue;
+            const id = locByName.get(k);
+            if (!id) throw new Error(`unknown location "${n}"`);
+            return id;
+          }
+          return defaultLocation?.id;
+        };
         const catByName = new Map((cats || []).map((c) => [c.name.toLowerCase(), c.id]));
         const prodBySlug = new Map((existingProds || []).map((p: any) => [p.slug, p]));
         const takenSkus = new Set((existingProds || []).map((p: any) => (p.sku || "").toUpperCase()).filter(Boolean));
@@ -208,6 +236,26 @@ export default function Stock() {
             if (error) throw error;
             ok++;
 
+            // Non-variant product: place stock at the chosen location
+            if (variantRows.length === 0 && String(header.stock_quantity ?? "").trim() !== "") {
+              const pLoc = resolveLoc(header.location_name);
+              const qty = Number(header.stock_quantity);
+              if (pLoc && !Number.isNaN(qty) && qty >= 0) {
+                const { data: prevRow } = await supabase.from("product_stock").select("quantity")
+                  .eq("product_id", prod!.id).eq("location_id", pLoc).maybeSingle();
+                const prev = prevRow?.quantity ?? 0;
+                const { error: psErr } = await supabase.from("product_stock")
+                  .upsert({ product_id: prod!.id, location_id: pLoc, quantity: qty }, { onConflict: "product_id,location_id" });
+                if (psErr) throw psErr;
+                if (qty !== prev) {
+                  await supabase.from("stock_movements").insert({
+                    product_id: prod!.id, location_id: pLoc, movement_type: "adjustment",
+                    quantity: qty - prev, previous_stock: prev, new_stock: qty, reason: "Product import",
+                  });
+                }
+              }
+            }
+
             for (const [vi, vr] of variantRows.entries()) {
               try {
                 const attributes = parsedAttrs[vi];
@@ -235,10 +283,11 @@ export default function Stock() {
                 if (hasVariantStock) {
                   const quantity = Number(vr.variant_stock);
                   if (Number.isNaN(quantity) || quantity < 0) throw new Error("variant_stock must be ≥ 0");
-                  if (!defaultLocation?.id) throw new Error("variant_stock needs at least one active stock location");
+                  const vLoc = resolveLoc(vr.location_name, header.location_name);
+                  if (!vLoc) throw new Error("variant_stock needs at least one active stock location");
                   const { error: stockErr } = await supabase.rpc("adjust_variant_stock", {
                     p_variant_id: variantId!,
-                    p_location_id: defaultLocation.id,
+                    p_location_id: vLoc,
                     p_new_quantity: quantity,
                     p_movement_type: "adjustment",
                     p_reason: "Product import",

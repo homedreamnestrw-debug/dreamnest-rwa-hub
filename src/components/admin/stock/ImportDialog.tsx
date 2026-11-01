@@ -98,15 +98,15 @@ export function ImportDialog({
 
   return (
     <Dialog open={open} onOpenChange={reset}>
-      <DialogContent className="max-w-3xl">
-        <DialogHeader>
+      <DialogContent className="max-w-[min(95vw,64rem)] w-[95vw] max-h-[90dvh] flex flex-col gap-3 p-4 sm:p-6 overflow-hidden">
+        <DialogHeader className="shrink-0 pr-6">
           <DialogTitle>Import {title}</DialogTitle>
           <DialogDescription>
             Download the template, fill it in, then upload. Existing records (matched by unique key) will be updated.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-4 flex-1 min-h-0 overflow-y-auto min-w-0">
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={handleTemplate}>
               <Download className="h-4 w-4 mr-2" /> Download {xlsxTemplate ? "Excel template" : "template"}
@@ -131,15 +131,15 @@ export function ImportDialog({
           )}
 
           {rows.length > 0 && (
-            <div className="rounded-md border max-h-72 overflow-auto">
+            <div className="rounded-md border max-h-[45dvh] overflow-auto max-w-full">
               <Table>
                 <TableHeader>
-                  <TableRow>{templateHeaders.map((h) => <TableHead key={h}>{h}</TableHead>)}</TableRow>
+                  <TableRow>{templateHeaders.map((h) => <TableHead key={h} className="whitespace-nowrap text-xs h-9">{h}</TableHead>)}</TableRow>
                 </TableHeader>
                 <TableBody>
                   {rows.slice(0, 50).map((r, i) => (
                     <TableRow key={i}>
-                      {templateHeaders.map((h) => <TableCell key={h} className="text-xs">{r[h] ?? ""}</TableCell>)}
+                      {templateHeaders.map((h) => <TableCell key={h} className="text-xs py-1.5 whitespace-nowrap max-w-[220px] truncate">{r[h] ?? ""}</TableCell>)}
                     </TableRow>
                   ))}
                 </TableBody>
@@ -153,7 +153,7 @@ export function ImportDialog({
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="shrink-0 gap-2 border-t pt-3">
           <Button variant="outline" onClick={() => reset(false)} disabled={busy}>Cancel</Button>
           <Button onClick={handleConfirm} disabled={rows.length === 0 || busy}>
             {busy ? "Importing..." : `Import ${rows.length} rows`}
