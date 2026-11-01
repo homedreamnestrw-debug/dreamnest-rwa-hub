@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { loadStaffNames } from "@/lib/staffNames";
 import { format } from "date-fns";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
@@ -35,6 +36,7 @@ export function InvoicePreview({ invoiceId, fallback }: PreviewProps) {
   const [items, setItems] = useState<any[]>([]);
   const [order, setOrder] = useState<any>(null);
   const [settings, setSettings] = useState<any>(null);
+  const [creatorName, setCreatorName] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -42,6 +44,7 @@ export function InvoicePreview({ invoiceId, fallback }: PreviewProps) {
       const [{ data: settingsArr }] = await Promise.all([
         supabase.rpc("get_public_business_settings"),
       ]);
+      const names = await loadStaffNames();
       if (cancelled) return;
       setSettings(settingsArr?.[0] || null);
 
@@ -51,6 +54,7 @@ export function InvoicePreview({ invoiceId, fallback }: PreviewProps) {
         if (cancelled) return;
         setInvoice(inv);
         setItems(its || []);
+        setCreatorName(inv?.created_by ? (names[inv.created_by] || "Staff") : null);
         if (inv?.order_id) {
           const { data: ord } = await supabase
             .from("orders")
@@ -64,7 +68,7 @@ export function InvoicePreview({ invoiceId, fallback }: PreviewProps) {
         const [{ data: ord }, { data: ois }] = await Promise.all([
           supabase
             .from("orders")
-            .select("order_number, guest_name, guest_phone, guest_email, payment_method, channel")
+            .select("order_number, guest_name, guest_phone, guest_email, payment_method, channel, served_by")
             .eq("id", fallback.order_id)
             .maybeSingle(),
           supabase
@@ -74,6 +78,7 @@ export function InvoicePreview({ invoiceId, fallback }: PreviewProps) {
         ]);
         if (cancelled) return;
         setOrder(ord);
+        setCreatorName(ord?.served_by ? (names[ord.served_by] || "Staff") : null);
         setItems(
           (ois || []).map((it: any) => {
             const attrs = it.product_variants?.attributes as Record<string, string> | null;
@@ -149,6 +154,7 @@ export function InvoicePreview({ invoiceId, fallback }: PreviewProps) {
               <div><span className="text-gray-500">Date: </span>{format(new Date(data.created_at), "MMM d, yyyy HH:mm")}</div>
               <div><span className="text-gray-500">Status: </span><span className="uppercase font-semibold">{data.status}</span></div>
               {order?.payment_method && <div><span className="text-gray-500">Payment: </span>{String(order.payment_method).replace(/_/g, " ")}</div>}
+              {creatorName && <div><span className="text-gray-500">Prepared by: </span>{creatorName}</div>}
             </div>
           </div>
 
@@ -229,6 +235,7 @@ export function InvoicePreview({ invoiceId, fallback }: PreviewProps) {
           <div className="flex justify-between"><span>Date:</span><span>{format(new Date(data.created_at), "MMM d HH:mm")}</span></div>
           <div className="flex justify-between"><span>Status:</span><span className="uppercase">{data.status}</span></div>
           {order?.payment_method && <div className="flex justify-between"><span>Payment:</span><span>{String(order.payment_method).replace(/_/g, " ")}</span></div>}
+          {creatorName && <div className="flex justify-between"><span>By:</span><span>{creatorName}</span></div>}
           {order?.guest_name && <div className="mt-1">Customer: {order.guest_name}</div>}
           {order?.guest_phone && <div>Phone: {order.guest_phone}</div>}
 

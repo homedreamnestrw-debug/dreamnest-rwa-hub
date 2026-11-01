@@ -305,6 +305,12 @@ export async function downloadInvoicePdf(invoiceId: string) {
 
   if (!invoice) return;
 
+  let preparedBy: string | null = null;
+  if (invoice.created_by) {
+    const { data: staff } = await supabase.from("profiles").select("full_name").eq("user_id", invoice.created_by).maybeSingle();
+    preparedBy = (staff?.full_name || "").trim() || null;
+  }
+
   await buildOrderInvoicePdfFromData({
     documentType: invoice.document_type as string,
     documentNumber: invoice.document_number,
@@ -315,6 +321,7 @@ export async function downloadInvoicePdf(invoiceId: string) {
     customerEmail: (invoice as any).client_email || order?.guest_email || null,
     customerAddress: (invoice as any).client_address || null,
     paymentMethod: order?.payment_method || null,
+    servedBy: preparedBy,
     items: (items || []).map((it: any) => ({
       description: it.description,
       quantity: it.quantity,

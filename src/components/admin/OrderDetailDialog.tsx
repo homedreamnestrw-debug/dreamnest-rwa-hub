@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { MapPin, Phone, Mail, User, StickyNote, Package, MessageCircle, Truck, Mailbox, Save } from "lucide-react";
+import { loadStaffNames } from "@/lib/staffNames";
 
 interface OrderDetailDialogProps {
   orderId: string | null;
@@ -16,6 +17,7 @@ export function OrderDetailDialog({ orderId, open, onOpenChange }: OrderDetailDi
   const [order, setOrder] = useState<any>(null);
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [staffNames, setStaffNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!orderId || !open) return;
@@ -29,6 +31,7 @@ export function OrderDetailDialog({ orderId, open, onOpenChange }: OrderDetailDi
       setItems(itemsRes.data || []);
       setLoading(false);
     });
+    loadStaffNames().then(setStaffNames);
   }, [orderId, open]);
 
   const formatRWF = (n: number) =>
@@ -87,6 +90,12 @@ export function OrderDetailDialog({ orderId, open, onOpenChange }: OrderDetailDi
                   <div className="flex items-center gap-2">
                     <Mail className="h-4 w-4 text-muted-foreground" />
                     <span>{order.guest_email}</span>
+                  </div>
+                )}
+                {order.served_by && (
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span>Served by {staffNames[order.served_by] || "Staff"}</span>
                   </div>
                 )}
               </div>
