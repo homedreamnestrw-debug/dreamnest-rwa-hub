@@ -17,6 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { downloadInvoicePdf, shareInvoiceOnWhatsApp } from "@/lib/receiptUtils";
 import { InvoicePreview } from "@/components/admin/InvoicePreview";
+import { loadStaffNames } from "@/lib/staffNames";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import type { Tables, TablesInsert } from "@/integrations/supabase/types";
@@ -68,6 +69,7 @@ export default function Invoices() {
   const [showAudit, setShowAudit] = useState(false);
   const [invoiceItems, setInvoiceItems] = useState<any[]>([]);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [staffNames, setStaffNames] = useState<Record<string, string>>({});
 
   type LineItem = { description: string; quantity: number; unit_price: number; product_id?: string | null };
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
@@ -110,6 +112,7 @@ export default function Invoices() {
 
   const fetchData = async () => {
     setLoading(true);
+    loadStaffNames().then(setStaffNames);
     // Fetch all real invoices/receipts
     const { data: invoiceData } = await supabase
       .from("invoices")
@@ -119,7 +122,7 @@ export default function Invoices() {
     // Fetch orders so we can auto-list those without an invoice/receipt yet
     const { data: orderData } = await supabase
       .from("orders")
-      .select("id, order_number, channel, total, subtotal, tax_amount, discount_amount, status, payment_status, payment_approved, notes, created_at, customer_id")
+      .select("id, order_number, channel, total, subtotal, tax_amount, discount_amount, status, payment_status, payment_approved, notes, created_at, customer_id, served_by")
       .order("created_at", { ascending: false });
 
     const billedOrderIds = new Set((invoiceData || []).filter(i => i.order_id).map(i => i.order_id as string));
@@ -148,6 +151,7 @@ export default function Invoices() {
           paid_at: o.payment_status === "paid" ? o.created_at : null,
           notes: o.notes,
           customer_id: o.customer_id,
+          created_by: o.served_by ?? null,
           order_id: o.id,
           created_at: o.created_at,
           updated_at: o.created_at,
@@ -773,7 +777,7 @@ export default function Invoices() {
                 <span className="text-muted-foreground">· {sourceLabel}</span>
                 {isVirtual && <span className="rounded bg-secondary px-1 py-0.5 text-[9px] uppercase tracking-wide text-secondary-foreground">Pending</span>}
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">{format(new Date(inv.created_at), "MMM d, yyyy HH:mm")}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{format(new Date(inv.created_at), "MMM d, yyyy HH:mm")}{inv.created_by && staffNames[inv.created_by] ? ` · by ${staffNames[inv.created_by]}` : ""}</p>
               <div className="mt-2 flex flex-wrap items-center gap-1">
                 <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setViewing(inv)} title="View"><Eye className="h-4 w-4" /></Button>
                 <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => handleEdit(inv)} title="Edit"><Pencil className="h-4 w-4" /></Button>
@@ -811,14 +815,15 @@ export default function Invoices() {
               <TableHead>Status</TableHead>
               <TableHead>Total</TableHead>
               <TableHead>Created</TableHead>
+              <TableHead>Created by</TableHead>
               <TableHead className="w-[320px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
             ) : filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No documents found</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No documents found</TableCell></TableRow>
             ) : filtered.map((inv) => {
               const isVirtual = inv._virtual;
               const sourceIcon = inv._order_channel === "online"
@@ -849,6 +854,7 @@ export default function Invoices() {
                   </TableCell>
                   <TableCell className="whitespace-nowrap">{formatRWF(inv.total)}</TableCell>
                   <TableCell className="text-sm whitespace-nowrap">{format(new Date(inv.created_at), "MMM d, yyyy HH:mm")}</TableCell>
+                  <TableCell className="text-sm whitespace-nowrap">{inv.created_by && staffNames[inv.created_by] ? staffNames[inv.created_by] : "—"}</TableCell>
                   <TableCell className="whitespace-nowrap">
                     <div className="flex items-center gap-0.5 flex-nowrap">
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewing(inv)} title="View"><Eye className="h-4 w-4" /></Button>
