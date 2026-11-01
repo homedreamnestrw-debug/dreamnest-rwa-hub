@@ -58,7 +58,7 @@ export function InvoicePreview({ invoiceId, fallback }: PreviewProps) {
         if (inv?.order_id) {
           const { data: ord } = await supabase
             .from("orders")
-            .select("order_number, guest_name, guest_phone, guest_email, payment_method, channel")
+            .select("order_number, guest_name, guest_phone, guest_email, payment_method, channel, served_by")
             .eq("id", inv.order_id)
             .maybeSingle();
           if (!cancelled) setOrder(ord);
