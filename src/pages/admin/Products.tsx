@@ -711,6 +711,8 @@ export default function Products() {
         ))}
       </div>
 
+      <ProductHistoryDrawer product={historyProduct} onClose={() => setHistoryProduct(null)} />
+
       <div className="hidden md:block rounded-md border overflow-x-auto scroll-touch">
         <Table>
           <TableHeader>
