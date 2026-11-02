@@ -1226,6 +1226,36 @@ export type Database = {
         }
         Relationships: []
       }
+      product_audit_log: {
+        Row: {
+          action: string
+          changes: Json
+          created_at: string
+          id: string
+          performed_by: string | null
+          product_id: string
+          product_name: string | null
+        }
+        Insert: {
+          action: string
+          changes?: Json
+          created_at?: string
+          id?: string
+          performed_by?: string | null
+          product_id: string
+          product_name?: string | null
+        }
+        Update: {
+          action?: string
+          changes?: Json
+          created_at?: string
+          id?: string
+          performed_by?: string | null
+          product_id?: string
+          product_name?: string | null
+        }
+        Relationships: []
+      }
       product_stock: {
         Row: {
           created_at: string
@@ -1346,6 +1376,7 @@ export type Database = {
           ai_attributes: Json
           category_id: string | null
           cost_price: number
+          country_of_origin: string | null
           created_at: string
           description: string | null
           description_fr: string | null
@@ -1355,12 +1386,14 @@ export type Database = {
           id: string
           images: string[] | null
           is_active: boolean
+          is_online: boolean
           low_stock_threshold: number
           name: string
           price: number
           sku: string | null
           slug: string
           stock_quantity: number
+          supplier_invoice: string | null
           tax_enabled: boolean
           updated_at: string
           variant_attributes: Json
@@ -1369,6 +1402,7 @@ export type Database = {
           ai_attributes?: Json
           category_id?: string | null
           cost_price?: number
+          country_of_origin?: string | null
           created_at?: string
           description?: string | null
           description_fr?: string | null
@@ -1378,12 +1412,14 @@ export type Database = {
           id?: string
           images?: string[] | null
           is_active?: boolean
+          is_online?: boolean
           low_stock_threshold?: number
           name: string
           price?: number
           sku?: string | null
           slug: string
           stock_quantity?: number
+          supplier_invoice?: string | null
           tax_enabled?: boolean
           updated_at?: string
           variant_attributes?: Json
@@ -1392,6 +1428,7 @@ export type Database = {
           ai_attributes?: Json
           category_id?: string | null
           cost_price?: number
+          country_of_origin?: string | null
           created_at?: string
           description?: string | null
           description_fr?: string | null
@@ -1401,12 +1438,14 @@ export type Database = {
           id?: string
           images?: string[] | null
           is_active?: boolean
+          is_online?: boolean
           low_stock_threshold?: number
           name?: string
           price?: number
           sku?: string | null
           slug?: string
           stock_quantity?: number
+          supplier_invoice?: string | null
           tax_enabled?: boolean
           updated_at?: string
           variant_attributes?: Json
@@ -2061,6 +2100,7 @@ export type Database = {
           ai_attributes: Json
           category_id: string | null
           cost_price: number
+          country_of_origin: string | null
           created_at: string
           description: string | null
           description_fr: string | null
@@ -2070,12 +2110,14 @@ export type Database = {
           id: string
           images: string[] | null
           is_active: boolean
+          is_online: boolean
           low_stock_threshold: number
           name: string
           price: number
           sku: string | null
           slug: string
           stock_quantity: number
+          supplier_invoice: string | null
           tax_enabled: boolean
           updated_at: string
           variant_attributes: Json
