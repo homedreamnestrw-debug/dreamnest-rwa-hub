@@ -12,7 +12,8 @@ interface Props {
   templateHeaders: string[];
   templateSample: Record<string, string>;
   templateFilename: string;
-  onImport: (rows: Record<string, string>[]) => Promise<ImportResult>;
+  onImport: (rows: Record<string, string>[], batch: Record<string, string>) => Promise<ImportResult>;
+  batchFields?: { key: string; label: string; placeholder?: string }[];
   onImported?: () => void;
   importNotes?: string;
   canImport?: boolean;
@@ -49,6 +50,7 @@ export function ImportExportBar(props: Props) {
         onDone={props.onImported}
         notes={props.importNotes}
         xlsxTemplate={props.xlsxTemplate}
+        batchFields={props.batchFields}
       />
     </div>
   );

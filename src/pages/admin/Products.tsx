@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { ProductThumb } from "@/components/ui/product-thumb";
-import { Plus, Pencil, Trash2, Search, Sparkles, Loader2, Languages, Wand2, Scissors, Type, X, Package } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Sparkles, Loader2, Languages, Wand2, Scissors, Type, X, Package, History } from "lucide-react";
+import { ProductHistoryDrawer } from "@/components/admin/ProductHistoryDrawer";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { ProductImageUpload } from "@/components/admin/ProductImageUpload";
@@ -180,6 +181,9 @@ export default function Products() {
     category_id: "",
     tax_enabled: true,
     is_active: true,
+    is_online: false,
+    country_of_origin: "",
+    supplier_invoice: "",
     featured: false,
     images: [] as string[],
     hidden_images: [] as string[],
@@ -201,7 +205,7 @@ export default function Products() {
   useEffect(() => { fetchData(); }, []);
 
   const resetForm = () => {
-    setForm({ name: "", slug: "", description: "", description_fr: "", description_rw: "", price: 0, cost_price: 0, sku: "", low_stock_threshold: 5, category_id: "", tax_enabled: true, is_active: true, featured: false, images: [], hidden_images: [], ai_attributes: {} });
+    setForm({ name: "", slug: "", description: "", description_fr: "", description_rw: "", price: 0, cost_price: 0, sku: "", low_stock_threshold: 5, category_id: "", tax_enabled: true, is_active: true, is_online: false, country_of_origin: "", supplier_invoice: "", featured: false, images: [], hidden_images: [], ai_attributes: {} });
     setLocationStock({});
     setOptionsSchema({});
     setVariantRows([]);
@@ -223,6 +227,9 @@ export default function Products() {
       category_id: p.category_id || "",
       tax_enabled: p.tax_enabled,
       is_active: p.is_active,
+      is_online: (p as any).is_online ?? false,
+      country_of_origin: (p as any).country_of_origin || "",
+      supplier_invoice: (p as any).supplier_invoice || "",
       featured: p.featured,
       images: p.images || [],
       hidden_images: ((p as any).hidden_images ?? []) as string[],
@@ -287,7 +294,7 @@ export default function Products() {
       const taken = await loadExistingSkus();
       sku = nextSku(categories.find((c) => c.id === form.category_id)?.name, taken);
     }
-    const payload: TablesInsert<"products"> = {
+    const payload: any = {
       ...rest,
       sku,
       slug,
@@ -298,7 +305,10 @@ export default function Products() {
       description_fr: form.description_fr || null,
       description_rw: form.description_rw || null,
       ai_attributes: form.ai_attributes as any,
-    } as any;
+      country_of_origin: form.country_of_origin.trim() || null,
+      supplier_invoice: form.supplier_invoice.trim() || null,
+    };
+    if (editing) { delete payload.is_active; delete payload.is_online; }
 
     let productId: string;
     if (editing) {
@@ -339,6 +349,41 @@ export default function Products() {
     setDialogOpen(false);
     resetForm();
     fetchData();
+  };
+
+  const [historyProduct, setHistoryProduct] = useState<Product | null>(null);
+
+  const toggleFlag = async (p: Product, field: "is_active" | "is_online", value: boolean) => {
+    const patch: any = { [field]: value };
+    if (field === "is_active" && !value) patch.is_online = false;
+    setProducts((prev) => prev.map((x) => (x.id === p.id ? { ...x, ...patch } : x)));
+    const { error } = await supabase.from("products").update(patch).eq("id", p.id);
+    if (error) {
+      setProducts((prev) => prev.map((x) => (x.id === p.id ? p : x)));
+      toast({ title: "Could not update", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({
+      title: field === "is_active"
+        ? (value ? "Product activated" : "Product deactivated")
+        : (value ? "Published to Online Shop" : "Removed from Online Shop"),
+    });
+  };
+
+  const renderToggles = (p: Product) => {
+    const online = !!(p as any).is_online;
+    return (
+      <div className="flex flex-col gap-1 text-xs">
+        <label className="flex items-center gap-2 whitespace-nowrap">
+          <Switch className="scale-75 origin-left" checked={p.is_active} disabled={!canManageStock} onCheckedChange={(v) => toggleFlag(p, "is_active", v)} />
+          <span className={p.is_active ? "" : "text-muted-foreground"}>{p.is_active ? "Active" : "Inactive"}</span>
+        </label>
+        <label className="flex items-center gap-2 whitespace-nowrap" title={p.is_active ? "" : "Requires Active status"}>
+          <Switch className="scale-75 origin-left" checked={online && p.is_active} disabled={!canManageStock || !p.is_active} onCheckedChange={(v) => toggleFlag(p, "is_online", v)} />
+          <span className={online && p.is_active ? "" : "text-muted-foreground"}>{online && p.is_active ? "Online" : "Offline"}</span>
+        </label>
+      </div>
+    );
   };
 
   const handleDelete = async (id: string) => {
@@ -579,11 +624,18 @@ export default function Products() {
                   <SelectContent>{categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div className="flex items-center gap-6">
-                <div className="flex items-center gap-2"><Switch checked={form.is_active} onCheckedChange={(v) => setForm({ ...form, is_active: v })} /><Label>Active</Label></div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div><Label>Country of origin</Label><Input value={form.country_of_origin} onChange={(e) => setForm({ ...form, country_of_origin: e.target.value })} placeholder="e.g. Turkey" /></div>
+                <div><Label>Supplier invoice #</Label><Input value={form.supplier_invoice} onChange={(e) => setForm({ ...form, supplier_invoice: e.target.value })} placeholder="e.g. INV-2026-014" /></div>
+              </div>
+              <div className="flex flex-wrap items-center gap-6">
+                {!editing && (
+                  <div className="flex items-center gap-2"><Switch checked={form.is_online} onCheckedChange={(v) => setForm({ ...form, is_online: v })} /><Label>Publish to Online Shop</Label></div>
+                )}
                 <div className="flex items-center gap-2"><Switch checked={form.featured} onCheckedChange={(v) => setForm({ ...form, featured: v })} /><Label>Featured</Label></div>
                 <div className="flex items-center gap-2"><Switch checked={form.tax_enabled} onCheckedChange={(v) => setForm({ ...form, tax_enabled: v })} /><Label>Tax</Label></div>
               </div>
+              {editing && <p className="text-xs text-muted-foreground">Active and Online Shop switches are on the product list.</p>}
               <div>
                 <Label>Images</Label>
                 <ProductImageUpload
@@ -643,11 +695,13 @@ export default function Products() {
                   <span className={p.stock_quantity <= p.low_stock_threshold ? "text-destructive font-medium" : "text-muted-foreground"}>
                     Stock: {p.stock_quantity}
                   </span>
-                  <Badge variant={p.is_active ? "default" : "secondary"}>{p.is_active ? "Active" : "Inactive"}</Badge>
+                </div>
+                <div className="mt-2">{renderToggles(p)}
                 </div>
               </div>
               {canManageStock && (
                 <div className="flex shrink-0 gap-1">
+                  <Button variant="ghost" size="icon" className="tap-target" onClick={() => setHistoryProduct(p)}><History className="h-4 w-4" /></Button>
                   <Button variant="ghost" size="icon" className="tap-target" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
                   <Button variant="ghost" size="icon" className="tap-target" onClick={() => handleDelete(p.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                 </div>
@@ -656,6 +710,8 @@ export default function Products() {
           </div>
         ))}
       </div>
+
+      <ProductHistoryDrawer product={historyProduct} onClose={() => setHistoryProduct(null)} />
 
       <div className="hidden md:block rounded-md border overflow-x-auto scroll-touch">
         <Table>
@@ -695,12 +751,13 @@ export default function Products() {
                   </span>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={p.is_active ? "default" : "secondary"}>{p.is_active ? "Active" : "Inactive"}</Badge>
+                  {renderToggles(p)}
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-1">
                     {canManageStock ? (
                       <>
+                        <Button variant="ghost" size="icon" title="History" onClick={() => setHistoryProduct(p)}><History className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="icon" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="icon" onClick={() => handleDelete(p.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                       </>

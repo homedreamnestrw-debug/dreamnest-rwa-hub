@@ -3,6 +3,8 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Download, Upload, FileText } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
@@ -17,18 +19,21 @@ interface Props {
   templateHeaders: string[];
   sampleRow: Record<string, string>;
   templateFilename: string;
-  onImport: (rows: Record<string, string>[]) => Promise<ImportResult>;
+  onImport: (rows: Record<string, string>[], batch: Record<string, string>) => Promise<ImportResult>;
   onDone?: () => void;
   notes?: string;
   /** Optional XLSX template generator. When provided, replaces the CSV template download. */
   xlsxTemplate?: () => Promise<{ blob: Blob; filename: string }>;
+  /** Optional batch-level reference fields shown after a file is loaded. */
+  batchFields?: { key: string; label: string; placeholder?: string }[];
 }
 
 export function ImportDialog({
-  open, onOpenChange, title, templateHeaders, sampleRow, templateFilename, onImport, onDone, notes, xlsxTemplate,
+  open, onOpenChange, title, templateHeaders, sampleRow, templateFilename, onImport, onDone, notes, xlsxTemplate, batchFields,
 }: Props) {
   const [rows, setRows] = useState<Record<string, string>[]>([]);
   const [busy, setBusy] = useState(false);
+  const [batch, setBatch] = useState<Record<string, string>>({});
 
   const handleTemplate = async () => {
     if (xlsxTemplate) {
@@ -79,7 +84,8 @@ export function ImportDialog({
 
   const handleConfirm = async () => {
     setBusy(true);
-    const res = await onImport(rows);
+    const res = await onImport(rows, batch);
+    setBatch({});
     setBusy(false);
     toast({
       title: `Imported ${res.ok} rows`,
@@ -128,6 +134,20 @@ export function ImportDialog({
             <p className="text-xs text-muted-foreground flex items-start gap-2">
               <FileText className="h-3 w-3 mt-0.5" /> {notes}
             </p>
+          )}
+
+          {batchFields && batchFields.length > 0 && rows.length > 0 && (
+            <div className="rounded-md border p-3 space-y-2 bg-muted/30">
+              <p className="text-sm font-medium">Batch reference (optional — applies to all rows unless a row has its own value)</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {batchFields.map((f) => (
+                  <div key={f.key}>
+                    <Label className="text-xs">{f.label}</Label>
+                    <Input value={batch[f.key] || ""} placeholder={f.placeholder} onChange={(e) => setBatch({ ...batch, [f.key]: e.target.value })} />
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
 
           {rows.length > 0 && (
