@@ -44,6 +44,7 @@ export default function Stock() {
     "name","price","cost_price","stock_quantity","low_stock_threshold",
     "category_name","is_active","featured","tax_enabled","description",
     "variant_name","variant_price","variant_cost_price","variant_stock","location_name",
+    "country_of_origin","supplier_invoice",
   ];
   const productsBar = (
     <ImportExportBar
@@ -148,9 +149,16 @@ export default function Stock() {
         return { blob, filename: "products-template.xlsx" };
       }}
       importNotes={`One row per product. For variants, add rows right below the product with the name left blank (or repeated) and variant_name filled, e.g. "Queen / Beige". Slug, SKU and variant SKUs are generated automatically. Blank variant price/cost uses the product's price/cost. Category is matched by name (created if missing). Pick location_name from the dropdown — stock is placed at that location (blank = product row's location, or the first active location).`}
-      onImport={async (rows): Promise<ImportResult> => {
+      batchFields={[
+        { key: "supplier_invoice", label: "Supplier invoice #", placeholder: "e.g. INV-2026-014" },
+        { key: "country_of_origin", label: "Country of origin", placeholder: "e.g. Turkey" },
+        { key: "notes", label: "Batch notes / delivery ref", placeholder: "Optional" },
+      ]}
+      onImport={async (rows, batch = {}): Promise<ImportResult> => {
         const errors: string[] = [];
         let ok = 0, failed = 0;
+        const { data: { user: me } } = await supabase.auth.getUser();
+        const importReason = ["Product import", batch.supplier_invoice && `Inv ${batch.supplier_invoice}`, batch.notes].filter(Boolean).join(" · ");
         const [{ data: cats }, { data: allLocs }, { data: existingProds }] = await Promise.all([
           supabase.from("categories").select("id,name"),
           supabase.from("stock_locations").select("id,name,created_at").eq("is_active", true).order("created_at"),
@@ -230,11 +238,17 @@ export default function Stock() {
               featured: parseBool(header.featured, false),
               tax_enabled: parseBool(header.tax_enabled, true),
               description: header.description || null,
+              country_of_origin: (header.country_of_origin || batch.country_of_origin || "").trim() || null,
+              supplier_invoice: (header.supplier_invoice || batch.supplier_invoice || "").trim() || null,
             };
             if (variantRows.length > 0) payload.variant_attributes = schema;
             const { data: prod, error } = await supabase.from("products").upsert(payload, { onConflict: "slug" }).select("id").single();
             if (error) throw error;
             ok++;
+            await (supabase.from("product_audit_log" as any) as any).insert({
+              product_id: prod!.id, product_name: header.name, action: "imported", performed_by: me?.id,
+              changes: { supplier_invoice: payload.supplier_invoice, country_of_origin: payload.country_of_origin, notes: batch.notes || null, variants: variantRows.length },
+            });
 
             // Non-variant product: place stock at the chosen location
             if (variantRows.length === 0 && String(header.stock_quantity ?? "").trim() !== "") {
@@ -250,7 +264,7 @@ export default function Stock() {
                 if (qty !== prev) {
                   await supabase.from("stock_movements").insert({
                     product_id: prod!.id, location_id: pLoc, movement_type: "adjustment",
-                    quantity: qty - prev, previous_stock: prev, new_stock: qty, reason: "Product import",
+                    quantity: qty - prev, previous_stock: prev, new_stock: qty, reason: importReason,
                   });
                 }
               }
@@ -290,7 +304,7 @@ export default function Stock() {
                     p_location_id: vLoc,
                     p_new_quantity: quantity,
                     p_movement_type: "adjustment",
-                    p_reason: "Product import",
+                    p_reason: importReason,
                   });
                   if (stockErr) throw stockErr;
                 }
