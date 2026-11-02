@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { ProductThumb } from "@/components/ui/product-thumb";
-import { Plus, Pencil, Trash2, Search, Sparkles, Loader2, Languages, Wand2, Scissors, Type, X, Package } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Sparkles, Loader2, Languages, Wand2, Scissors, Type, X, Package, History } from "lucide-react";
+import { ProductHistoryDrawer } from "@/components/admin/ProductHistoryDrawer";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { ProductImageUpload } from "@/components/admin/ProductImageUpload";
@@ -350,6 +351,41 @@ export default function Products() {
     fetchData();
   };
 
+  const [historyProduct, setHistoryProduct] = useState<Product | null>(null);
+
+  const toggleFlag = async (p: Product, field: "is_active" | "is_online", value: boolean) => {
+    const patch: any = { [field]: value };
+    if (field === "is_active" && !value) patch.is_online = false;
+    setProducts((prev) => prev.map((x) => (x.id === p.id ? { ...x, ...patch } : x)));
+    const { error } = await supabase.from("products").update(patch).eq("id", p.id);
+    if (error) {
+      setProducts((prev) => prev.map((x) => (x.id === p.id ? p : x)));
+      toast({ title: "Could not update", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({
+      title: field === "is_active"
+        ? (value ? "Product activated" : "Product deactivated")
+        : (value ? "Published to Online Shop" : "Removed from Online Shop"),
+    });
+  };
+
+  const renderToggles = (p: Product) => {
+    const online = !!(p as any).is_online;
+    return (
+      <div className="flex flex-col gap-1 text-xs">
+        <label className="flex items-center gap-2 whitespace-nowrap">
+          <Switch className="scale-75 origin-left" checked={p.is_active} disabled={!canManageStock} onCheckedChange={(v) => toggleFlag(p, "is_active", v)} />
+          <span className={p.is_active ? "" : "text-muted-foreground"}>{p.is_active ? "Active" : "Inactive"}</span>
+        </label>
+        <label className="flex items-center gap-2 whitespace-nowrap" title={p.is_active ? "" : "Requires Active status"}>
+          <Switch className="scale-75 origin-left" checked={online && p.is_active} disabled={!canManageStock || !p.is_active} onCheckedChange={(v) => toggleFlag(p, "is_online", v)} />
+          <span className={online && p.is_active ? "" : "text-muted-foreground"}>{online && p.is_active ? "Online" : "Offline"}</span>
+        </label>
+      </div>
+    );
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this product?")) return;
     const { error } = await supabase.from("products").delete().eq("id", id);
@@ -659,11 +695,13 @@ export default function Products() {
                   <span className={p.stock_quantity <= p.low_stock_threshold ? "text-destructive font-medium" : "text-muted-foreground"}>
                     Stock: {p.stock_quantity}
                   </span>
-                  <Badge variant={p.is_active ? "default" : "secondary"}>{p.is_active ? "Active" : "Inactive"}</Badge>
+                </div>
+                <div className="mt-2">{renderToggles(p)}
                 </div>
               </div>
               {canManageStock && (
                 <div className="flex shrink-0 gap-1">
+                  <Button variant="ghost" size="icon" className="tap-target" onClick={() => setHistoryProduct(p)}><History className="h-4 w-4" /></Button>
                   <Button variant="ghost" size="icon" className="tap-target" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
                   <Button variant="ghost" size="icon" className="tap-target" onClick={() => handleDelete(p.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                 </div>
@@ -711,12 +749,13 @@ export default function Products() {
                   </span>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={p.is_active ? "default" : "secondary"}>{p.is_active ? "Active" : "Inactive"}</Badge>
+                  {renderToggles(p)}
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-1">
                     {canManageStock ? (
                       <>
+                        <Button variant="ghost" size="icon" title="History" onClick={() => setHistoryProduct(p)}><History className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="icon" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="icon" onClick={() => handleDelete(p.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                       </>
