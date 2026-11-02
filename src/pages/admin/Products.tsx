@@ -180,6 +180,9 @@ export default function Products() {
     category_id: "",
     tax_enabled: true,
     is_active: true,
+    is_online: false,
+    country_of_origin: "",
+    supplier_invoice: "",
     featured: false,
     images: [] as string[],
     hidden_images: [] as string[],
@@ -201,7 +204,7 @@ export default function Products() {
   useEffect(() => { fetchData(); }, []);
 
   const resetForm = () => {
-    setForm({ name: "", slug: "", description: "", description_fr: "", description_rw: "", price: 0, cost_price: 0, sku: "", low_stock_threshold: 5, category_id: "", tax_enabled: true, is_active: true, featured: false, images: [], hidden_images: [], ai_attributes: {} });
+    setForm({ name: "", slug: "", description: "", description_fr: "", description_rw: "", price: 0, cost_price: 0, sku: "", low_stock_threshold: 5, category_id: "", tax_enabled: true, is_active: true, is_online: false, country_of_origin: "", supplier_invoice: "", featured: false, images: [], hidden_images: [], ai_attributes: {} });
     setLocationStock({});
     setOptionsSchema({});
     setVariantRows([]);
@@ -223,6 +226,9 @@ export default function Products() {
       category_id: p.category_id || "",
       tax_enabled: p.tax_enabled,
       is_active: p.is_active,
+      is_online: (p as any).is_online ?? false,
+      country_of_origin: (p as any).country_of_origin || "",
+      supplier_invoice: (p as any).supplier_invoice || "",
       featured: p.featured,
       images: p.images || [],
       hidden_images: ((p as any).hidden_images ?? []) as string[],
@@ -287,7 +293,7 @@ export default function Products() {
       const taken = await loadExistingSkus();
       sku = nextSku(categories.find((c) => c.id === form.category_id)?.name, taken);
     }
-    const payload: TablesInsert<"products"> = {
+    const payload: any = {
       ...rest,
       sku,
       slug,
@@ -298,7 +304,10 @@ export default function Products() {
       description_fr: form.description_fr || null,
       description_rw: form.description_rw || null,
       ai_attributes: form.ai_attributes as any,
-    } as any;
+      country_of_origin: form.country_of_origin.trim() || null,
+      supplier_invoice: form.supplier_invoice.trim() || null,
+    };
+    if (editing) { delete payload.is_active; delete payload.is_online; }
 
     let productId: string;
     if (editing) {
@@ -579,11 +588,18 @@ export default function Products() {
                   <SelectContent>{categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div className="flex items-center gap-6">
-                <div className="flex items-center gap-2"><Switch checked={form.is_active} onCheckedChange={(v) => setForm({ ...form, is_active: v })} /><Label>Active</Label></div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div><Label>Country of origin</Label><Input value={form.country_of_origin} onChange={(e) => setForm({ ...form, country_of_origin: e.target.value })} placeholder="e.g. Turkey" /></div>
+                <div><Label>Supplier invoice #</Label><Input value={form.supplier_invoice} onChange={(e) => setForm({ ...form, supplier_invoice: e.target.value })} placeholder="e.g. INV-2026-014" /></div>
+              </div>
+              <div className="flex flex-wrap items-center gap-6">
+                {!editing && (
+                  <div className="flex items-center gap-2"><Switch checked={form.is_online} onCheckedChange={(v) => setForm({ ...form, is_online: v })} /><Label>Publish to Online Shop</Label></div>
+                )}
                 <div className="flex items-center gap-2"><Switch checked={form.featured} onCheckedChange={(v) => setForm({ ...form, featured: v })} /><Label>Featured</Label></div>
                 <div className="flex items-center gap-2"><Switch checked={form.tax_enabled} onCheckedChange={(v) => setForm({ ...form, tax_enabled: v })} /><Label>Tax</Label></div>
               </div>
+              {editing && <p className="text-xs text-muted-foreground">Active and Online Shop switches are on the product list.</p>}
               <div>
                 <Label>Images</Label>
                 <ProductImageUpload
