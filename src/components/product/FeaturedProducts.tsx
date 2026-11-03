@@ -17,6 +17,7 @@ export function FeaturedProducts({ excludeId, title = "You May Also Like", limit
         .from("products")
         .select("id, name, slug, price, images, hidden_images")
         .eq("is_active", true)
+        .eq("is_online" as any, true)
         .eq("featured", true)
         .limit(limit + (excludeId ? 1 : 0));
       const { data } = await query;

@@ -33,7 +33,8 @@ export default function Shop() {
       let query = supabase
         .from("products")
         .select("id, name, slug, price, images, hidden_images, stock_quantity, low_stock_threshold, category_id, categories(name, slug)")
-        .eq("is_active", true);
+        .eq("is_active", true)
+        .eq("is_online" as any, true);
 
       if (categorySlug) {
         const { data: cat } = await supabase.from("categories").select("id").eq("slug", categorySlug).maybeSingle();
