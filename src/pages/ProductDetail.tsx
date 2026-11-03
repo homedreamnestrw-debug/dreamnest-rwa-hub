@@ -63,9 +63,10 @@ export default function ProductDetail() {
     queryFn: async () => {
       const { data } = await supabase
         .from("products")
-        .select("id, name, slug, description, price, sku, images, hidden_images, stock_quantity, low_stock_threshold, category_id, tax_enabled, is_active, featured, variant_attributes, created_at, updated_at, categories(name, slug)")
+        .select("id, name, slug, description, price, sku, images, hidden_images, stock_quantity, low_stock_threshold, category_id, tax_enabled, is_active, is_online, featured, variant_attributes, created_at, updated_at, categories(name, slug)")
         .eq("slug", slug!)
         .maybeSingle();
+      if (data && (!(data as any).is_active || !(data as any).is_online)) return null;
       return data;
     },
     enabled: !!slug,
