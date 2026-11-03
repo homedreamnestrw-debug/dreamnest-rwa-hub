@@ -19,6 +19,7 @@ export default function About() {
         .from("products")
         .select("id, name, slug, price, images, categories(name)")
         .eq("is_active", true)
+        .eq("is_online", true)
         .eq("featured", true)
         .limit(4);
       return data ?? [];

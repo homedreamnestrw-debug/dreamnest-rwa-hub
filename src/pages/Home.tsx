@@ -22,6 +22,7 @@ export default function Home() {
         .from("products")
         .select("id, name, slug, price, images, hidden_images, stock_quantity, low_stock_threshold, categories(name)")
         .eq("is_active", true)
+        .eq("is_online", true)
         .eq("featured", true)
         .limit(4);
       return data ?? [];
