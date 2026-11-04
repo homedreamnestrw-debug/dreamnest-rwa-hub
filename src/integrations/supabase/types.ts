@@ -666,6 +666,7 @@ export type Database = {
           description: string | null
           expense_date: string
           id: string
+          location_id: string | null
           receipt_url: string | null
           updated_at: string
         }
@@ -677,6 +678,7 @@ export type Database = {
           description?: string | null
           expense_date?: string
           id?: string
+          location_id?: string | null
           receipt_url?: string | null
           updated_at?: string
         }
@@ -688,10 +690,19 @@ export type Database = {
           description?: string | null
           expense_date?: string
           id?: string
+          location_id?: string | null
           receipt_url?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "expenses_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "stock_locations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       gift_vouchers: {
         Row: {
@@ -855,6 +866,7 @@ export type Database = {
           document_type: Database["public"]["Enums"]["document_type"]
           due_date: string | null
           id: string
+          location_id: string | null
           notes: string | null
           order_id: string | null
           paid_at: string | null
@@ -878,6 +890,7 @@ export type Database = {
           document_type?: Database["public"]["Enums"]["document_type"]
           due_date?: string | null
           id?: string
+          location_id?: string | null
           notes?: string | null
           order_id?: string | null
           paid_at?: string | null
@@ -901,6 +914,7 @@ export type Database = {
           document_type?: Database["public"]["Enums"]["document_type"]
           due_date?: string | null
           id?: string
+          location_id?: string | null
           notes?: string | null
           order_id?: string | null
           paid_at?: string | null
@@ -912,6 +926,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "invoices_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "stock_locations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "invoices_order_id_fkey"
             columns: ["order_id"]
@@ -1462,6 +1483,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          assigned_location_id: string | null
           backup_codes_hash: string[] | null
           city: string | null
           created_at: string
@@ -1479,6 +1501,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          assigned_location_id?: string | null
           backup_codes_hash?: string[] | null
           city?: string | null
           created_at?: string
@@ -1496,6 +1519,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          assigned_location_id?: string | null
           backup_codes_hash?: string[] | null
           city?: string | null
           created_at?: string
@@ -1512,7 +1536,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_assigned_location_id_fkey"
+            columns: ["assigned_location_id"]
+            isOneToOne: false
+            referencedRelation: "stock_locations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       purchase_order_items: {
         Row: {
@@ -2083,6 +2115,7 @@ export type Database = {
         Returns: undefined
       }
       approve_order_payment: { Args: { order_id: string }; Returns: undefined }
+      can_access_location: { Args: { _loc: string }; Returns: boolean }
       create_guest_order: {
         Args: { p_items: Json; p_order: Json }
         Returns: {
@@ -2090,6 +2123,7 @@ export type Database = {
           order_number: number
         }[]
       }
+      default_location_id: { Args: never; Returns: string }
       dispatch_calendar_reminders: { Args: never; Returns: undefined }
       dispatch_plan_prompt: { Args: { _kind: string }; Returns: undefined }
       dispatch_zero_sales_check: { Args: never; Returns: undefined }
@@ -2207,6 +2241,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      user_assigned_location: { Args: { _uid: string }; Returns: string }
       validate_voucher: {
         Args: { voucher_code: string }
         Returns: {
