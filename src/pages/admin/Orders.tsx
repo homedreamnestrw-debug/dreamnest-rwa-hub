@@ -10,6 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import { Constants } from "@/integrations/supabase/types";
 import { OrderDetailDialog } from "@/components/admin/OrderDetailDialog";
 import { loadStaffNames } from "@/lib/staffNames";
+import { BranchFilter, useBranchName } from "@/components/admin/BranchFilter";
 import {
   TIMELINE_LABELS, TIMELINE_ORDER, TimelinePreset,
   rangeFromPreset, inRange,
@@ -26,6 +27,8 @@ export default function Orders() {
   const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
   const [detailOrderId, setDetailOrderId] = useState<string | null>(null);
   const [staffNames, setStaffNames] = useState<Record<string, string>>({});
+  const [branch, setBranch] = useState("all");
+  const branchName = useBranchName();
 
   useEffect(() => { loadStaffNames().then(setStaffNames); }, []);
 
@@ -88,14 +91,15 @@ export default function Orders() {
         (o.guest_email || "").toLowerCase().includes(searchLower);
       const matchStatus = statusFilter === "all" || o.status === statusFilter;
       const matchDate = timeline === "all" ? true : inRange(o.created_at, range);
-      return matchSearch && matchStatus && matchDate;
+      const matchBranch = branch === "all" || o.location_id === branch;
+      return matchSearch && matchStatus && matchDate && matchBranch;
     });
     list.sort((a, b) => {
       const t = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
       return sortDir === "desc" ? -t : t;
     });
     return list;
-  }, [orders, search, statusFilter, timeline, range, sortDir]);
+  }, [orders, search, statusFilter, timeline, range, sortDir, branch]);
 
   return (
     <div className="space-y-6">
@@ -114,6 +118,7 @@ export default function Orders() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search by order #, name, phone..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
         </div>
+        <BranchFilter value={branch} onChange={setBranch} />
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -207,6 +212,7 @@ export default function Orders() {
               <TableHead>Order #</TableHead>
               <TableHead>Customer</TableHead>
               <TableHead>Created by</TableHead>
+              <TableHead>Branch</TableHead>
               <TableHead>Channel</TableHead>
               <TableHead>Total</TableHead>
               <TableHead>Payment</TableHead>
@@ -233,6 +239,10 @@ export default function Orders() {
                   </div>
                 </TableCell>
                 <TableCell className="text-sm whitespace-nowrap">{creatorDisplay(o)}</TableCell>
+                <TableCell className="text-sm whitespace-nowrap">
+                  {branchName(o.location_id)}
+                  {o.channel === "online" && <span className="block text-[10px] text-muted-foreground">fulfilling store</span>}
+                </TableCell>
                 <TableCell>
                   <Badge variant="secondary" className="capitalize text-xs">{o.channel}</Badge>
                 </TableCell>

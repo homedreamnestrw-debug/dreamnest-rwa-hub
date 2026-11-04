@@ -15,6 +15,10 @@ interface AuthContextType {
   isStaff: boolean;
   isStockManager: boolean;
   canManageStock: boolean;
+  /** Branch the signed-in staff member is assigned to (null = all branches). */
+  assignedLocationId: string | null;
+  /** True when this user is locked to a single branch (non-admin with an assignment). */
+  isBranchLocked: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,16 +27,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
+  const [assignedLocationId, setAssignedLocationId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchRoles = async (userId: string) => {
-    const { data } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId);
-    if (data) {
-      setRoles(data.map((r: any) => r.role as AppRole));
-    }
+    const [{ data }, { data: prof }] = await Promise.all([
+      supabase.from("user_roles").select("role").eq("user_id", userId),
+      supabase.from("profiles").select("assigned_location_id").eq("user_id", userId).maybeSingle(),
+    ]);
+    if (data) setRoles(data.map((r: any) => r.role as AppRole));
+    setAssignedLocationId((prof as any)?.assigned_location_id ?? null);
   };
 
   useEffect(() => {
@@ -44,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setTimeout(() => fetchRoles(session.user.id), 0);
         } else {
           setRoles([]);
+          setAssignedLocationId(null);
         }
         setLoading(false);
       }
@@ -64,6 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     await supabase.auth.signOut();
     setRoles([]);
+    setAssignedLocationId(null);
   };
 
   const hasRole = (role: AppRole) => roles.includes(role);
@@ -71,9 +77,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isStockManager = hasRole("stock_manager");
   const isStaff = hasRole("staff") || isStockManager || isAdmin;
   const canManageStock = isAdmin || isStockManager;
+  const isBranchLocked = !isAdmin && !!assignedLocationId;
 
   return (
-    <AuthContext.Provider value={{ session, user, roles, loading, signOut, hasRole, isAdmin, isStaff, isStockManager, canManageStock }}>
+    <AuthContext.Provider value={{ session, user, roles, loading, signOut, hasRole, isAdmin, isStaff, isStockManager, canManageStock, assignedLocationId, isBranchLocked }}>
       {children}
     </AuthContext.Provider>
   );

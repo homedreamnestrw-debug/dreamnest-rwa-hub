@@ -12,11 +12,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "sonner";
 import { UserPlus, Shield, Users } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
+import { useLocations } from "@/hooks/useLocations";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
 
 export default function Staff() {
   const queryClient = useQueryClient();
+  const { data: locations = [] } = useLocations();
   const [addOpen, setAddOpen] = useState(false);
   const [newEmail, setNewEmail] = useState("");
   const [newRole, setNewRole] = useState<AppRole>("staff");
@@ -36,18 +38,19 @@ export default function Staff() {
       const userIds = [...new Set(roles.map((r) => r.user_id))];
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("user_id, full_name, phone")
+        .select("user_id, full_name, phone, assigned_location_id")
         .in("user_id", userIds);
 
-      const profileMap = new Map(profiles?.map((p) => [p.user_id, p]) ?? []);
+      const profileMap = new Map((profiles as any[])?.map((p) => [p.user_id, p]) ?? []);
 
       return userIds.map((uid) => {
         const userRoles = roles.filter((r) => r.user_id === uid);
-        const profile = profileMap.get(uid);
+        const profile: any = profileMap.get(uid);
         return {
           user_id: uid,
           full_name: profile?.full_name ?? "Unknown",
           phone: profile?.phone,
+          assigned_location_id: (profile?.assigned_location_id ?? null) as string | null,
           roles: userRoles.map((r) => r.role),
           role_records: userRoles,
         };
@@ -231,12 +234,13 @@ export default function Staff() {
                 <TableHead>Name</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>Role</TableHead>
+                <TableHead>Branch</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
               ) : staffUsers && staffUsers.length > 0 ? (
                 staffUsers.map((staff) => (
                   <TableRow key={staff.user_id}>
@@ -248,6 +252,32 @@ export default function Staff() {
                           <Badge key={role} variant={roleBadgeVariant(role)}>{roleLabel(role)}</Badge>
                         ))}
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {staff.roles.includes("admin") ? (
+                        <span className="text-xs text-muted-foreground">All branches (admin)</span>
+                      ) : (
+                        <Select
+                          value={staff.assigned_location_id ?? "all"}
+                          onValueChange={async (v) => {
+                            const { error } = await supabase
+                              .from("profiles")
+                              .update({ assigned_location_id: v === "all" ? null : v } as any)
+                              .eq("user_id", staff.user_id);
+                            if (error) toast.error(error.message);
+                            else {
+                              toast.success("Branch updated");
+                              queryClient.invalidateQueries({ queryKey: ["staff-users"] });
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="h-8 w-44"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All branches</SelectItem>
+                            {locations.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2 flex-wrap">
@@ -290,7 +320,7 @@ export default function Staff() {
                   </TableRow>
                 ))
               ) : (
-                <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">No staff members found</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No staff members found</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
