@@ -89,7 +89,7 @@ const Scroller = ({ mobile, className, children }: any) =>
 
 
 export default function POS() {
-  const { user } = useAuth();
+  const { user, isBranchLocked, assignedLocationId } = useAuth();
   const isMobileView = useIsMobile();
   const [search, setSearch] = useState("");
   const [sortMode, setSortMode] = useState<"default" | "az" | "za" | "price_asc" | "price_desc">("default");
@@ -216,10 +216,14 @@ export default function POS() {
   });
 
   useEffect(() => {
+    if (isBranchLocked && assignedLocationId) {
+      if (selectedLocation !== assignedLocationId) setSelectedLocation(assignedLocationId);
+      return;
+    }
     if (locations && locations.length > 0 && !selectedLocation) {
       setSelectedLocation(locations[0].id);
     }
-  }, [locations, selectedLocation]);
+  }, [locations, selectedLocation, isBranchLocked, assignedLocationId]);
 
   const searchCustomer = useCallback(async (query: string) => {
     setCustomerPhone(query);
@@ -955,7 +959,7 @@ export default function POS() {
             <div className={cn("flex min-h-0 min-w-0 flex-col p-1", !isMobileView && "flex-1 h-full")}>
               <div className="toolbar-row mb-4">
                 {locations && locations.length > 0 && (
-                  <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+                  <Select value={selectedLocation} onValueChange={setSelectedLocation} disabled={isBranchLocked}>
                     <SelectTrigger className="w-full sm:w-48 h-11">
                       <MapPin className="h-4 w-4 mr-1 shrink-0 text-muted-foreground" />
                       <SelectValue placeholder="Location" />
