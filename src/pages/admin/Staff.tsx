@@ -36,18 +36,19 @@ export default function Staff() {
       const userIds = [...new Set(roles.map((r) => r.user_id))];
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("user_id, full_name, phone")
+        .select("user_id, full_name, phone, assigned_location_id")
         .in("user_id", userIds);
 
-      const profileMap = new Map(profiles?.map((p) => [p.user_id, p]) ?? []);
+      const profileMap = new Map((profiles as any[])?.map((p) => [p.user_id, p]) ?? []);
 
       return userIds.map((uid) => {
         const userRoles = roles.filter((r) => r.user_id === uid);
-        const profile = profileMap.get(uid);
+        const profile: any = profileMap.get(uid);
         return {
           user_id: uid,
           full_name: profile?.full_name ?? "Unknown",
           phone: profile?.phone,
+          assigned_location_id: (profile?.assigned_location_id ?? null) as string | null,
           roles: userRoles.map((r) => r.role),
           role_records: userRoles,
         };
