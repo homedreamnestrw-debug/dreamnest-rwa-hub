@@ -18,6 +18,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { downloadInvoicePdf, shareInvoiceOnWhatsApp } from "@/lib/receiptUtils";
 import { InvoicePreview } from "@/components/admin/InvoicePreview";
 import { loadStaffNames } from "@/lib/staffNames";
+import { BranchFilter, useBranchName } from "@/components/admin/BranchFilter";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import type { Tables, TablesInsert } from "@/integrations/supabase/types";
