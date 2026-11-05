@@ -13,6 +13,7 @@ import { Search, CreditCard, Wallet, AlertTriangle, History, Eye } from "lucide-
 import { toast } from "@/hooks/use-toast";
 import { OrderDetailDialog } from "@/components/admin/OrderDetailDialog";
 import { format } from "date-fns";
+import { BranchFilter } from "@/components/admin/BranchFilter";
 
 type Order = {
   id: string;
@@ -46,7 +47,9 @@ const formatRWF = (n: number) =>
 
 export default function CreditManagement() {
   const { user } = useAuth();
-  const [rows, setRows] = useState<Row[]>([]);
+  const [allRows, setRows] = useState<Row[]>([]);
+  const [branch, setBranch] = useState("all");
+  const rows = branch === "all" ? allRows : allRows.filter((r: any) => r.location_id === branch);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "outstanding" | "settled">("outstanding");
@@ -82,7 +85,7 @@ export default function CreditManagement() {
 
     const { data: orders } = await supabase
       .from("orders")
-      .select("id, order_number, total, payment_status, payment_method, channel, guest_name, guest_phone, guest_email, customer_id, created_at, status")
+      .select("id, order_number, total, payment_status, payment_method, channel, guest_name, guest_phone, guest_email, customer_id, created_at, status, location_id")
       .neq("status", "cancelled")
       .order("created_at", { ascending: false });
 
@@ -298,6 +301,7 @@ export default function CreditManagement() {
             <SelectItem value="age_desc">Most overdue</SelectItem>
           </SelectContent>
         </Select>
+        <BranchFilter value={branch} onChange={setBranch} />
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search by order, name, phone..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />

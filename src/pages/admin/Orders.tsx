@@ -189,7 +189,7 @@ export default function Orders() {
             </div>
             <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
               <span className="text-xs text-muted-foreground">
-                {creatorDisplay(o)} · {new Date(o.created_at).toLocaleString(undefined, { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                {branchName(o.location_id)} · {creatorDisplay(o)} · {new Date(o.created_at).toLocaleString(undefined, { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
               </span>
               <div onClick={(e) => e.stopPropagation()}>
                 <Select value={o.status} onValueChange={(v) => updateStatus(o.id, v)}>
