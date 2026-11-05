@@ -413,7 +413,7 @@ export default function Expenses() {
                       }} />
                     </TableCell>
                     <TableCell>{format(new Date(e.expense_date), "MMM d, yyyy")}</TableCell>
-                    <TableCell>{e.category}</TableCell>
+                    <TableCell>{e.category}<span className="block text-[10px] text-muted-foreground">{(e as any).location_id ? branchName((e as any).location_id) : "Company-wide"}</span></TableCell>
                     <TableCell className="max-w-xs truncate">{e.description || "—"}</TableCell>
                     <TableCell className="text-right font-medium">{formatRWF(e.amount)}</TableCell>
                     <TableCell>
