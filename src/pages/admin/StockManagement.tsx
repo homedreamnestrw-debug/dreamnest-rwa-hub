@@ -26,7 +26,7 @@ type ProductStock = { product_id: string; location_id: string; quantity: number 
 type VariantStock = { variant_id: string; location_id: string; quantity: number };
 
 export default function StockManagement() {
-  const { user } = useAuth();
+  const { user, isBranchLocked, assignedLocationId } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [variants, setVariants] = useState<Variant[]>([]);
   const [variantStock, setVariantStock] = useState<VariantStock[]>([]);
@@ -37,6 +37,9 @@ export default function StockManagement() {
   const [sortBy, setSortBy] = useState<string>("name_asc");
   const [loading, setLoading] = useState(true);
   const [overviewLocation, setOverviewLocation] = useState<string>("all");
+  useEffect(() => {
+    if (assignedLocationId) setOverviewLocation(assignedLocationId);
+  }, [assignedLocationId]);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   // Adjust dialog (works for product OR variant)
@@ -127,6 +130,46 @@ export default function StockManagement() {
 
   const variantStockAtLocation = (vid: string, lid: string): number =>
     variantStock.find((s) => s.variant_id === vid && s.location_id === lid)?.quantity ?? 0;
+
+  /** Per-branch quantities for a product (summing variants) or a single variant. */
+  const breakdown = (pid: string, vid?: string) =>
+    locations.map((l) => ({
+      id: l.id,
+      name: l.name,
+      qty: vid
+        ? variantStockAtLocation(vid, l.id)
+        : productHasVariants(pid)
+          ? variantsForProduct(pid).reduce((a, v) => a + variantStockAtLocation(v.id, l.id), 0)
+          : productStockAtLocation(pid, l.id),
+    }));
+
+  const openRequestTransfer = (pid: string, vid: string | undefined, toLoc: string) => {
+    const others = breakdown(pid, vid).filter((b) => b.id !== toLoc && b.qty > 0).sort((a, b) => b.qty - a.qty);
+    setTransferProduct(pid);
+    setTransferVariant(vid ?? "");
+    setTransferTo(toLoc);
+    setTransferFrom(others[0]?.id ?? "");
+    setTransferQty(1);
+    setTransferOpen(true);
+  };
+
+  const OtherBranches = ({ pid, vid }: { pid: string; vid?: string }) => {
+    if (overviewLocation === "all" || locations.length < 2) return null;
+    const others = breakdown(pid, vid).filter((b) => b.id !== overviewLocation && b.qty > 0);
+    if (others.length === 0) return <span className="text-xs text-muted-foreground">None elsewhere</span>;
+    const total = others.reduce((a, b) => a + b.qty, 0);
+    return (
+      <div className="flex flex-col gap-1">
+        <span className="text-xs font-medium text-primary">{total} in {others.length} other branch{others.length > 1 ? "es" : ""}</span>
+        <span className="text-[11px] text-muted-foreground leading-tight">
+          {others.map((o) => `${o.name}: ${o.qty}`).join(" · ")}
+        </span>
+        <Button variant="outline" size="sm" className="h-7 w-fit text-xs" onClick={() => openRequestTransfer(pid, vid, overviewLocation)}>
+          <ArrowRightLeft className="h-3 w-3 mr-1" /> Request transfer
+        </Button>
+      </div>
+    );
+  };
 
   const lowStockProducts = products.filter((p) => p.stock_quantity <= p.low_stock_threshold);
   const outOfStock = products.filter((p) => p.stock_quantity <= 0);
@@ -367,12 +410,13 @@ export default function StockManagement() {
                   <TableHead>Stock {overviewLocation === "all" ? "(total)" : `at ${locations.find(l => l.id === overviewLocation)?.name || ""}`}</TableHead>
                   <TableHead>Threshold</TableHead>
                   <TableHead>Status</TableHead>
+                  {overviewLocation !== "all" && <TableHead>Other branches</TableHead>}
                   <TableHead className="w-24">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No products found</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No products found</TableCell></TableRow>
                 ) : filtered.map((p) => {
                   const qty = productStockForView(p.id);
                   const hasVar = productHasVariants(p.id);
@@ -401,6 +445,7 @@ export default function StockManagement() {
                         <TableCell className={qty <= p.low_stock_threshold ? "text-destructive font-semibold" : ""}>{qty}</TableCell>
                         <TableCell>{p.low_stock_threshold}</TableCell>
                         <TableCell>{stockBadge(qty, p.low_stock_threshold)}</TableCell>
+                        {overviewLocation !== "all" && <TableCell>{hasVar ? <span className="text-xs text-muted-foreground">{breakdown(p.id).filter(b => b.id !== overviewLocation).reduce((a, b) => a + b.qty, 0)} elsewhere</span> : <OtherBranches pid={p.id} />}</TableCell>}
                         <TableCell>
                           {hasVar ? (
                             <span className="text-xs text-muted-foreground">expand →</span>
@@ -421,6 +466,7 @@ export default function StockManagement() {
                             <TableCell className={vQty <= 0 ? "text-destructive font-medium" : ""}>{vQty}</TableCell>
                             <TableCell className="text-muted-foreground text-xs">—</TableCell>
                             <TableCell>{vQty <= 0 ? <Badge variant="destructive" className="text-[10px]">Out</Badge> : <Badge variant="secondary" className="text-[10px]">In stock</Badge>}</TableCell>
+                            {overviewLocation !== "all" && <TableCell><OtherBranches pid={p.id} vid={v.id} /></TableCell>}
                             <TableCell>
                               <Button variant="outline" size="sm" onClick={() => openAdjustVariant(p, v)}>
                                 <Plus className="h-3 w-3 mr-1" /> Adjust
