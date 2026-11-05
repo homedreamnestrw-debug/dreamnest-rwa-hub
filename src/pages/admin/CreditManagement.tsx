@@ -13,6 +13,7 @@ import { Search, CreditCard, Wallet, AlertTriangle, History, Eye } from "lucide-
 import { toast } from "@/hooks/use-toast";
 import { OrderDetailDialog } from "@/components/admin/OrderDetailDialog";
 import { format } from "date-fns";
+import { BranchFilter } from "@/components/admin/BranchFilter";
 
 type Order = {
   id: string;
