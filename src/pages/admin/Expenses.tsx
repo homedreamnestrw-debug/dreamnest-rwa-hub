@@ -23,6 +23,8 @@ import { useReportRange } from "@/components/admin/reports/useDateRange";
 import { KpiCard } from "@/components/admin/reports/KpiCard";
 import { formatRWF, formatInt, pctDelta, bucketKey, bucketLabel, emptyBuckets, downloadCSV } from "@/lib/reportAggregations";
 import { exportElementToPDF } from "@/lib/reportPdf";
+import { BranchFilter, useBranchName } from "@/components/admin/BranchFilter";
+import { useLocations } from "@/hooks/useLocations";
 
 type Expense = Tables<"expenses">;
 const COLORS = ["hsl(25, 35%, 28%)", "hsl(40, 50%, 72%)", "hsl(32, 25%, 65%)", "hsl(0, 72%, 51%)", "hsl(210, 60%, 50%)", "hsl(150, 50%, 40%)", "hsl(280, 40%, 55%)"];
@@ -51,7 +53,11 @@ export default function Expenses() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
-  const [form, setForm] = useState({ category: "Supplies", amount: 0, description: "", expense_date: new Date().toISOString().split("T")[0], receipt_url: "" });
+  const [form, setForm] = useState({ category: "Supplies", amount: 0, description: "", expense_date: new Date().toISOString().split("T")[0], receipt_url: "", location_id: "" });
+  const [branch, setBranch] = useState("all");
+  const [revenueOrders, setRevenueOrders] = useState<any[]>([]);
+  const { data: locations = [] } = useLocations();
+  const branchName = useBranchName();
 
   const [budgets, setBudgets] = useState<Record<string, number>>(() => {
     try { return JSON.parse(localStorage.getItem(BUDGET_KEY) || "{}"); } catch { return {}; }
@@ -71,25 +77,31 @@ export default function Expenses() {
       const [{ data: cur }, prevRes, revRes] = await Promise.all([
         supabase.from("expenses").select("*").gte("expense_date", fromIso).lte("expense_date", toIso).order("expense_date", { ascending: false }).limit(5000),
         state.compare ? supabase.from("expenses").select("*").gte("expense_date", prevFromIso).lte("expense_date", prevToIso).limit(5000) : Promise.resolve({ data: [] as Expense[] } as any),
-        supabase.from("orders").select("created_at, total, status").gte("created_at", range.from.toISOString()).lte("created_at", range.to.toISOString()).limit(5000),
+        supabase.from("orders").select("created_at, total, status, location_id").gte("created_at", range.from.toISOString()).lte("created_at", range.to.toISOString()).limit(5000),
       ]);
       if (!active) return;
       setAll((cur as Expense[]) || []);
       setPrevAll((prevRes.data as Expense[]) || []);
-      const buckets: Record<string, number> = {};
-      ((revRes.data as any[]) || []).forEach((o) => {
-        if (o.status === "cancelled" || o.status === "refunded") return;
-        const k = bucketKey(new Date(o.created_at), granularity);
-        buckets[k] = (buckets[k] || 0) + (o.total || 0);
-      });
-      setRevenueByBucket(buckets);
+      setRevenueOrders((revRes.data as any[]) || []);
       setLoading(false);
     })();
     return () => { active = false; };
   }, [range.from, range.to, prevRange.from, prevRange.to, state.compare, granularity]);
 
+  useEffect(() => {
+    const buckets: Record<string, number> = {};
+    revenueOrders.forEach((o) => {
+      if (o.status === "cancelled" || o.status === "refunded") return;
+      if (branch !== "all" && o.location_id !== branch) return;
+      const k = bucketKey(new Date(o.created_at), granularity);
+      buckets[k] = (buckets[k] || 0) + (o.total || 0);
+    });
+    setRevenueByBucket(buckets);
+  }, [revenueOrders, branch, granularity]);
+
   const filtered = useMemo(() => {
     return all.filter((e) => {
+      if (branch !== "all" && (e as any).location_id !== branch) return false;
       if (filterCategory !== "all" && e.category !== filterCategory) return false;
       if (minAmount && e.amount < +minAmount) return false;
       if (maxAmount && e.amount > +maxAmount) return false;
@@ -101,7 +113,7 @@ export default function Expenses() {
       }
       return true;
     });
-  }, [all, filterCategory, minAmount, maxAmount, hasReceipt, search]);
+  }, [all, filterCategory, minAmount, maxAmount, hasReceipt, search, branch]);
 
   const sorted = useMemo(() => {
     const copy = [...filtered];
@@ -157,17 +169,18 @@ export default function Expenses() {
     setAll((data as Expense[]) || []);
   };
 
-  const resetForm = () => { setForm({ category: "Supplies", amount: 0, description: "", expense_date: new Date().toISOString().split("T")[0], receipt_url: "" }); setEditing(null); };
+  const resetForm = () => { setForm({ category: "Supplies", amount: 0, description: "", expense_date: new Date().toISOString().split("T")[0], receipt_url: "", location_id: "" }); setEditing(null); };
   const openEdit = (e: Expense) => {
     setEditing(e);
-    setForm({ category: e.category, amount: e.amount, description: e.description || "", expense_date: e.expense_date, receipt_url: e.receipt_url || "" });
+    setForm({ category: e.category, amount: e.amount, description: e.description || "", expense_date: e.expense_date, receipt_url: e.receipt_url || "", location_id: (e as any).location_id || "" });
     setDialogOpen(true);
   };
   const handleSave = async () => {
-    const payload: TablesInsert<"expenses"> = {
+    const payload = {
       category: form.category, amount: form.amount, description: form.description || null,
       expense_date: form.expense_date, receipt_url: form.receipt_url || null,
-    };
+      location_id: form.location_id || null,
+    } as TablesInsert<"expenses">;
     if (editing) {
       const { error } = await supabase.from("expenses").update(payload).eq("id", editing.id);
       if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
@@ -222,6 +235,16 @@ export default function Expenses() {
               <div className="grid grid-cols-2 gap-4">
                 <div><Label>Amount (RWF)</Label><Input type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: +e.target.value })} /></div>
                 <div><Label>Date</Label><Input type="date" value={form.expense_date} onChange={(e) => setForm({ ...form, expense_date: e.target.value })} /></div>
+                <div>
+                  <Label>Branch</Label>
+                  <Select value={form.location_id || "company"} onValueChange={(v) => setForm({ ...form, location_id: v === "company" ? "" : v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="company">Company-wide</SelectItem>
+                      {locations.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div><Label>Description</Label><Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
               <div><Label>Receipt URL</Label><Input value={form.receipt_url} onChange={(e) => setForm({ ...form, receipt_url: e.target.value })} placeholder="https://..." /></div>
@@ -331,6 +354,7 @@ export default function Expenses() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
           </div>
+          <BranchFilter value={branch} onChange={setBranch} />
           <Select value={filterCategory} onValueChange={setFilterCategory}>
             <SelectTrigger className="w-[160px]"><SelectValue placeholder="Category" /></SelectTrigger>
             <SelectContent>
