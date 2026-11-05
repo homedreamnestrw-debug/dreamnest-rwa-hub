@@ -57,6 +57,8 @@ export default function Invoices() {
   const [filterType, setFilterType] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterSource, setFilterSource] = useState<string>("all");
+  const [branch, setBranch] = useState("all");
+  const branchName = useBranchName();
   const [timeline, setTimeline] = useState<TimelinePreset>("this_month");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
@@ -122,7 +124,7 @@ export default function Invoices() {
     // Fetch orders so we can auto-list those without an invoice/receipt yet
     const { data: orderData } = await supabase
       .from("orders")
-      .select("id, order_number, channel, total, subtotal, tax_amount, discount_amount, status, payment_status, payment_approved, notes, created_at, customer_id, served_by")
+      .select("id, order_number, channel, total, subtotal, tax_amount, discount_amount, status, payment_status, payment_approved, notes, created_at, customer_id, served_by, location_id")
       .order("created_at", { ascending: false });
 
     const billedOrderIds = new Set((invoiceData || []).filter(i => i.order_id).map(i => i.order_id as string));
@@ -152,6 +154,7 @@ export default function Invoices() {
           notes: o.notes,
           customer_id: o.customer_id,
           created_by: o.served_by ?? null,
+          location_id: o.location_id ?? null,
           order_id: o.id,
           created_at: o.created_at,
           updated_at: o.created_at,
@@ -535,6 +538,7 @@ export default function Invoices() {
       }
       if (search && !inv.document_number.toLowerCase().includes(search.toLowerCase())) return false;
       if (timeline !== "all" && !inRange(inv.created_at, range)) return false;
+      if (branch !== "all" && (inv as any).location_id !== branch) return false;
       return true;
     });
     list.sort((a, b) => {
@@ -542,7 +546,7 @@ export default function Invoices() {
       return sortDir === "desc" ? -t : t;
     });
     return list;
-  }, [invoices, filterType, filterStatus, filterSource, search, timeline, range, sortDir]);
+  }, [invoices, filterType, filterStatus, filterSource, search, timeline, range, sortDir, branch]);
 
   const counts = {
     online: invoices.filter(i => i._order_channel === "online").length,
@@ -709,6 +713,7 @@ export default function Invoices() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search by number..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
         </div>
+        <BranchFilter value={branch} onChange={setBranch} />
         <Select value={filterType} onValueChange={setFilterType}>
           <SelectTrigger className="w-full sm:w-[140px]"><SelectValue placeholder="Type" /></SelectTrigger>
           <SelectContent>
@@ -846,6 +851,7 @@ export default function Invoices() {
                     <div className="flex items-center gap-1.5 text-xs">
                       {sourceIcon}
                       <span className="text-muted-foreground">{sourceLabel}</span>
+                      <span className="text-muted-foreground">· {branchName((inv as any).location_id)}</span>
                     </div>
                   </TableCell>
                   <TableCell className="capitalize whitespace-nowrap">{inv.document_type}</TableCell>
