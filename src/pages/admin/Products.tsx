@@ -40,6 +40,34 @@ export default function Products() {
   const [locations, setLocations] = useState<StockLocation[]>([]);
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<string>("name_asc");
+  const { isBranchLocked, assignedLocationId } = useAuth();
+  const [branch, setBranch] = useState<string>("all");
+  const [branchQty, setBranchQty] = useState<Record<string, number>>({});
+  useEffect(() => {
+    if (isBranchLocked && assignedLocationId) setBranch(assignedLocationId);
+  }, [isBranchLocked, assignedLocationId]);
+  useEffect(() => {
+    if (branch === "all") return;
+    let active = true;
+    (async () => {
+      const [ps, vs] = await Promise.all([
+        supabase.from("product_stock").select("product_id, quantity").eq("location_id", branch),
+        supabase.from("variant_stock").select("quantity, product_variants!inner(product_id, is_active)").eq("location_id", branch),
+      ]);
+      if (!active) return;
+      const map: Record<string, number> = {};
+      const varTotals: Record<string, number> = {};
+      ((vs.data as any[]) || []).forEach((r) => {
+        if (r.product_variants?.is_active === false) return;
+        const pid = r.product_variants?.product_id;
+        if (pid) varTotals[pid] = (varTotals[pid] || 0) + (r.quantity || 0);
+      });
+      ((ps.data as any[]) || []).forEach((r) => { map[r.product_id] = r.quantity || 0; });
+      Object.assign(map, varTotals); // products with variants use their variants' total
+      setBranchQty(map);
+    })();
+    return () => { active = false; };
+  }, [branch]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
@@ -401,6 +429,8 @@ export default function Products() {
 
   const formatRWF = (n: number) => new Intl.NumberFormat("en-RW", { style: "currency", currency: "RWF", minimumFractionDigits: 0 }).format(n);
 
+  const qtyOf = (p: Product) => (branch === "all" ? p.stock_quantity ?? 0 : branchQty[p.id] ?? 0);
+
   const filtered = products
     .filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => {
@@ -408,8 +438,8 @@ export default function Products() {
         case "name_desc": return b.name.localeCompare(a.name);
         case "price_asc": return Number(a.price) - Number(b.price);
         case "price_desc": return Number(b.price) - Number(a.price);
-        case "stock_asc": return (a.stock_quantity ?? 0) - (b.stock_quantity ?? 0);
-        case "stock_desc": return (b.stock_quantity ?? 0) - (a.stock_quantity ?? 0);
+        case "stock_asc": return qtyOf(a) - qtyOf(b);
+        case "stock_desc": return qtyOf(b) - qtyOf(a);
         case "newest": return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         case "oldest": return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
         default: return a.name.localeCompare(b.name);
@@ -657,6 +687,7 @@ export default function Products() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search products..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
         </div>
+        <BranchFilter value={branch} onChange={setBranch} />
         <Select value={sortBy} onValueChange={setSortBy}>
           <SelectTrigger className="w-full sm:w-[200px]"><SelectValue placeholder="Sort by" /></SelectTrigger>
           <SelectContent>
@@ -692,8 +723,8 @@ export default function Products() {
                 <p className="text-xs text-muted-foreground truncate">{p.sku || "—"}</p>
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
                   <span className="font-serif">{formatRWF(p.price)}</span>
-                  <span className={p.stock_quantity <= p.low_stock_threshold ? "text-destructive font-medium" : "text-muted-foreground"}>
-                    Stock: {p.stock_quantity}
+                  <span className={qtyOf(p) <= p.low_stock_threshold ? "text-destructive font-medium" : "text-muted-foreground"}>
+                    Stock: {qtyOf(p)}
                   </span>
                 </div>
                 <div className="mt-2">{renderToggles(p)}
@@ -746,8 +777,8 @@ export default function Products() {
                 <TableCell className="text-muted-foreground">{p.sku || "—"}</TableCell>
                 <TableCell>{formatRWF(p.price)}</TableCell>
                 <TableCell>
-                  <span className={p.stock_quantity <= p.low_stock_threshold ? "text-destructive font-medium" : ""}>
-                    {p.stock_quantity}
+                  <span className={qtyOf(p) <= p.low_stock_threshold ? "text-destructive font-medium" : ""}>
+                    {qtyOf(p)}
                   </span>
                 </TableCell>
                 <TableCell>
