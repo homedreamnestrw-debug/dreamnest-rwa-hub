@@ -7,7 +7,6 @@ import { Separator } from "@/components/ui/separator";
 import { MapPin, Phone, Mail, User, StickyNote, Package, MessageCircle, Truck, Mailbox, Save } from "lucide-react";
 import { loadStaffNames } from "@/lib/staffNames";
 import { useBranchName } from "@/components/admin/BranchFilter";
-import { MapPin } from "lucide-react";
 
 interface OrderDetailDialogProps {
   orderId: string | null;
