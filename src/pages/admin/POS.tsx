@@ -1329,9 +1329,9 @@ export default function POS() {
         open={!!variantPickerProduct}
         onOpenChange={(o) => { if (!o) closeVariantPicker(); }}
       >
-        <DialogContent className="max-w-lg max-h-[90dvh] grid-rows-[auto_minmax(0,1fr)] overflow-hidden">
+        <DialogContent className="w-[calc(100vw-1rem)] max-w-lg max-h-[90dvh] grid-rows-[auto_minmax(0,1fr)] overflow-hidden p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle>Choose variants — {variantPickerProduct?.name}</DialogTitle>
+            <DialogTitle className="pr-6 text-left">Choose variants — {variantPickerProduct?.name}</DialogTitle>
           </DialogHeader>
           {variantPickerLoading ? (
             <div className="py-8 text-center text-sm text-muted-foreground"><Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" /> Loading variants…</div>
@@ -1350,7 +1350,7 @@ export default function POS() {
             };
             return (
               <div className="flex min-h-0 flex-col gap-3">
-                <div className="-mr-1 min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">
+                <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain">
                   <div className="space-y-2">
                     {variantPickerOptions.map((variant) => {
                       const stock = variant.stock_quantity ?? 0;
@@ -1361,7 +1361,7 @@ export default function POS() {
                       return (
                         <div
                           key={variant.id}
-                          className={`flex items-center gap-3 rounded-md border px-3 py-2 text-sm transition-colors ${isSelected ? "border-primary bg-primary/5" : ""} ${!inStock ? "opacity-60" : ""}`}
+                          className={`flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md border px-3 py-2 text-sm transition-colors ${isSelected ? "border-primary bg-primary/5" : ""} ${!inStock ? "opacity-60" : ""}`}
                         >
                           <Checkbox
                             checked={isSelected}
@@ -1373,15 +1373,15 @@ export default function POS() {
                           />
                           <div className="flex-1 min-w-0">
                             <div className="font-medium truncate">{variant.variant_name}</div>
-                            <div className="text-xs text-muted-foreground flex gap-3">
+                            <div className="text-xs text-muted-foreground flex flex-wrap gap-x-3 gap-y-0.5">
                               <span>{formatPrice(unitPrice)}</span>
                               <span className={!inStock ? "text-destructive" : ""}>
                                 {inStock ? `Stock ${stock}` : "Out of stock"}
                               </span>
-                              {variant.sku && <span className="truncate">SKU {variant.sku}</span>}
+                              {variant.sku && <span className="truncate max-w-full">SKU {variant.sku}</span>}
                             </div>
                           </div>
-                          <div className="flex items-center gap-1">
+                          <div className="ml-auto flex shrink-0 items-center gap-1">
                             <Button
                               type="button"
                               size="icon"
@@ -1417,13 +1417,13 @@ export default function POS() {
                     })}
                   </div>
                 </div>
-                <div className="flex shrink-0 items-center justify-between gap-2 border-t pt-2">
+                <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t pt-2">
                   <div className="text-xs text-muted-foreground">
                     {selectedEntries.length === 0
                       ? "Select one or more variants"
                       : `${selectedEntries.length} variant${selectedEntries.length > 1 ? "s" : ""}, ${totalUnits} unit${totalUnits > 1 ? "s" : ""}`}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="ml-auto flex gap-2">
                     <Button variant="outline" onClick={closeVariantPicker}>Cancel</Button>
                     <Button onClick={confirmVariantMultiPick} disabled={selectedEntries.length === 0}>
                       Add {totalUnits > 0 ? `${totalUnits} item${totalUnits > 1 ? "s" : ""}` : "to cart"}
