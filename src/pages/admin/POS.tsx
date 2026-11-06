@@ -1329,7 +1329,7 @@ export default function POS() {
         open={!!variantPickerProduct}
         onOpenChange={(o) => { if (!o) closeVariantPicker(); }}
       >
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90dvh] grid-rows-[auto_minmax(0,1fr)] overflow-hidden">
           <DialogHeader>
             <DialogTitle>Choose variants — {variantPickerProduct?.name}</DialogTitle>
           </DialogHeader>
@@ -1349,8 +1349,8 @@ export default function POS() {
               });
             };
             return (
-              <div className="space-y-3">
-                <ScrollArea className="max-h-[55vh] pr-2">
+              <div className="flex min-h-0 flex-col gap-3">
+                <div className="-mr-1 min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">
                   <div className="space-y-2">
                     {variantPickerOptions.map((variant) => {
                       const stock = variant.stock_quantity ?? 0;
@@ -1416,8 +1416,8 @@ export default function POS() {
                       );
                     })}
                   </div>
-                </ScrollArea>
-                <div className="flex items-center justify-between gap-2 pt-2 border-t">
+                </div>
+                <div className="flex shrink-0 items-center justify-between gap-2 border-t pt-2">
                   <div className="text-xs text-muted-foreground">
                     {selectedEntries.length === 0
                       ? "Select one or more variants"
