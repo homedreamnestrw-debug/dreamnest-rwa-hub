@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { MapPin, Phone, Mail, User, StickyNote, Package, MessageCircle, Truck, Mailbox, Save } from "lucide-react";
 import { loadStaffNames } from "@/lib/staffNames";
+import { useBranchName } from "@/components/admin/BranchFilter";
 
 interface OrderDetailDialogProps {
   orderId: string | null;
@@ -18,6 +19,7 @@ export function OrderDetailDialog({ orderId, open, onOpenChange }: OrderDetailDi
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [staffNames, setStaffNames] = useState<Record<string, string>>({});
+  const branchName = useBranchName();
 
   useEffect(() => {
     if (!orderId || !open) return;
@@ -96,6 +98,12 @@ export function OrderDetailDialog({ orderId, open, onOpenChange }: OrderDetailDi
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4 text-muted-foreground" />
                     <span>Served by {staffNames[order.served_by] || "Staff"}</span>
+                  </div>
+                )}
+                {order.location_id && (
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    <span>{order.channel === "online" ? "Fulfilled by" : "Branch"}: {branchName(order.location_id)}</span>
                   </div>
                 )}
               </div>

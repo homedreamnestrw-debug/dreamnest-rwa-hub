@@ -1,0 +1,1 @@
+- Branch separation: staff with profiles.assigned_location_id see only orders/invoices of that branch via RLS (can_access_location); admins and unassigned staff see all. Why: per-store privacy enforced server-side, UI filters are convenience only.

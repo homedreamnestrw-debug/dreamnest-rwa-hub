@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { ProductThumb } from "@/components/ui/product-thumb";
 import { Plus, Pencil, Trash2, Search, Sparkles, Loader2, Languages, Wand2, Scissors, Type, X, Package, History } from "lucide-react";
 import { ProductHistoryDrawer } from "@/components/admin/ProductHistoryDrawer";
+import { BranchFilter } from "@/components/admin/BranchFilter";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { ProductImageUpload } from "@/components/admin/ProductImageUpload";
@@ -33,14 +34,13 @@ type Category = Tables<"categories">;
 type StockLocation = Tables<"stock_locations">;
 
 export default function Products() {
-  const { canManageStock } = useAuth();
+  const { canManageStock, isBranchLocked, assignedLocationId } = useAuth();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [locations, setLocations] = useState<StockLocation[]>([]);
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<string>("name_asc");
-  const { isBranchLocked, assignedLocationId } = useAuth();
   const [branch, setBranch] = useState<string>("all");
   const [branchQty, setBranchQty] = useState<Record<string, number>>({});
   useEffect(() => {
