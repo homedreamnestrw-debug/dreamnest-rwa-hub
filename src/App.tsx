@@ -26,7 +26,6 @@ import Checkout from "./pages/Checkout";
 import OrderConfirmation from "./pages/OrderConfirmation";
 import Account from "./pages/Account";
 import Terms from "./pages/Terms";
-import ScrollProbe from "./pages/ScrollProbe";
 
 // Admin pages
 import Dashboard from "./pages/admin/Dashboard";
@@ -88,7 +87,6 @@ const App = () => (
             <Route path="/wishlist" element={<Account />} />
             <Route path="/gift-vouchers" element={<GiftVouchers />} />
             <Route path="/gift-vouchers/confirmation/:code" element={<GiftVoucherConfirmation />} />
-            <Route path="/scroll-probe" element={<ScrollProbe />} />
             <Route path="/creative-studio" element={<Navigate to="/admin/creative-studio" replace />} />
 
             {/* Admin */}
